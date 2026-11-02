@@ -3,6 +3,8 @@
     "rootNamespace": "ShiftRegister.Tests",
     "references": [
         "ShiftRegister.Core",
+        "ShiftRegister.Game",
+        "ShiftRegister.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

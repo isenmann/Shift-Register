@@ -82,7 +82,10 @@ namespace ShiftRegister.Core
         public LossRule lossRule = LossRule.Any;
         public int lossCount;
 
-        /// <summary>Designer par; 0 means use the solver's optimum.</summary>
+        /// <summary>Fewest moves to solve; written by the level tool from the solver. 0 = not solved yet.</summary>
         public int par;
+
+        /// <summary>One shortest solution in move notation (e.g. "R5← C4↑"); written by the level tool.</summary>
+        public string solution = "";
     }
 }

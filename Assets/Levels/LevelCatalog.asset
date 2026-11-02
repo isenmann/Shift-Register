@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7fbf6772a294f57587ea4a569dc00a1, type: 3}
+  m_Name: LevelCatalog
+  m_EditorClassIdentifier: ShiftRegister.Game::ShiftRegister.Game.LevelCatalog
+  chapters:
+  - name: Basics
+    description: Row and column shifts, and the edge that eats bits.
+    levels:
+    - {fileID: 4900000, guid: 5421b8601ea51283a860c78304169bed, type: 3}
+  - name: Numbers
+    description: Rows become numbers. Left doubles, right halves.
+    levels:
+    - {fileID: 4900000, guid: bff1d4d0bd38878649501c54764a60b4, type: 3}
+  - name: Walls & Pins
+    description: Walls split rows into parts, pins lock a row and column.
+    levels: []
+  - name: Rotate
+    description: Some rows wrap around instead of dropping bits.
+    levels: []
+  - name: Carry
+    description: Chained rows carry overflow into the next row.
+    levels: []
+  - name: Logic
+    description: 'Masks combine with a row after every move: AND keeps, OR sets, XOR toggles.'
+    levels:
+    - {fileID: 4900000, guid: 8d816511b7ae31c4c8e8a7e6af57befe, type: 3}
