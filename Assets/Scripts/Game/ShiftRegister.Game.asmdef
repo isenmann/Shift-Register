@@ -3,7 +3,9 @@
     "rootNamespace": "ShiftRegister.Game",
     "references": [
         "ShiftRegister.Core",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

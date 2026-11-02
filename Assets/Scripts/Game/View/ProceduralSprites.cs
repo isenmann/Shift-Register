@@ -7,27 +7,30 @@ namespace ShiftRegister.Game.View
     /// Anti-aliased shapes drawn into textures at runtime, so the board needs no art files.
     /// Sizes are given in mockup pixels (a cell is 46); textures are rendered at
     /// <see cref="Resolution"/> pixels per cell, and one cell is one world unit.
-    /// White sprites are tinted by the SpriteRenderer colour.
+    /// White sprites are tinted by the SpriteRenderer or Image colour. With ui = true a sprite is sized
+    /// for a canvas whose units are mockup pixels (call Image.SetNativeSize).
     /// </summary>
     public static class ProceduralSprites
     {
         public const int Resolution = 128;
         const float Scale = Resolution / ScreenLayout.PxPerUnit;
         const int Pad = 2;
+        /// <summary>UI sprites: one mockup pixel = one canvas unit (Canvas reference pixels per unit is 100).</summary>
+        const float UiPixelsPerUnit = Scale * 100f;
 
         static readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
 
         /// <summary>Filled rounded rectangle.</summary>
-        public static Sprite RoundedRect(float w, float h, float radius) =>
-            Get($"rect {w} {h} {radius}", w, h, (px, py, hw, hh) =>
+        public static Sprite RoundedRect(float w, float h, float radius, bool ui = false) =>
+            Get($"rect {w} {h} {radius}", w, h, ui, (px, py, hw, hh) =>
             {
                 float d = RoundedRectDistance(px, py, hw, hh, radius * Scale);
                 return new Color(1, 1, 1, Fill(d));
             });
 
         /// <summary>Rounded outline drawn inside the shape's edge; dash = 0 for a solid line.</summary>
-        public static Sprite RoundedOutline(float w, float h, float radius, float thickness, float dash = 0f) =>
-            Get($"outline {w} {h} {radius} {thickness} {dash}", w, h, (px, py, hw, hh) =>
+        public static Sprite RoundedOutline(float w, float h, float radius, float thickness, float dash = 0f, bool ui = false) =>
+            Get($"outline {w} {h} {radius} {thickness} {dash}", w, h, ui, (px, py, hw, hh) =>
             {
                 float d = RoundedRectDistance(px, py, hw, hh, radius * Scale);
                 float a = Fill(d) * Mathf.Clamp01(0.5f + d + thickness * Scale);
@@ -44,7 +47,7 @@ namespace ShiftRegister.Game.View
 
         /// <summary>Wall cell: diagonal hatching with a border, colours baked in.</summary>
         public static Sprite Hatched(float size, float radius, float stripe, float border, Color32 ink, Color32 ground) =>
-            Get($"hatch {size} {radius} {stripe} {border} {ink} {ground}", size, size, (px, py, hw, hh) =>
+            Get($"hatch {size} {radius} {stripe} {border} {ink} {ground}", size, size, false, (px, py, hw, hh) =>
             {
                 float d = RoundedRectDistance(px, py, hw, hh, radius * Scale);
                 float a = Fill(d);
@@ -56,8 +59,8 @@ namespace ShiftRegister.Game.View
             });
 
         /// <summary>Upward chevron with round caps (the mockup's 16 px "M3 10l5-5 5 5" icon), scaled to size.</summary>
-        public static Sprite Chevron(float size, float stroke) =>
-            Get($"chevron {size} {stroke}", size, size, (px, py, hw, hh) =>
+        public static Sprite Chevron(float size, float stroke, bool ui = false) =>
+            Get($"chevron {size} {stroke}", size, size, ui, (px, py, hw, hh) =>
             {
                 float k = size / 16f;
                 var p = new Vector2(px, py) / Scale;
@@ -77,8 +80,9 @@ namespace ShiftRegister.Game.View
 
         delegate Color PixelFn(float px, float py, float hw, float hh);
 
-        static Sprite Get(string key, float w, float h, PixelFn shade)
+        static Sprite Get(string key, float w, float h, bool ui, PixelFn shade)
         {
+            if (ui) key = "ui " + key;
             if (cache.TryGetValue(key, out var sprite) && sprite != null) return sprite;
 
             int tw = Mathf.CeilToInt(w * Scale) + 2 * Pad;
@@ -103,7 +107,7 @@ namespace ShiftRegister.Game.View
             tex.SetPixels(pixels);
             tex.Apply(true, true);
 
-            sprite = Sprite.Create(tex, new Rect(0, 0, tw, th), new Vector2(0.5f, 0.5f), Resolution, 0, SpriteMeshType.FullRect);
+            sprite = Sprite.Create(tex, new Rect(0, 0, tw, th), new Vector2(0.5f, 0.5f), ui ? UiPixelsPerUnit : Resolution, 0, SpriteMeshType.FullRect);
             sprite.name = key;
             sprite.hideFlags = HideFlags.DontSave;
             cache[key] = sprite;

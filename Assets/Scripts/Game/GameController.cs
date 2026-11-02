@@ -19,6 +19,8 @@ namespace ShiftRegister.Game
 
         public Board Board { get; private set; }
         public LevelData Level { get; private set; }
+        public int ChapterIndex { get; private set; }
+        public LevelCatalog.Chapter Chapter => catalog.chapters[ChapterIndex];
 
         /// <summary>Raised after every board change: a move, undo, reset or a new level.</summary>
         public event Action Changed;
@@ -31,6 +33,7 @@ namespace ShiftRegister.Game
         public void Load(int chapter, int level)
         {
             var file = catalog.chapters[chapter].levels[level];
+            ChapterIndex = chapter;
             Level = LevelJson.Parse(file);
             Board = new Board(Level);
 
