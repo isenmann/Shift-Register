@@ -28,6 +28,7 @@ namespace ShiftRegister.Game.View
         [SerializeField] Material spriteMaterial;
 
         Cell[,] cells;
+        Transform cellsRoot;
         LevelRules rules;
 
         public LevelRules Rules => rules;
@@ -39,7 +40,9 @@ namespace ShiftRegister.Game.View
         public void Build(LevelRules levelRules)
         {
             rules = levelRules;
-            for (int i = transform.childCount - 1; i >= 0; i--) DestroySafe(transform.GetChild(i).gameObject);
+            if (cellsRoot != null) DestroySafe(cellsRoot.gameObject);
+            cellsRoot = new GameObject("Cells").transform;
+            cellsRoot.SetParent(transform, false);
 
             var ground = ProceduralSprites.RoundedRect(CellPx, CellPx, RadiusPx);
             var wall = ProceduralSprites.Hatched(CellPx, RadiusPx, 4f, 2f, Lcd.Text3, Lcd.Card);
@@ -52,7 +55,7 @@ namespace ShiftRegister.Game.View
             for (int c = 0; c < BoardBits.Size; c++)
             {
                 var root = new GameObject($"Cell {r + 1},{c + 1}").transform;
-                root.SetParent(transform, false);
+                root.SetParent(cellsRoot, false);
                 root.localPosition = CellCenter(r, c);
 
                 bool isWall = rules.IsWall(r, c);

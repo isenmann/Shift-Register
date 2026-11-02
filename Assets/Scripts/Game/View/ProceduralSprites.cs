@@ -55,6 +55,26 @@ namespace ShiftRegister.Game.View
                 return c;
             });
 
+        /// <summary>Upward chevron with round caps (the mockup's 16 px "M3 10l5-5 5 5" icon), scaled to size.</summary>
+        public static Sprite Chevron(float size, float stroke) =>
+            Get($"chevron {size} {stroke}", size, size, (px, py, hw, hh) =>
+            {
+                float k = size / 16f;
+                var p = new Vector2(px, py) / Scale;
+                var a = new Vector2(-5f, -2.5f) * k;
+                var b = new Vector2(0f, 2.5f) * k;
+                var c = new Vector2(5f, -2.5f) * k;
+                float d = Mathf.Min(SegmentDistance(p, a, b), SegmentDistance(p, b, c)) - stroke * 0.5f;
+                return new Color(1, 1, 1, Fill(d * Scale));
+            });
+
+        static float SegmentDistance(Vector2 p, Vector2 a, Vector2 b)
+        {
+            Vector2 pa = p - a, ba = b - a;
+            float h = Mathf.Clamp01(Vector2.Dot(pa, ba) / ba.sqrMagnitude);
+            return (pa - ba * h).magnitude;
+        }
+
         delegate Color PixelFn(float px, float py, float hw, float hh);
 
         static Sprite Get(string key, float w, float h, PixelFn shade)

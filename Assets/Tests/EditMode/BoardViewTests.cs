@@ -21,7 +21,7 @@ namespace ShiftRegister.Tests
             view.Build(board.Rules);
             view.Show(board.Bits);
 
-            Assert.That(go.transform.childCount, Is.EqualTo(64));
+            Assert.That(go.transform.Find("Cells").childCount, Is.EqualTo(64));
             for (int r = 0; r < 8; r++)
             for (int c = 0; c < 8; c++)
             {

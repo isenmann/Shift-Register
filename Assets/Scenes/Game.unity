@@ -129,6 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1118623587}
   - component: {fileID: 1118623586}
+  - component: {fileID: 1118623588}
   m_Layer: 0
   m_Name: Board
   m_TagString: Untagged
@@ -164,6 +165,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1118623588
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1118623585}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f7c15471762eb3bf9b6881d4050d316, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ShiftRegister.Game::ShiftRegister.Game.View.BoardControls
+  spriteMaterial: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
 --- !u!1 &1924864241
 GameObject:
   m_ObjectHideFlags: 0
@@ -174,6 +188,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1924864243}
   - component: {fileID: 1924864242}
+  - component: {fileID: 1924864244}
   m_Layer: 0
   m_Name: Game
   m_TagString: Untagged
@@ -195,6 +210,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: ShiftRegister.Game::ShiftRegister.Game.GameController
   catalog: {fileID: 11400000, guid: ca204f08c9a92ea4b833cacdec1a95dc, type: 2}
   boardView: {fileID: 1118623586}
+  controls: {fileID: 1118623588}
   startChapter: 1
   startLevel: 0
 --- !u!4 &1924864243
@@ -212,6 +228,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1924864244
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1924864241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 080c1b72ec7b692769fbea71b19ad4dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ShiftRegister.Game::ShiftRegister.Game.Input.BoardInput
+  game: {fileID: 1924864242}
+  controls: {fileID: 1118623588}
+  cam: {fileID: 1976558926}
 --- !u!1 &1976558924
 GameObject:
   m_ObjectHideFlags: 0

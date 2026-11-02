@@ -2,7 +2,8 @@
     "name": "ShiftRegister.Game",
     "rootNamespace": "ShiftRegister.Game",
     "references": [
-        "ShiftRegister.Core"
+        "ShiftRegister.Core",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
