@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Text;
 using ShiftRegister.Core;
 using ShiftRegister.Game.Input;
@@ -34,24 +35,44 @@ namespace ShiftRegister.Game.Hud
         readonly Image[] thumb = new Image[N * N];
         TextMeshProUGUI targetText, bucketCount, bucketText, cursorHint;
         Image bucketFrame, bannerBox;
+        RectTransform banner;
         TextMeshProUGUI bannerTitle, bannerText;
         int shownCursor = -1;
+        int shownLost;
+        bool bannerShown;
 
         void Awake() => Build();
 
         void OnEnable()
         {
-            if (game != null) game.Changed += Refresh;
+            if (game == null) return;
+            game.Changed += OnChanged;
+            if (game.BoardView != null) game.BoardView.Settled += OnSettled;
         }
 
         void OnDisable()
         {
-            if (game != null) game.Changed -= Refresh;
+            if (game == null) return;
+            game.Changed -= OnChanged;
+            if (game.BoardView != null) game.BoardView.Settled -= OnSettled;
         }
 
         void Start()
         {
-            if (game != null && game.Board != null) Refresh();
+            if (game != null && game.Board != null) OnChanged();
+        }
+
+        /// <summary>Board info updates at once; the bucket and banner wait for the move animation to land.</summary>
+        void OnChanged()
+        {
+            RefreshBoard();
+            bool animating = game.BoardView != null && game.BoardView.IsAnimating;
+            if (!animating) RefreshOutcome(false);
+        }
+
+        void OnSettled()
+        {
+            if (game.Board != null) RefreshOutcome(true);
         }
 
         void Update()
@@ -170,15 +191,19 @@ namespace ShiftRegister.Game.Hud
         {
             // Centred on the board (mockup board centre 305.5, 337.5).
             const float w = 340f, h = 110f, x = 305.5f - w / 2f, y = 337.5f - h / 2f;
-            bannerBox = Ui.Box(frame, "Banner", x, y, w, h, 10f, Lcd.Ink);
-            bannerTitle = Ui.Text(frame, "Banner Title", x + 16, y + 18, w - 32, 44, displayBold, 40, Lcd.Light, TextAlignmentOptions.Center);
+            banner = Ui.Rect(frame, "Banner", x, y, w, h);
+            banner.pivot = new Vector2(0.5f, 0.5f);
+            banner.anchoredPosition = new Vector2(x + w / 2f, -(y + h / 2f));
+            bannerBox = Ui.Box(banner, "Box", 0, 0, w, h, 10f, Lcd.Ink);
+            bannerTitle = Ui.Text(banner, "Title", 16, 18, w - 32, 44, displayBold, 40, Lcd.Light, TextAlignmentOptions.Center);
             bannerTitle.enableAutoSizing = true;
             bannerTitle.fontSizeMin = 20;
             bannerTitle.fontSizeMax = 40;
-            bannerText = Ui.Text(frame, "Banner Text", x, y + 68, w, 24, mono, 15, Lcd.Light, TextAlignmentOptions.Center);
+            bannerText = Ui.Text(banner, "Text", 0, 68, w, 24, mono, 15, Lcd.Light, TextAlignmentOptions.Center);
+            banner.gameObject.SetActive(false);
         }
 
-        void Refresh()
+        void RefreshBoard()
         {
             var board = game.Board;
             var level = game.Level;
@@ -208,8 +233,17 @@ namespace ShiftRegister.Game.Hud
             for (int c = 0; c < N; c++)
                 thumb[r * N + c].color = BoardBits.GetCell(rules.Target, r, c) ? Lcd.Ink : Lcd.Background;
             targetText.text = game.Chapter.description;
+        }
+
+        void RefreshOutcome(bool animate)
+        {
+            var board = game.Board;
+            var rules = board.Rules;
+            string par = game.Level.par > 0 ? game.Level.par.ToString() : "?";
 
             bool broken = board.IsRuleBroken;
+            if (animate && board.Lost > shownLost) StartCoroutine(Bump(bucketCount.rectTransform));
+            shownLost = board.Lost;
             bucketCount.text = $"<b>{board.Lost}</b> lost";
             bucketCount.color = board.Lost > 0 ? Lcd.Loss : Lcd.Ink;
             bucketFrame.color = broken ? Lcd.Loss : Lcd.Ink;
@@ -217,10 +251,39 @@ namespace ShiftRegister.Game.Hud
             bucketText.color = broken ? Lcd.Loss : Lcd.Text2;
 
             bool solved = board.IsSolved;
-            bannerBox.enabled = bannerTitle.enabled = bannerText.enabled = solved || broken;
+            bool show = solved || broken;
             bannerBox.color = solved ? Lcd.Ink : Lcd.Loss;
             bannerTitle.text = solved ? "SOLVED" : "RULE BROKEN";
             bannerText.text = solved ? $"{board.MoveCount} moves · par {par}" : "Z or Backspace to undo";
+            banner.gameObject.SetActive(show);
+            if (show && !bannerShown && animate) StartCoroutine(PopIn(banner));
+            else banner.localScale = Vector3.one;
+            bannerShown = show;
+        }
+
+        /// <summary>The mockup's banner entrance: 0.6 → 1.08 → 1.</summary>
+        static IEnumerator PopIn(RectTransform rt)
+        {
+            const float duration = 0.25f;
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                float k = t / duration;
+                float s = k < 0.6f ? Mathf.Lerp(0.6f, 1.08f, k / 0.6f) : Mathf.Lerp(1.08f, 1f, (k - 0.6f) / 0.4f);
+                rt.localScale = Vector3.one * s;
+                yield return null;
+            }
+            rt.localScale = Vector3.one;
+        }
+
+        static IEnumerator Bump(RectTransform rt)
+        {
+            const float duration = 0.2f;
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                rt.localScale = Vector3.one * (1f + 0.35f * Mathf.Sin(Mathf.PI * t / duration));
+                yield return null;
+            }
+            rt.localScale = Vector3.one;
         }
 
         /// <summary>Binary row with walls shown as '#'.</summary>

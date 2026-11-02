@@ -7,7 +7,7 @@ namespace ShiftRegister.Game.View
     /// Draws the 8×8 board: empty cells, walls, target ghosts, bits with eyes, and pins.
     /// The board's local origin is its centre; one cell is one unit.
     /// </summary>
-    public sealed class BoardView : MonoBehaviour
+    public sealed partial class BoardView : MonoBehaviour
     {
         // Shapes in mockup pixels (a cell is 46 px).
         const float CellPx = 46f, RadiusPx = 8f;
@@ -39,6 +39,7 @@ namespace ShiftRegister.Game.View
 
         public void Build(LevelRules levelRules)
         {
+            ResetAnimationState();
             rules = levelRules;
             if (cellsRoot != null) DestroySafe(cellsRoot.gameObject);
             cellsRoot = new GameObject("Cells").transform;
@@ -76,17 +77,26 @@ namespace ShiftRegister.Game.View
             }
         }
 
-        /// <summary>Shows a board state; empty cells the target wants filled get a dashed ghost outline.</summary>
+        /// <summary>Shows a board state at once (stopping any animation); empty target cells get a dashed ghost.</summary>
         public void Show(ulong bits)
+        {
+            StopAnimation();
+            settledBits = bits;
+            ShowNow(bits, bits);
+        }
+
+        /// <summary>Static bits for <paramref name="bits"/>, ghosts computed from <paramref name="ghostsFrom"/>.</summary>
+        void ShowNow(ulong bits, ulong ghostsFrom)
         {
             if (cells == null) return;
             for (int r = 0; r < BoardBits.Size; r++)
             for (int c = 0; c < BoardBits.Size; c++)
             {
-                bool on = BoardBits.GetCell(bits, r, c);
                 var cell = cells[r, c];
-                cell.Bit.SetActive(on);
-                cell.Ghost.enabled = !on && BoardBits.GetCell(rules.Target, r, c);
+                cell.Bit.SetActive(BoardBits.GetCell(bits, r, c));
+                cell.Bit.transform.localPosition = Vector3.zero;
+                cell.Bit.transform.localScale = Vector3.one;
+                cell.Ghost.enabled = !BoardBits.GetCell(ghostsFrom, r, c) && BoardBits.GetCell(rules.Target, r, c);
             }
         }
 

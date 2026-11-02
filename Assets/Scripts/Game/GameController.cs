@@ -20,6 +20,7 @@ namespace ShiftRegister.Game
         public Board Board { get; private set; }
         public LevelData Level { get; private set; }
         public int ChapterIndex { get; private set; }
+        public BoardView BoardView => boardView;
         public LevelCatalog.Chapter Chapter => catalog.chapters[ChapterIndex];
 
         /// <summary>Raised after every board change: a move, undo, reset or a new level.</summary>
@@ -46,7 +47,8 @@ namespace ShiftRegister.Game
         public bool TryShift(Move move)
         {
             if (Board == null || !Board.TryMove(move, out var outcome)) return false;
-            Refresh();
+            boardView.Play(outcome, Board.IsSolved, Board.IsRuleBroken);
+            Changed?.Invoke();
             Moved?.Invoke(outcome);
             if (Board.IsSolved) Debug.Log($"{Level.id} solved in {Board.MoveCount} moves (par {Level.par}).");
             else if (Board.IsRuleBroken) Debug.Log($"{Level.id}: rule broken, {Board.Lost} bits lost. Undo to continue.");
