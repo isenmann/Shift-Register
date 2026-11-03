@@ -29,6 +29,13 @@ namespace ShiftRegister.Game.Audio
             if (instance != null) instance.PlayClip(instance.clips[sound], SoundBank.Gain(sound));
         }
 
+        /// <summary>Plays a line's shift note (the title intro uses them as a scale).</summary>
+        public static void PlayShift(Axis axis, int line, bool bendUp)
+        {
+            if (instance != null)
+                instance.PlayClip(instance.shiftClips[(int)axis, line, bendUp ? 1 : 0], SoundBank.Gain(Sound.Shift));
+        }
+
         void Awake()
         {
             instance = this;
@@ -81,7 +88,7 @@ namespace ShiftRegister.Game.Audio
         {
             var m = o.Move;
             bool up = m.Direction == Direction.Right || m.Direction == Direction.Up;
-            PlayClip(shiftClips[(int)m.Axis, m.Line, up ? 1 : 0], SoundBank.Gain(Sound.Shift));
+            PlayShift(m.Axis, m.Line, up);
             if (o.LostCount > 0) Play(Sound.Lost);
         }
 

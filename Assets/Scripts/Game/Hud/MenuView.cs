@@ -51,11 +51,13 @@ namespace ShiftRegister.Game.Hud
         public void Show(GameScreen screen)
         {
             if (!built) Build();
+            if (screen != GameScreen.Title) FinishIntro();
             titleRoot.gameObject.SetActive(screen == GameScreen.Title);
             chaptersRoot.gameObject.SetActive(screen == GameScreen.Chapters);
             optionsRoot.gameObject.SetActive(screen == GameScreen.Options);
             if (screen == GameScreen.Options) RefreshOptions(true);
             if (screen == GameScreen.Title) RefreshTitle();
+            if (screen == GameScreen.Title && !introPlayed) StartIntro();
             if (screen == GameScreen.Chapters) RefreshChapters();
         }
 
@@ -64,6 +66,12 @@ namespace ShiftRegister.Game.Hud
             var kb = Keyboard.current;
             if (kb == null || flow == null || !built) return;
 
+            if (flow.Current == GameScreen.Title && introRunning)
+            {
+                // A key or click during the intro only finishes it.
+                if (SkipPressed(kb)) FinishIntro();
+                return;
+            }
             if (flow.Current == GameScreen.Title)
             {
                 if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame) flow.Resume();
@@ -96,6 +104,7 @@ namespace ShiftRegister.Game.Hud
             titleRoot = Frame(canvas, "Title Screen");
             chaptersRoot = Frame(canvas, "Chapter Select");
             optionsRoot = Frame(canvas, "Options");
+            BuildReveal(canvas);
             BuildTitle(titleRoot);
             BuildChapters(chaptersRoot);
             BuildOptions(optionsRoot);
@@ -134,10 +143,15 @@ namespace ShiftRegister.Game.Hud
             {
                 bool on = ((TitleBits[r] >> (7 - c)) & 1) != 0;
                 float cx = gx + pad + c * (cell + gap), cy = gy + pad + r * (cell + gap);
-                Ui.Box(root, $"Cell {r + 1},{c + 1}", cx, cy, cell, cell, 8f, on ? Lcd.Ink : Lcd.Background);
+                var box = Ui.Box(root, $"Cell {r + 1},{c + 1}", cx, cy, cell, cell, 8f, on ? Lcd.Ink : Lcd.Background);
                 if (!on) continue;
-                Ui.Box(root, "Eye L", cx + 13, cy + 16, 7, 9, 2f, Lcd.Light);
-                Ui.Box(root, "Eye R", cx + 32, cy + 16, 7, 9, 2f, Lcd.Light);
+                titleBits.Add(new TitleBit
+                {
+                    Column = c,
+                    Body = box,
+                    EyeL = Ui.Box(root, "Eye L", cx + 13, cy + 16, 7, 9, 2f, Lcd.Light),
+                    EyeR = Ui.Box(root, "Eye R", cx + 32, cy + 16, 7, 9, 2f, Lcd.Light)
+                });
             }
 
             const float ky = 642f;
