@@ -21,6 +21,13 @@ namespace ShiftRegister.Editor
         public const string LevelsFolder = "Assets/Levels";
         public const int MaxStates = 5_000_000;
 
+        [MenuItem("Shift Register/Clear Saved Progress")]
+        public static void ClearSavedProgress()
+        {
+            ShiftRegister.Game.Progress.ProgressStore.Clear();
+            Debug.Log("Saved progress cleared: the next Play starts at the first level.");
+        }
+
         [MenuItem("Shift Register/Validate and Solve Levels")]
         public static void ValidateAndSolveAll()
         {

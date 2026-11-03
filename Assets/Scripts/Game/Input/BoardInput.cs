@@ -9,7 +9,7 @@ namespace ShiftRegister.Game.Input
     /// Keyboard and pointer controls. A cursor cell picks the row and column:
     /// arrows / WASD move it, Shift + arrow shifts the line part under it.
     /// The pointer moves the cursor (hover or tap) and presses the arrow buttons.
-    /// Z / Backspace undoes, R resets.
+    /// Z / Backspace undoes, R resets, Enter / Space / N goes to the next level once solved.
     /// </summary>
     public sealed class BoardInput : MonoBehaviour
     {
@@ -51,6 +51,17 @@ namespace ShiftRegister.Game.Input
 
             if (kb.zKey.wasPressedThisFrame || kb.backspaceKey.wasPressedThisFrame) game.Undo();
             if (kb.rKey.wasPressedThisFrame) game.ResetLevel();
+
+            bool next = kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame
+                || kb.spaceKey.wasPressedThisFrame || kb.nKey.wasPressedThisFrame;
+            if (next && game.Board.IsSolved) game.NextLevel();
+
+            // Testing shortcuts (editor and development builds): jump between levels without solving them.
+            if (Debug.isDebugBuild)
+            {
+                if (kb.pageDownKey.wasPressedThisFrame) game.NextLevel();
+                if (kb.pageUpKey.wasPressedThisFrame) game.PreviousLevel();
+            }
         }
 
         void MoveCursor(Direction d)

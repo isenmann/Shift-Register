@@ -71,6 +71,32 @@ namespace ShiftRegister.Game.View
                 return new Color(1, 1, 1, Fill(d * Scale));
             });
 
+        /// <summary>Five-point star, point up; thickness 0 = filled, else an outline of that width.</summary>
+        public static Sprite Star(float size, float thickness = 0f, bool ui = false) =>
+            Get($"star {size} {thickness}", size, size, ui, (px, py, hw, hh) =>
+            {
+                float r = hw * 0.92f;
+                float d = StarDistance(new Vector2(px, py + hh * 0.06f), r, 0.45f) - r * 0.06f;
+                float a = Fill(d);
+                if (thickness > 0f) a *= Mathf.Clamp01(0.5f + d + thickness * Scale);
+                return new Color(1, 1, 1, a);
+            });
+
+        /// <summary>Signed distance to a five-point star of outer radius r (Inigo Quilez's sdStar5).</summary>
+        static float StarDistance(Vector2 p, float r, float innerFactor)
+        {
+            var k1 = new Vector2(0.809016994375f, -0.587785252292f);
+            var k2 = new Vector2(-k1.x, k1.y);
+            p.x = Mathf.Abs(p.x);
+            p -= 2f * Mathf.Max(Vector2.Dot(k1, p), 0f) * k1;
+            p -= 2f * Mathf.Max(Vector2.Dot(k2, p), 0f) * k2;
+            p.x = Mathf.Abs(p.x);
+            p.y -= r;
+            var ba = innerFactor * new Vector2(-k1.y, k1.x) - new Vector2(0f, 1f);
+            float h = Mathf.Clamp(Vector2.Dot(p, ba) / Vector2.Dot(ba, ba), 0f, r);
+            return (p - ba * h).magnitude * Mathf.Sign(p.y * ba.x - p.x * ba.y);
+        }
+
         static float SegmentDistance(Vector2 p, Vector2 a, Vector2 b)
         {
             Vector2 pa = p - a, ba = b - a;

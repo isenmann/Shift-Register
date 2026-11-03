@@ -2,6 +2,7 @@ using System.Collections;
 using System.Text;
 using ShiftRegister.Core;
 using ShiftRegister.Game.Input;
+using ShiftRegister.Game.View;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -34,12 +35,14 @@ namespace ShiftRegister.Game.Hud
         readonly Image[] rowTagBox = new Image[N];
         readonly Image[] thumb = new Image[N * N];
         TextMeshProUGUI targetText, bucketCount, bucketText, cursorHint;
-        Image bucketFrame, bannerBox;
-        RectTransform banner;
-        TextMeshProUGUI bannerTitle, bannerText;
+        Image bucketFrame;
+        RectTransform solvedBanner, brokenBanner;
+        TextMeshProUGUI solvedText, lastLevelText;
+        readonly Image[] stars = new Image[Scoring.MaxStars];
+        HudButton nextButton;
         int shownCursor = -1;
         int shownLost;
-        bool bannerShown;
+        bool solvedShown, brokenShown;
 
         void Awake() => Build();
 
@@ -178,7 +181,7 @@ namespace ShiftRegister.Game.Hud
             Ui.Text(frame, "Plus", x + 82, y, 28, 32, mono, 14, Lcd.Ink, TextAlignmentOptions.Center, "+");
             KeyCap(frame, "← → ↑ ↓", x + 110, y, 112);
             cursorHint = Ui.Text(frame, "Cursor Hint", x, y + 40, 316, 20, mono, 14, Lcd.Text2);
-            Ui.Text(frame, "Undo Hint", x, y + 64, 316, 20, mono, 13, Lcd.Text3, text: "Z undo · R reset");
+            Ui.Text(frame, "Undo Hint", x, y + 64, 316, 20, mono, 13, Lcd.Text3, text: "Z undo · R reset · Enter next");
         }
 
         void KeyCap(Transform frame, string text, float x, float y, float w)
@@ -189,18 +192,41 @@ namespace ShiftRegister.Game.Hud
 
         void BuildBanner(Transform frame)
         {
-            // Centred on the board (mockup board centre 305.5, 337.5).
-            const float w = 340f, h = 110f, x = 305.5f - w / 2f, y = 337.5f - h / 2f;
-            banner = Ui.Rect(frame, "Banner", x, y, w, h);
-            banner.pivot = new Vector2(0.5f, 0.5f);
-            banner.anchoredPosition = new Vector2(x + w / 2f, -(y + h / 2f));
-            bannerBox = Ui.Box(banner, "Box", 0, 0, w, h, 10f, Lcd.Ink);
-            bannerTitle = Ui.Text(banner, "Title", 16, 18, w - 32, 44, displayBold, 40, Lcd.Light, TextAlignmentOptions.Center);
-            bannerTitle.enableAutoSizing = true;
-            bannerTitle.fontSizeMin = 20;
-            bannerTitle.fontSizeMax = 40;
-            bannerText = Ui.Text(banner, "Text", 0, 68, w, 24, mono, 15, Lcd.Light, TextAlignmentOptions.Center);
-            banner.gameObject.SetActive(false);
+            const float w = 340f;
+            solvedBanner = BannerRoot(frame, "Solved Banner", w, 196f);
+            Ui.Box(solvedBanner, "Box", 0, 0, w, 196f, 10f, Lcd.Ink);
+            Ui.Text(solvedBanner, "Title", 16, 16, w - 32, 44, displayBold, 40, Lcd.Light, TextAlignmentOptions.Center, "SOLVED");
+            solvedText = Ui.Text(solvedBanner, "Text", 0, 62, w, 22, mono, 15, Lcd.Light, TextAlignmentOptions.Center);
+            const float star = 30f, gap = 10f;
+            float starsX = (w - (Scoring.MaxStars * star + (Scoring.MaxStars - 1) * gap)) / 2f;
+            for (int i = 0; i < Scoring.MaxStars; i++)
+            {
+                float sx = starsX + i * (star + gap);
+                Ui.Shape(solvedBanner, $"Star {i + 1} Outline", sx, 94, star, star, ProceduralSprites.Star(star, 2f, ui: true), Lcd.Light);
+                stars[i] = Ui.Shape(solvedBanner, $"Star {i + 1}", sx, 94, star, star, ProceduralSprites.Star(star, ui: true), Lcd.Light);
+            }
+            nextButton = HudButton.Create(solvedBanner, "NEXT \u2192", (w - 150f) / 2f, 140, 150, 40, display, 15, Lcd.Light, Lcd.Ink, () => game.NextLevel());
+            lastLevelText = Ui.Text(solvedBanner, "Last Level", 0, 140, w, 40, mono, 13, Lcd.Light, TextAlignmentOptions.Center,
+                "That's every level so far.");
+
+            brokenBanner = BannerRoot(frame, "Broken Banner", w, 110f);
+            Ui.Box(brokenBanner, "Box", 0, 0, w, 110f, 10f, Lcd.Loss);
+            var title = Ui.Text(brokenBanner, "Title", 16, 18, w - 32, 44, displayBold, 40, Lcd.Light, TextAlignmentOptions.Center, "RULE BROKEN");
+            title.enableAutoSizing = true;
+            title.fontSizeMin = 20;
+            title.fontSizeMax = 40;
+            Ui.Text(brokenBanner, "Text", 0, 68, w, 24, mono, 15, Lcd.Light, TextAlignmentOptions.Center, "Z or Backspace to undo");
+        }
+
+        /// <summary>A hidden banner centred on the board (mockup board centre 305.5, 337.5), scaled about its centre.</summary>
+        static RectTransform BannerRoot(Transform frame, string name, float w, float h)
+        {
+            float x = 305.5f - w / 2f, y = 337.5f - h / 2f;
+            var rt = Ui.Rect(frame, name, x, y, w, h);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(x + w / 2f, -(y + h / 2f));
+            rt.gameObject.SetActive(false);
+            return rt;
         }
 
         void RefreshBoard()
@@ -251,14 +277,27 @@ namespace ShiftRegister.Game.Hud
             bucketText.color = broken ? Lcd.Loss : Lcd.Text2;
 
             bool solved = board.IsSolved;
-            bool show = solved || broken;
-            bannerBox.color = solved ? Lcd.Ink : Lcd.Loss;
-            bannerTitle.text = solved ? "SOLVED" : "RULE BROKEN";
-            bannerText.text = solved ? $"{board.MoveCount} moves · par {par}" : "Z or Backspace to undo";
+            if (solved)
+            {
+                var result = game.LastResult ?? new Progress.LevelResult(board.MoveCount, game.Level.par,
+                    Scoring.Stars(board.MoveCount, game.Level.par), false, 0);
+                string best = result.IsNewBest && result.PreviousBest > 0 ? " · new best" : "";
+                solvedText.text = $"{result.Moves} moves · par {par}{best}";
+                for (int i = 0; i < stars.Length; i++) stars[i].enabled = i < result.Stars;
+                bool hasNext = game.HasNextLevel;
+                nextButton.gameObject.SetActive(hasNext);
+                lastLevelText.gameObject.SetActive(!hasNext);
+            }
+            ShowBanner(solvedBanner, solved, ref solvedShown, animate);
+            ShowBanner(brokenBanner, broken, ref brokenShown, animate);
+        }
+
+        void ShowBanner(RectTransform banner, bool show, ref bool shown, bool animate)
+        {
             banner.gameObject.SetActive(show);
-            if (show && !bannerShown && animate) StartCoroutine(PopIn(banner));
+            if (show && !shown && animate) StartCoroutine(PopIn(banner));
             else banner.localScale = Vector3.one;
-            bannerShown = show;
+            shown = show;
         }
 
         /// <summary>The mockup's banner entrance: 0.6 → 1.08 → 1.</summary>
@@ -297,7 +336,7 @@ namespace ShiftRegister.Game.Hud
 
         static string RuleText(LevelRules rules) => rules.LossRule switch
         {
-            LossRule.AtMost when rules.LossCount == 0 => "RULE · LOSE 0 BITS\nAny bit off the edge breaks the level.",
+            LossRule.AtMost when rules.LossCount == 0 => "RULE · LOSE 0 BITS\nAny lost bit breaks the level.",
             LossRule.AtMost => $"RULE · LOSE AT MOST {rules.LossCount}\nBits pushed off the edge land here for good.",
             LossRule.Exactly => $"GOAL · LOSE EXACTLY {rules.LossCount}\nDump exactly that many bits on the way.",
             _ => "Bits pushed off the edge land here and can't come back."

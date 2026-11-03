@@ -12,9 +12,17 @@ namespace ShiftRegister.Game.Hud
         Image fill;
         TextMeshProUGUI label;
         Action onClick;
+        Color32 ink, paper;
 
+        /// <summary>Ink-on-background button (top bar).</summary>
         public static HudButton Create(Transform parent, string text, float x, float y, float w, float h,
-            TMP_FontAsset font, float size, Action onClick)
+            TMP_FontAsset font, float size, Action onClick) =>
+            Create(parent, text, x, y, w, h, font, size, Lcd.Ink, Lcd.Light, onClick);
+
+        /// <param name="ink">Frame and label colour; also the hover fill.</param>
+        /// <param name="paper">Label colour while hovered.</param>
+        public static HudButton Create(Transform parent, string text, float x, float y, float w, float h,
+            TMP_FontAsset font, float size, Color32 ink, Color32 paper, Action onClick)
         {
             var rt = Ui.Rect(parent, text, x, y, w, h);
             // Invisible graphic so the whole rect receives pointer events.
@@ -23,12 +31,16 @@ namespace ShiftRegister.Game.Hud
 
             var b = rt.gameObject.AddComponent<HudButton>();
             b.onClick = onClick;
-            b.fill = Ui.Box(rt, "Fill", 0, 0, w, h, 6f, Lcd.Ink);
+            b.ink = ink;
+            b.paper = paper;
+            b.fill = Ui.Box(rt, "Fill", 0, 0, w, h, 6f, ink);
             b.fill.enabled = false;
-            Ui.Frame(rt, "Frame", 0, 0, w, h, 6f, 2f, Lcd.Ink);
-            b.label = Ui.Text(rt, "Label", 0, 0, w, h, font, size, Lcd.Ink, TextAlignmentOptions.Center, text);
+            Ui.Frame(rt, "Frame", 0, 0, w, h, 6f, 2f, ink);
+            b.label = Ui.Text(rt, "Label", 0, 0, w, h, font, size, ink, TextAlignmentOptions.Center, text);
             return b;
         }
+
+        void OnDisable() => SetHot(false);
 
         public void OnPointerEnter(PointerEventData e) => SetHot(true);
         public void OnPointerExit(PointerEventData e) => SetHot(false);
@@ -36,8 +48,9 @@ namespace ShiftRegister.Game.Hud
 
         void SetHot(bool hot)
         {
+            if (fill == null) return;
             fill.enabled = hot;
-            label.color = hot ? Lcd.Light : Lcd.Ink;
+            label.color = hot ? paper : ink;
         }
     }
 }
