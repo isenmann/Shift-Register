@@ -279,7 +279,7 @@ namespace ShiftRegister.Game.Hud
             PhoneTile(top, "Par", 330, 20, 70, 56, false, out l.Par);
             Outlook(l, top, 12, 92, 18f, 14f);
 
-            TargetCard(l, top, 12, 124, 150, 144, 12f, 14f, 12f, 13f, 32f);
+            TargetCard(l, top, 12, 124, 150, 144, 12f, 14f, 12f, 13f, 26f, 6f);
             PhoneBucket(l, top, 172, 124, 108, 144);
             MoveLog(l, top, 290, 124, 110, 3, 15f, "MOVES", 30f);
 
@@ -315,15 +315,10 @@ namespace ShiftRegister.Game.Hud
 
             CompactRowTags(l, f, 618f, ScreenLayout.PhoneLandscapeBoardCenterPx.y, ScreenLayout.PhoneLandscapeBoardScale);
 
-            // Target thumbnail with the bucket count beside it.
-            Ui.Box(right, "Target Card", 716, 20, 96, 96, 8f, Lcd.Cell);
-            for (int r = 0; r < N; r++)
-            for (int c = 0; c < N; c++)
-                l.Thumb[r * N + c] = Ui.Box(right, $"Thumb {r + 1},{c + 1}", 724 + c * 10, 28 + r * 10, 9, 9, 1.5f, Lcd.Background);
-            Ui.Text(right, "Target Title", 822, 20, 80, 16, display, 13, Lcd.Ink, text: "TARGET");
-            Ui.Text(right, "Bucket Title", 822, 52, 80, 16, display, 13, Lcd.Ink, text: "BUCKET");
-            l.BucketCount = Ui.Text(right, "Bucket Count", 822, 70, 80, 34, display, 30, Lcd.Ink);
-            MoveLog(l, right, 716, 130, 183, 3, 15f, "MOVES", 30f);
+            // Target and bucket cards side by side, as in portrait, narrower.
+            TargetCard(l, right, 716, 20, 93, 112, 9f, 10f, 7f, 13f, 26f, 6f);
+            PhoneBucket(l, right, 817, 20, 82, 112, withText: false);
+            MoveLog(l, right, 716, 146, 183, 3, 15f, "MOVES", 30f);
             HudButton.Create(right, "MENU", 716, 346, 56, 46, display, 12, () => flow.Show(GameScreen.Chapters));
             HudButton.Create(right, "HELP", 778, 346, 56, 46, display, 12, ToggleHelp);
             l.Sound = HudButton.Create(right, "SOUND", 840, 346, 59, 46, display, 12, ToggleMute);
@@ -338,12 +333,13 @@ namespace ShiftRegister.Game.Hud
             value = Ui.Text(f, label, x + 10, y + 22, w - 20, h - 26, display, 24, Lcd.Ink);
         }
 
-        /// <summary>Bucket card for phones: title, a big count and one short line about the rule.</summary>
-        void PhoneBucket(Layout l, Transform f, float x, float y, float w, float h)
+        /// <summary>Bucket card for phones: title, a big count and (in portrait) one short line about the rule.</summary>
+        void PhoneBucket(Layout l, Transform f, float x, float y, float w, float h, bool withText = true)
         {
             l.BucketFrame = Ui.Frame(f, "Bucket Frame", x, y, w, h, 10f, 3f, Lcd.Ink, 8f);
             Ui.Text(f, "Bucket Title", x + 10, y + 10, w - 20, 16, display, 13, Lcd.Ink, text: "BUCKET");
             l.BucketCount = Ui.Text(f, "Bucket Count", x + 10, y + 30, w - 20, 50, display, 40, Lcd.Ink);
+            if (!withText) return;
             l.BucketText = Ui.Text(f, "Bucket Text", x + 10, y + 84, w - 20, h - 92, mono, 13, Lcd.Text2, TextAlignmentOptions.TopLeft);
             l.BucketText.textWrappingMode = TextWrappingModes.Normal;
         }
@@ -407,10 +403,10 @@ namespace ShiftRegister.Game.Hud
         }
 
         void TargetCard(Layout l, Transform f, float x, float y, float w, float h, float cell, float pitch,
-            float pad = 16f, float titleSize = 14f, float gridTop = 42f)
+            float pad = 16f, float titleSize = 14f, float gridTop = 42f, float titleTop = 12f)
         {
             Ui.Box(f, "Target Card", x, y, w, h, 10f, Lcd.Cell);
-            Ui.Text(f, "Target Title", x + pad, y + 12, 160, 18, display, titleSize, Lcd.Ink, text: "TARGET");
+            Ui.Text(f, "Target Title", x + pad, y + titleTop, 160, 18, display, titleSize, Lcd.Ink, text: "TARGET");
             for (int r = 0; r < N; r++)
             for (int c = 0; c < N; c++)
                 l.Thumb[r * N + c] = Ui.Box(f, $"Thumb {r + 1},{c + 1}", x + pad + c * pitch, y + gridTop + r * pitch, cell, cell, 2f, Lcd.Background);

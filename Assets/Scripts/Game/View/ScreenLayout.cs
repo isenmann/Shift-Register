@@ -26,12 +26,13 @@ namespace ShiftRegister.Game.View
 
         /// <summary>
         /// Desktop: 720 short side, 1280 base long side (16:9), stretching to about 21.5:9.
-        /// Phones and tablets: 412 × 915 (a 20:9 phone in CSS px), stretching from 860 (16:9 phones pull
-        /// the outer groups in) to 1000.
+        /// Phones and tablets: 412 × 915 (a 20:9 phone in CSS px), stretching to 1000. A shorter screen
+        /// (16:9 phones, or a 20:9 phone whose safe area leaves out the camera cutout) never compresses
+        /// the layout, whose blocks have no room to spare: the camera shows the whole frame, a little smaller.
         /// </summary>
         public static float ShortPx => Phone ? 412f : 720f;
         public static float BaseLongPx => Phone ? 915f : 1280f;
-        static float MinLongPx => Phone ? 860f : 1280f;
+        static float MinLongPx => BaseLongPx;
         static float MaxLongPx => Phone ? 1000f : 1720f;
 
         /// <summary>Phones and tablets in play: the phone layouts (B2 portrait, B3 landscape).</summary>
@@ -96,7 +97,7 @@ namespace ShiftRegister.Game.View
         /// <summary>Where lost bits land: the bit bucket card's centre (in an outer group, so it moves with it).</summary>
         public static Vector2 BucketCenter => !Phone
             ? FromMockup(1144f + OuterShiftPx, 199f)
-            : Portrait ? FromMockup(226f, 196f - OuterShiftPx) : FromMockup(860f + OuterShiftPx, 80f);
+            : Portrait ? FromMockup(226f, 196f - OuterShiftPx) : FromMockup(858f + OuterShiftPx, 76f);
 
         /// <summary>Converts base-frame mockup coordinates (origin top-left, y down) to world units.</summary>
         public static Vector2 FromMockup(float x, float y) =>
