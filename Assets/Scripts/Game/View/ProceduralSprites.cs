@@ -54,6 +54,19 @@ namespace ShiftRegister.Game.View
                 return new Color(1, 1, 1, a);
             });
 
+        /// <summary>
+        /// A quarter of a ring line (outer radius, line inside it) whose centre is the sprite's bottom-left corner;
+        /// flip the renderer for the other quarters. Matches a <see cref="RoundedOutline"/> corner of the same radius.
+        /// </summary>
+        public static Sprite QuarterRing(float radius, float thickness) =>
+            Get($"ring {radius} {thickness}", radius, radius, false, (px, py, hw, hh) =>
+            {
+                float x = px + hw, y = py + hh;
+                if (x < 0f || y < 0f) return new Color(1, 1, 1, 0);
+                float d = Mathf.Sqrt(x * x + y * y) - radius * Scale;
+                return new Color(1, 1, 1, Fill(d) * Mathf.Clamp01(0.5f + d + thickness * Scale));
+            });
+
         /// <summary>Wall cell: diagonal hatching with a border, colours baked in.</summary>
         public static Sprite Hatched(float size, float radius, float stripe, float border, Color32 ink, Color32 ground) =>
             Get($"hatch {size} {radius} {stripe} {border} {ink} {ground}", size, size, false, (px, py, hw, hh) =>
