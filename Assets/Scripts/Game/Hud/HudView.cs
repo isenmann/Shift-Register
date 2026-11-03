@@ -11,8 +11,10 @@ using UnityEngine.UI;
 namespace ShiftRegister.Game.Hud
 {
     /// <summary>
-    /// The in-level HUD from the gameplay mockup: top bar (title, moves, undo, reset), row values
-    /// "now → target", target thumbnail, bit bucket, key hint, and the solved / rule-broken banner.
+    /// The in-level HUD, layout A3b from the redesign canvas: a left rail (chapter and its rule, level,
+    /// target, moves/par, star outlook, undo/reset), two-line row tags beside the board (bits over
+    /// "now → target"), a right rail lined up with the board (bit bucket, move log, keys,
+    /// menu/help/sound), and the solved / rule-broken banner over the board.
     /// Built from code on a Screen Space canvas scaled like the camera (1280×720 reference, Expand).
     /// </summary>
     public sealed partial class HudView : MonoBehaviour
@@ -29,20 +31,30 @@ namespace ShiftRegister.Game.Hud
 
         const int N = BoardBits.Size;
 
-        TextMeshProUGUI title, chapter, moves;
+        // Layout A in 1280×720 mockup px: the board's cells span x 360–832, y 124–596 (52 px cells, 60 px pitch).
+        const float RowsX = 892f, RowsTop = 124f, RowPitch = 60f, RowBox = 84f;
+        const float LeftX = 48f, LeftW = 232f, RightX = 1048f, RightW = 192f;
+
+        TextMeshProUGUI chapterLabel, levelName, levelId, movesValue, parValue, outlook;
+        readonly Image[] outlookStars = new Image[Scoring.MaxStars];
         readonly TextMeshProUGUI[] rowBits = new TextMeshProUGUI[N];
-        readonly TextMeshProUGUI[] rowNow = new TextMeshProUGUI[N];
-        readonly TextMeshProUGUI[] rowTarget = new TextMeshProUGUI[N];
+        readonly TextMeshProUGUI[] rowFrom = new TextMeshProUGUI[N];
+        readonly TextMeshProUGUI[] rowArrow = new TextMeshProUGUI[N];
+        readonly TextMeshProUGUI[] rowTo = new TextMeshProUGUI[N];
         readonly TextMeshProUGUI[] rowTag = new TextMeshProUGUI[N];
         readonly Image[] rowTagBox = new Image[N];
         readonly Image[] thumb = new Image[N * N];
-        TextMeshProUGUI targetText, bucketCount, bucketText, cursorHint;
+        TextMeshProUGUI targetText, bucketCount, bucketText, logEmpty;
+        // Move log rows, newest first; the last ones fade out instead of counting what is hidden.
+        const int LogRows = 7;
+        static readonly float[] LogAlpha = { 1f, 1f, 1f, 1f, 0.55f, 0.3f, 0.12f };
+        readonly TextMeshProUGUI[] logIndex = new TextMeshProUGUI[LogRows];
+        readonly TextMeshProUGUI[] logMove = new TextMeshProUGUI[LogRows];
         Image bucketFrame;
         RectTransform solvedBanner, brokenBanner;
         TextMeshProUGUI solvedText, lastLevelText;
         readonly Image[] stars = new Image[Scoring.MaxStars];
         HudButton nextButton, soundButton;
-        int shownCursor = -1;
         int shownLost;
         bool solvedShown, brokenShown;
 
@@ -99,122 +111,172 @@ namespace ShiftRegister.Game.Hud
             if (game.Board != null) RefreshOutcome(true);
         }
 
-        void Update()
-        {
-            UpdateHelp();
-            if (input == null) return;
-            int cursor = input.CursorRow * N + input.CursorColumn;
-            if (cursor == shownCursor) return;
-            shownCursor = cursor;
-            cursorHint.text = $"shift row {input.CursorRow + 1} or column {input.CursorColumn + 1}";
-        }
+        void Update() => UpdateHelp();
 
         void Build()
         {
             var canvas = (RectTransform)transform;
-
-            // Top bar spans the whole screen width; everything else sits in the centred 1280×720 frame.
-            var bar = Ui.Fill(canvas, "Top Bar");
-            bar.anchorMin = new Vector2(0f, 1f);
-            bar.offsetMin = new Vector2(0f, -64f);
-            var line = Ui.Fill(bar, "Border").gameObject.AddComponent<Image>();
-            line.color = Lcd.Ink;
-            line.raycastTarget = false;
-            var lineRt = line.rectTransform;
-            lineRt.anchorMax = new Vector2(1f, 0f);
-            lineRt.offsetMax = new Vector2(0f, 3f);
-
-            var left = Ui.Fill(bar, "Title Group");
-            left.offsetMin = new Vector2(40f, 0f);
-            var layout = left.gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 28f;
-            layout.childAlignment = TextAnchor.MiddleLeft;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = true;
-            title = Ui.Text(left, "Title", 0, 0, 100, 64, displayBold, 20, Lcd.Ink);
-            chapter = Ui.Text(left, "Chapter", 0, 0, 100, 64, mono, 14, Lcd.Text2);
-
-            var right = Ui.Fill(bar, "Actions");
-            right.anchorMin = new Vector2(1f, 0f);
-            right.offsetMin = new Vector2(-790f, 0f);
-            right.offsetMax = new Vector2(-40f, 0f);
-            HudButton.Create(right, "MENU", 658, 10, 92, 44, display, 14, () => flow.Show(GameScreen.Chapters));
-            HudButton.Create(right, "RESET", 530, 10, 100, 44, display, 14, () => game.ResetLevel());
-            HudButton.Create(right, "UNDO", 414, 10, 88, 44, display, 14, () => game.Undo());
-            soundButton = HudButton.Create(right, "SOUND", 298, 10, 96, 44, display, 14,
-                () => game.ChangeSettings(s => s.muted = !s.muted));
-            HudButton.Create(right, "HELP", 194, 10, 80, 44, display, 14, ToggleHelp);
-            moves = Ui.Text(right, "Moves", 0, 0, 174, 64, mono, 15, Lcd.Ink, TextAlignmentOptions.MidlineRight);
-
             var frame = Ui.Rect(canvas, "Frame", 0, 0, 1280, 720);
             frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(0.5f, 0.5f);
             frame.anchoredPosition = Vector2.zero;
 
+            BuildLeftRail(frame);
             BuildRows(frame);
-            BuildTargetCard(frame);
-            BuildBucket(frame);
-            BuildKeyHint(frame);
+            BuildRightRail(frame);
             BuildBanner(frame);
             BuildHelp(canvas);
         }
 
+        void BuildLeftRail(Transform frame)
+        {
+            const float x = LeftX, w = LeftW;
+            chapterLabel = Ui.Text(frame, "Chapter", x, 56, w, 18, mono, 13, Lcd.Text3);
+            chapterLabel.characterSpacing = 10;
+            targetText = Ui.Text(frame, "Chapter Rule", x, 78, w, 54, mono, 12, Lcd.Text2, TextAlignmentOptions.TopLeft);
+            targetText.textWrappingMode = TextWrappingModes.Normal;
+            targetText.lineSpacing = 4;
+            levelName = Ui.Text(frame, "Level Name", x, 134, w, 46, displayBold, 44, Lcd.Ink);
+            levelName.enableAutoSizing = true;
+            levelName.fontSizeMin = 20;
+            levelName.fontSizeMax = 44;
+            levelId = Ui.Text(frame, "Level Id", x, 182, w, 18, mono, 14, Lcd.Text2);
+
+            const float cardY = 212f, pad = 16f, thumbCell = 20f, thumbPitch = 23f;
+            Ui.Box(frame, "Target Card", x, cardY, w, 237, 10f, Lcd.Cell);
+            Ui.Text(frame, "Target Title", x + pad, cardY + 14, 160, 18, display, 14, Lcd.Ink, text: "TARGET");
+            for (int r = 0; r < N; r++)
+            for (int c = 0; c < N; c++)
+                thumb[r * N + c] = Ui.Box(frame, $"Thumb {r + 1},{c + 1}", x + pad + c * thumbPitch, cardY + 42f + r * thumbPitch,
+                    thumbCell, thumbCell, 3f, Lcd.Background);
+
+            const float tileY = 465f, tileW = 110f, tileH = 50f, gap = 12f;
+            Ui.Box(frame, "Moves Tile", x, tileY, tileW, tileH, 10f, Lcd.Cell);
+            Ui.Text(frame, "Moves Label", x + 14, tileY, 60, tileH, mono, 12, Lcd.Text3, text: "MOVES").characterSpacing = 10;
+            movesValue = Ui.Text(frame, "Moves", x + 14, tileY, tileW - 28, tileH, display, 30, Lcd.Ink, TextAlignmentOptions.MidlineRight);
+            float parX = x + tileW + gap;
+            Ui.Frame(frame, "Par Tile", parX, tileY, tileW, tileH, 10f, 2f, Lcd.Ink);
+            Ui.Text(frame, "Par Label", parX + 14, tileY, 60, tileH, mono, 12, Lcd.Text3, text: "PAR").characterSpacing = 10;
+            parValue = Ui.Text(frame, "Par", parX + 14, tileY, tileW - 28, tileH, display, 30, Lcd.Ink, TextAlignmentOptions.MidlineRight);
+
+            const float starY = 531f, star = 20f;
+            for (int i = 0; i < Scoring.MaxStars; i++)
+            {
+                float sx = x + i * (star + 6f);
+                Ui.Shape(frame, $"Outlook Star {i + 1} Outline", sx, starY, star, star, ProceduralSprites.Star(star, 1.6f, ui: true), Lcd.Ink);
+                outlookStars[i] = Ui.Shape(frame, $"Outlook Star {i + 1}", sx, starY, star, star, ProceduralSprites.Star(star, ui: true), Lcd.Ink);
+            }
+            outlook = Ui.Text(frame, "Outlook", x + Scoring.MaxStars * (star + 6f) + 4f, starY, 160, star, mono, 12, Lcd.Text2);
+
+            // Bottom edge level with the board's down-arrow row (mockup y 644).
+            HudButton.CreateSolid(frame, "UNDO", x, 592, tileW, 52, display, 15, () => game.Undo());
+            HudButton.Create(frame, "RESET", parX, 592, tileW, 52, display, 15, () => game.ResetLevel());
+        }
+
+        /// <summary>
+        /// One tag per board row: the bits spread over a fixed box, under them "now → target" with the
+        /// numbers pinned to the box edges and the arrow in its middle; then OK, the hint or a label.
+        /// </summary>
         void BuildRows(Transform frame)
         {
-            const float x = 576f, top = 136f, pitch = 51f;
-            Ui.Text(frame, "Rows Header", x, 104, 150, 16, mono, 12, Lcd.Text3, text: "ROW BITS").characterSpacing = 8;
-            Ui.Text(frame, "Rows Header 2", x + 120, 104, 180, 16, mono, 12, Lcd.Text3, TextAlignmentOptions.MidlineRight, "NOW → TARGET").characterSpacing = 8;
+            // JetBrains Mono advances 0.6 em; spread 8 glyphs so the first and last touch the box edges.
+            const float bitSize = 13f;
+            float spacingPx = (RowBox - 8f * 0.6f * bitSize) / 7f;
             for (int r = 0; r < N; r++)
             {
-                float y = top + r * pitch;
-                rowBits[r] = Ui.Text(frame, $"Row {r + 1} Bits", x, y, 100, 46, mono, 15, Lcd.Text2);
-                rowBits[r].characterSpacing = 6;
-                rowNow[r] = Ui.Text(frame, $"Row {r + 1} Now", x + 96, y, 50, 46, mono, 15, Lcd.Ink, TextAlignmentOptions.MidlineRight);
-                rowTarget[r] = Ui.Text(frame, $"Row {r + 1} Target", x + 150, y, 78, 46, mono, 15, Lcd.Text3, TextAlignmentOptions.MidlineRight);
-                rowTagBox[r] = Ui.Box(frame, $"Row {r + 1} Tag Box", x + 234, y + 10, 66, 26, 5f, Lcd.Ink);
-                rowTag[r] = Ui.Text(frame, $"Row {r + 1} Tag", x + 234, y + 10, 66, 26, mono, 12, Lcd.Light, TextAlignmentOptions.Center);
+                float y = RowsTop + r * RowPitch;
+                rowBits[r] = Ui.Text(frame, $"Row {r + 1} Bits", RowsX, y + 6, RowBox + 8, 18, mono, bitSize, Lcd.Text3);
+                rowBits[r].characterSpacing = spacingPx / bitSize * 100f;
+                rowFrom[r] = Ui.Text(frame, $"Row {r + 1} Now", RowsX, y + 26, RowBox, 20, mono, 14, Lcd.Ink);
+                rowArrow[r] = Ui.Text(frame, $"Row {r + 1} Arrow", RowsX, y + 26, RowBox, 20, mono, 14, Lcd.Text3, TextAlignmentOptions.Center, "→");
+                rowTo[r] = Ui.Text(frame, $"Row {r + 1} Target", RowsX, y + 26, RowBox, 20, mono, 14, Lcd.Text3, TextAlignmentOptions.MidlineRight);
+                float tagX = RowsX + RowBox + 10f;
+                rowTagBox[r] = Ui.Box(frame, $"Row {r + 1} Tag Box", tagX, y + 16, 34, 20, 4f, Lcd.Ink);
+                rowTag[r] = Ui.Text(frame, $"Row {r + 1} Tag", tagX, y + 16, 34, 20, mono, 13, Lcd.Light, TextAlignmentOptions.Center);
             }
         }
 
-        void BuildTargetCard(Transform frame)
+        /// <summary>The right rail starts level with the board's top row (y 124) and ends with its down arrows (y 644).</summary>
+        void BuildRightRail(Transform frame)
         {
-            const float x = 924f, y = 96f, w = 316f, h = 313f, pad = 18f;
-            Ui.Box(frame, "Target Card", x, y, w, h, 10f, Lcd.Cell);
-            Ui.Text(frame, "Target Title", x + pad, y + pad, 200, 16, display, 14, Lcd.Ink, text: "TARGET");
-            for (int r = 0; r < N; r++)
-            for (int c = 0; c < N; c++)
-                thumb[r * N + c] = Ui.Box(frame, $"Thumb {r + 1},{c + 1}", x + pad + c * 23f, y + 44f + r * 23f, 20, 20, 3f, Lcd.Background);
-            targetText = Ui.Text(frame, "Target Text", x + pad, y + 235, w - 2 * pad, 60, mono, 13, Lcd.Text2, TextAlignmentOptions.TopLeft);
-            targetText.textWrappingMode = TextWrappingModes.Normal;
-            targetText.lineSpacing = 8;
-        }
+            const float x = RightX, w = RightW, pad = 16f;
 
-        void BuildBucket(Transform frame)
-        {
-            const float x = 924f, y = 429f, w = 316f, h = 110f, pad = 18f;
-            bucketFrame = Ui.Frame(frame, "Bucket Frame", x, y, w, h, 10f, 3f, Lcd.Ink, 8f);
-            Ui.Text(frame, "Bucket Title", x + pad, y + pad, 200, 16, display, 14, Lcd.Ink, text: "BIT BUCKET");
-            bucketCount = Ui.Text(frame, "Bucket Count", x + pad, y + pad, w - 2 * pad, 16, mono, 14, Lcd.Ink, TextAlignmentOptions.MidlineRight);
-            bucketText = Ui.Text(frame, "Bucket Text", x + pad, y + 46, w - 2 * pad, 50, mono, 13, Lcd.Text2, TextAlignmentOptions.TopLeft);
+            const float bucketY = 124f, bucketH = 150f;
+            bucketFrame = Ui.Frame(frame, "Bucket Frame", x, bucketY, w, bucketH, 10f, 3f, Lcd.Ink, 8f);
+            Ui.Text(frame, "Bucket Title", x + pad, bucketY + 18, 120, 18, display, 14, Lcd.Ink, text: "BIT BUCKET");
+            bucketCount = Ui.Text(frame, "Bucket Count", x + pad, bucketY + 10, w - 2 * pad, 34, display, 28, Lcd.Ink, TextAlignmentOptions.MidlineRight);
+            bucketText = Ui.Text(frame, "Bucket Text", x + pad, bucketY + 52, w - 2 * pad, 90, mono, 12, Lcd.Text2, TextAlignmentOptions.TopLeft);
             bucketText.textWrappingMode = TextWrappingModes.Normal;
-            bucketText.lineSpacing = 8;
+            bucketText.lineSpacing = 4;
+
+            // Move log: a light counterweight to the left rail.
+            const float logY = 294f, logRow = 22f;
+            Ui.Box(frame, "Log Rule", x, logY, w, 2, 0f, Lcd.Cell);
+            Ui.Text(frame, "Log Title", x, logY + 12, w, 16, mono, 12, Lcd.Text3, text: "MOVES SO FAR").characterSpacing = 10;
+            for (int i = 0; i < LogRows; i++)
+            {
+                float y = logY + 36 + i * logRow;
+                logIndex[i] = Ui.Text(frame, $"Log {i + 1} Index", x, y, 40, logRow, mono, 13, Lcd.Text3);
+                logMove[i] = Ui.Text(frame, $"Log {i + 1} Move", x + 40, y, w - 40, logRow, mono, 13, Lcd.Text3, TextAlignmentOptions.MidlineRight);
+            }
+            logEmpty = Ui.Text(frame, "Log Empty", x, logY + 36, w, logRow, mono, 13, Lcd.Cell, text: "no moves yet");
+
+            // Key caps, like the title screen's.
+            const float k1 = 504f, k2 = 536f, k3 = 568f;
+            float kx = KeyCap(frame, "⇧", x, k1, 26f);
+            kx = KeyLabel(frame, "+", kx, k1, 18f, TextAlignmentOptions.Center);
+            kx = KeyCap(frame, "← → ↑ ↓", kx, k1, 76f);
+            KeyLabel(frame, "shift", kx + 6f, k1, 50f);
+            kx = KeyCap(frame, "Z", x, k2, 26f);
+            kx = KeyLabel(frame, "undo", kx + 6f, k2, 40f);
+            kx = KeyCap(frame, "R", kx + 8f, k2, 26f);
+            KeyLabel(frame, "reset", kx + 6f, k2, 50f);
+            kx = KeyCap(frame, "H", x, k3, 26f);
+            kx = KeyLabel(frame, "help", kx + 6f, k3, 40f);
+            kx = KeyCap(frame, "M", kx + 8f, k3, 26f);
+            KeyLabel(frame, "mute", kx + 6f, k3, 50f);
+
+            const float menuY = 604f;
+            HudButton.Create(frame, "MENU", x, menuY, 56, 40, display, 12, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(frame, "HELP", x + 60, menuY, 56, 40, display, 12, ToggleHelp);
+            soundButton = HudButton.Create(frame, "SOUND", x + 120, menuY, 72, 40, display, 12,
+                () => game.ChangeSettings(s => s.muted = !s.muted));
         }
 
-        void BuildKeyHint(Transform frame)
+        /// <summary>Newest move first, numbered; the bottom rows fade so a long log trails off.</summary>
+        void RefreshLog()
         {
-            const float x = 924f, y = 559f;
-            KeyCap(frame, "⇧ Shift", x, y, 82);
-            Ui.Text(frame, "Plus", x + 82, y, 28, 32, mono, 14, Lcd.Ink, TextAlignmentOptions.Center, "+");
-            KeyCap(frame, "← → ↑ ↓", x + 110, y, 112);
-            cursorHint = Ui.Text(frame, "Cursor Hint", x, y + 40, 316, 20, mono, 14, Lcd.Text2);
-            Ui.Text(frame, "Undo Hint", x, y + 64, 316, 20, mono, 13, Lcd.Text3, text: "Z undo · R reset · Enter next · Esc menu");
+            var log = game.MoveLog;
+            logEmpty.enabled = log.Count == 0;
+            for (int i = 0; i < LogRows; i++)
+            {
+                int m = log.Count - 1 - i;
+                bool shown = m >= 0;
+                logIndex[i].text = shown ? (m + 1).ToString("00") : "";
+                logMove[i].text = shown ? log[m].ToString() : "";
+                var ink = i == 0 ? Lcd.Ink : Lcd.Text3;
+                Color color = ink;
+                color.a = LogAlpha[i];
+                logMove[i].color = color;
+                Color index = Lcd.Text3;
+                index.a = LogAlpha[i];
+                logIndex[i].color = index;
+                logMove[i].fontStyle = i == 0 ? FontStyles.Bold : FontStyles.Normal;
+            }
         }
 
-        void KeyCap(Transform frame, string text, float x, float y, float w)
+        /// <summary>An outlined key cap; returns its right edge.</summary>
+        float KeyCap(Transform frame, string text, float x, float y, float w)
         {
-            Ui.Frame(frame, text, x, y, w, 32, 6f, 2f, Lcd.Ink);
-            Ui.Text(frame, text + " Label", x, y, w, 32, mono, 14, Lcd.Ink, TextAlignmentOptions.Center, text);
+            Ui.Frame(frame, $"Key {text}", x, y, w, 26, 5f, 2f, Lcd.Ink);
+            Ui.Text(frame, $"Key {text} Label", x, y, w, 26, mono, 12, Lcd.Ink, TextAlignmentOptions.Center, text);
+            return x + w;
+        }
+
+        float KeyLabel(Transform frame, string text, float x, float y, float w,
+            TextAlignmentOptions align = TextAlignmentOptions.MidlineLeft)
+        {
+            Ui.Text(frame, $"Key Text {text}", x, y, w, 26, mono, 12, Lcd.Text3, align, text);
+            return x + w;
         }
 
         void BuildBanner(Transform frame)
@@ -245,10 +307,10 @@ namespace ShiftRegister.Game.Hud
             Ui.Text(brokenBanner, "Text", 0, 68, w, 24, mono, 15, Lcd.Light, TextAlignmentOptions.Center, "Z or Backspace to undo");
         }
 
-        /// <summary>A hidden banner centred on the board (mockup board centre 305.5, 337.5), scaled about its centre.</summary>
+        /// <summary>A hidden banner centred on the board (mockup board centre 596, 360), scaled about its centre.</summary>
         static RectTransform BannerRoot(Transform frame, string name, float w, float h)
         {
-            float x = 305.5f - w / 2f, y = 337.5f - h / 2f;
+            float x = 596f - w / 2f, y = 360f - h / 2f;
             var rt = Ui.Rect(frame, name, x, y, w, h);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(x + w / 2f, -(y + h / 2f));
@@ -262,10 +324,13 @@ namespace ShiftRegister.Game.Hud
             var level = game.Level;
             var rules = board.Rules;
 
-            title.text = $"{level.id} · {level.name.ToUpperInvariant()}";
-            chapter.text = $"Chapter {game.ChapterIndex + 1} · {game.Chapter.name}";
-            string par = level.par > 0 ? level.par.ToString() : "?";
-            moves.text = $"Moves <b>{board.MoveCount}</b> · par <b>{par}</b>";
+            chapterLabel.text = $"CHAPTER {game.ChapterIndex + 1} · {game.Chapter.name.ToUpperInvariant()}";
+            levelName.text = level.name.ToUpperInvariant();
+            levelId.text = $"Level {level.id}";
+            movesValue.text = board.MoveCount.ToString();
+            parValue.text = level.par > 0 ? level.par.ToString() : "?";
+            RefreshOutlook(board.MoveCount, level.par);
+            RefreshLog();
 
             bool arithmetic = RowHint.ArithmeticHintsApply(rules);
             for (int r = 0; r < N; r++)
@@ -277,20 +342,23 @@ namespace ShiftRegister.Game.Hud
 
                 int chainTop = rules.ChainTopOf(r);
                 bool chainBottom = chainTop >= 0 && chainTop != r;
-                if (chainTop == r)
+                if (chainTop >= 0)
                 {
-                    // A carry chain reads as one 16-bit number on its top row.
-                    now = (now << 8) | board.GetRow(r + 1);
-                    target = (target << 8) | BoardBits.GetRow(rules.Target, r + 1);
+                    // A carry chain reads as one 16-bit number: "now" on its top row, "→ target" below.
+                    now = (board.GetRow(chainTop) << 8) | board.GetRow(chainTop + 1);
+                    target = (BoardBits.GetRow(rules.Target, chainTop) << 8) | BoardBits.GetRow(rules.Target, chainTop + 1);
                 }
-                rowNow[r].text = chainBottom ? "" : $"<b>{now}</b>";
-                rowTarget[r].text = chainBottom ? "" : $"→ {target}";
+                rowFrom[r].text = chainBottom ? "" : $"<b>{now}</b>";
+                rowArrow[r].text = chainTop >= 0 ? "" : "→";
+                rowTo[r].text = chainTop == r ? "" : chainBottom ? $"→ {target}" : target.ToString();
 
-                string hint = chainBottom ? "" : RowHint.For(now, target, arithmetic);
+                string hint = chainBottom ? "" : RowHint.For(now, target, arithmetic).Replace("need ", "");
                 bool ok = hint == RowHint.Ok;
                 bool showHint = hint.Length > 0;
                 rowTag[r].text = showHint ? hint : label;
                 rowTag[r].color = ok ? Lcd.Light : showHint ? Lcd.LossText : Lcd.Text3;
+                rowTag[r].fontStyle = showHint && !ok ? FontStyles.Bold : FontStyles.Normal;
+                rowTag[r].fontSize = ok ? 11 : 13;
                 rowTagBox[r].enabled = ok;
             }
 
@@ -310,7 +378,7 @@ namespace ShiftRegister.Game.Hud
             bool broken = board.IsRuleBroken;
             if (animate && board.Lost > shownLost) StartCoroutine(Bump(bucketCount.rectTransform));
             shownLost = board.Lost;
-            bucketCount.text = $"<b>{board.Lost}</b> lost";
+            bucketCount.text = board.Lost.ToString();
             bucketCount.color = board.Lost > 0 ? Lcd.Loss : Lcd.Ink;
             bucketFrame.color = broken ? Lcd.Loss : Lcd.Ink;
             bucketText.text = broken ? "Rule broken. Undo to continue." : RuleText(rules);
@@ -363,6 +431,23 @@ namespace ShiftRegister.Game.Hud
                 yield return null;
             }
             rt.localScale = Vector3.one;
+        }
+
+        /// <summary>The stars a solve could still earn: finishing at par or later, never sooner.</summary>
+        void RefreshOutlook(int moves, int par)
+        {
+            bool show = par > 0;
+            outlook.enabled = show;
+            int stars = game.LastResult?.Stars ?? Scoring.Stars(Mathf.Max(moves, par), par);
+            for (int i = 0; i < outlookStars.Length; i++)
+            {
+                outlookStars[i].enabled = show && i < stars;
+            }
+            if (!show) return;
+            outlook.text = game.LastResult != null ? $"solved for {stars}"
+                : moves == 0 ? $"{par} moves for {Scoring.MaxStars}"
+                : stars == Scoring.MaxStars ? $"still on track for {stars}"
+                : $"on track for {stars}";
         }
 
         /// <summary>Binary row with walls shown as '#'.</summary>

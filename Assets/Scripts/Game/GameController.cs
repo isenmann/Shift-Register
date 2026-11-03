@@ -74,6 +74,10 @@ namespace ShiftRegister.Game
         }
 
         readonly List<LevelEntry> levels = new List<LevelEntry>();
+        readonly List<Move> moveLog = new List<Move>();
+
+        /// <summary>The moves on the board, oldest first: undo takes the last one back, reset clears them.</summary>
+        public IReadOnlyList<Move> MoveLog => moveLog;
 
         /// <summary>Every catalog level in play order.</summary>
         public IReadOnlyList<LevelEntry> Levels => levels;
@@ -164,9 +168,11 @@ namespace ShiftRegister.Game
         {
             Level = data;
             Board = new Board(Level);
+            moveLog.Clear();
             LastResult = null;
 
             boardView.transform.localPosition = ScreenLayout.BoardCenter;
+            boardView.transform.localScale = Vector3.one * ScreenLayout.BoardScale;
             boardView.Build(Board.Rules);
             if (controls != null) controls.Build(Board.Rules);
             Refresh();
@@ -194,6 +200,7 @@ namespace ShiftRegister.Game
                 Blocked?.Invoke();
                 return false;
             }
+            moveLog.Add(move);
 
             if (Board.IsSolved)
             {
@@ -223,6 +230,7 @@ namespace ShiftRegister.Game
         public void Undo()
         {
             if (Board == null || !Board.Undo()) return;
+            if (moveLog.Count > 0) moveLog.RemoveAt(moveLog.Count - 1);
             Refresh();
             Undone?.Invoke();
         }
@@ -232,6 +240,7 @@ namespace ShiftRegister.Game
             if (Board == null) return;
             bool moved = Board.MoveCount > 0;
             Board.Reset();
+            moveLog.Clear();
             Refresh();
             if (moved) Restarted?.Invoke();
         }

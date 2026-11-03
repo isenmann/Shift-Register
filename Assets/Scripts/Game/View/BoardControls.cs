@@ -82,7 +82,7 @@ namespace ShiftRegister.Game.View
 
                 int count = chain ? 2 : 1;
                 float w = 2f * halfWidth * Px + 2f * margin;
-                float h = count * 46f + (count - 1) * 5f + 2f * margin;
+                float h = count * 46f + (count - 1) * ScreenLayout.GapPx + 2f * margin;
                 var belt = Renderer(root, chain ? $"Chain belt {r + 1}-{r + 2}" : $"Wrap belt {r + 1}",
                     ProceduralSprites.RoundedOutline(w, h, 14f, thickness, 6f), Lcd.Text3, (int)Layer.Belt);
                 float y = (BoardView.CellCenter(r, 0).y + BoardView.CellCenter(r + count - 1, 0).y) / 2f;
@@ -169,7 +169,7 @@ namespace ShiftRegister.Game.View
         }
 
         /// <summary>Outline length in mockup px around n cells.</summary>
-        static float Span(int cells) => cells * 46f + (cells - 1) * 5f + 2f * OutlineMargin;
+        static float Span(int cells) => cells * 46f + (cells - 1) * ScreenLayout.GapPx + 2f * OutlineMargin;
 
         void AddButton(Direction direction, int line, Vector2 position)
         {

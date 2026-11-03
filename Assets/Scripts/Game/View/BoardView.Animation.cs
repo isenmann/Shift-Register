@@ -22,8 +22,8 @@ namespace ShiftRegister.Game.View
         [SerializeField] float flyTime = 0.55f;
 
         const int FloatBodyOrder = 8, FloatEyesOrder = 9;
-        /// <summary>Where lost bits land: the bit bucket card in the 1280×720 mockup.</summary>
-        static readonly Vector2 BucketMockupPx = new Vector2(1082f, 476f);
+        /// <summary>Where lost bits land: the bit bucket card in the 1280×720 mockup (layout A's right rail).</summary>
+        static readonly Vector2 BucketMockupPx = new Vector2(1144f, 388f);
         static readonly Color32 LostEye = new Color32(0xF1, 0xE3, 0xC8, 0xFF);
 
         sealed class Floater

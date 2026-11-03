@@ -41,7 +41,7 @@ namespace ShiftRegister.Tests
         public void CellCenter_RowZeroIsTop_PitchMatchesMockup()
         {
             Assert.That(BoardView.CellCenter(0, 0).y, Is.GreaterThan(BoardView.CellCenter(7, 0).y));
-            Assert.That(BoardView.CellCenter(0, 1).x - BoardView.CellCenter(0, 0).x, Is.EqualTo(51f / 46f).Within(1e-5));
+            Assert.That(BoardView.CellCenter(0, 1).x - BoardView.CellCenter(0, 0).x, Is.EqualTo(53f / 46f).Within(1e-5), "46 px cells, 7 px gaps (layout A scales the board to 52 px cells)");
         }
     }
 }
