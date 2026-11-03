@@ -47,6 +47,15 @@ namespace ShiftRegister.Game
         /// <summary>Raised when a move solves the level (already recorded in <see cref="Progress"/>).</summary>
         public event Action<LevelResult> Solved;
 
+        /// <summary>Raised when a move was asked for but cannot happen (locked line, wall, broken or solved board).</summary>
+        public event Action Blocked;
+
+        /// <summary>Raised after an undo that took a move back.</summary>
+        public event Action Undone;
+
+        /// <summary>Raised after a reset that undid at least one move.</summary>
+        public event Action Restarted;
+
         /// <summary>One catalog level, parsed once at startup.</summary>
         public sealed class LevelEntry
         {
@@ -152,7 +161,12 @@ namespace ShiftRegister.Game
 
         public bool TryShift(Move move)
         {
-            if (Board == null || !Board.TryMove(move, out var outcome)) return false;
+            if (Board == null) return false;
+            if (!Board.TryMove(move, out var outcome))
+            {
+                Blocked?.Invoke();
+                return false;
+            }
 
             if (Board.IsSolved)
             {
@@ -171,19 +185,28 @@ namespace ShiftRegister.Game
         }
 
         /// <summary>Shifts the line part under a cursor cell; false on a wall cell or a locked line.</summary>
-        public bool TryShiftAt(int row, int column, Direction direction) =>
-            Board != null && InputMapping.TryCursorMove(Board.Rules, row, column, direction, out var move) && TryShift(move);
+        public bool TryShiftAt(int row, int column, Direction direction)
+        {
+            if (Board == null) return false;
+            if (InputMapping.TryCursorMove(Board.Rules, row, column, direction, out var move)) return TryShift(move);
+            Blocked?.Invoke();
+            return false;
+        }
 
         public void Undo()
         {
-            if (Board != null && Board.Undo()) Refresh();
+            if (Board == null || !Board.Undo()) return;
+            Refresh();
+            Undone?.Invoke();
         }
 
         public void ResetLevel()
         {
             if (Board == null) return;
+            bool moved = Board.MoveCount > 0;
             Board.Reset();
             Refresh();
+            if (moved) Restarted?.Invoke();
         }
 
         void Refresh()

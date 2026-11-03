@@ -58,6 +58,15 @@ namespace ShiftRegister.Game.View
         /// <summary>Raised when a move animation finishes or is cut short.</summary>
         public event Action Settled;
 
+        /// <summary>Raised when a move's gates switch bits on or off (after the slide).</summary>
+        public event Action<MoveOutcome> GatesSwitched;
+
+        /// <summary>
+        /// Raised when the board reacts to a move: lost bits have landed and the board shakes (broken)
+        /// or hops (solved). Not raised when the animation is cut short by the next move.
+        /// </summary>
+        public event Action<MoveOutcome, bool, bool> Reacted;
+
         /// <summary>Animates a move that the model has already applied.</summary>
         public void Play(MoveOutcome outcome, bool solved, bool broken)
         {
@@ -66,6 +75,8 @@ namespace ShiftRegister.Game.View
             if (!animate || !Application.isPlaying || !isActiveAndEnabled || cells == null)
             {
                 ShowNow(outcome.After, outcome.After);
+                if (outcome.After != outcome.AfterShift) GatesSwitched?.Invoke(outcome);
+                Reacted?.Invoke(outcome, solved, broken);
                 Settled?.Invoke();
                 return;
             }
@@ -166,12 +177,14 @@ namespace ShiftRegister.Game.View
             if ((appear | vanish) != 0)
             {
                 ShowNow(o.AfterShift & ~vanish, o.After);
+                GatesSwitched?.Invoke(o);
                 yield return Pop(appear, vanish, gateTime);
             }
             ShowNow(o.After, o.After);
 
             // 3. Wait for lost bits to land, then react.
             while (flights > 0) yield return null;
+            Reacted?.Invoke(o, solved, broken);
             if (broken) yield return Shake(0.3f);
 
             busy = false;

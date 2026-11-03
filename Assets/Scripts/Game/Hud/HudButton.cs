@@ -1,4 +1,5 @@
 using System;
+using ShiftRegister.Game.Audio;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -55,7 +56,11 @@ namespace ShiftRegister.Game.Hud
 
         public void OnPointerEnter(PointerEventData e) => SetHot(true);
         public void OnPointerExit(PointerEventData e) => SetHot(false);
-        public void OnPointerClick(PointerEventData e) => onClick?.Invoke();
+        public void OnPointerClick(PointerEventData e)
+        {
+            Sfx.Play(Sound.Click);
+            onClick?.Invoke();
+        }
 
         void SetHot(bool hot)
         {

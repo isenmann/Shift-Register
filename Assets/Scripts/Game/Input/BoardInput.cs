@@ -1,4 +1,5 @@
 using ShiftRegister.Core;
+using ShiftRegister.Game.Audio;
 using ShiftRegister.Game.View;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -64,7 +65,7 @@ namespace ShiftRegister.Game.Input
 
             bool next = kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame
                 || kb.spaceKey.wasPressedThisFrame || kb.nKey.wasPressedThisFrame;
-            if (next && game.Board.IsSolved) game.NextLevel();
+            if (next && game.Board.IsSolved && game.NextLevel()) Sfx.Play(Sound.Click);
 
             // Testing shortcuts (editor and development builds): jump between levels without solving them.
             if (Debug.isDebugBuild)
@@ -76,6 +77,7 @@ namespace ShiftRegister.Game.Input
 
         void MoveCursor(Direction d)
         {
+            int oldRow = row, oldColumn = column;
             switch (d)
             {
                 case Direction.Left: column = Mathf.Max(0, column - 1); break;
@@ -83,6 +85,7 @@ namespace ShiftRegister.Game.Input
                 case Direction.Up: row = Mathf.Max(0, row - 1); break;
                 case Direction.Down: row = Mathf.Min(BoardBits.Size - 1, row + 1); break;
             }
+            if (row != oldRow || column != oldColumn) Sfx.Play(Sound.Tick);
         }
 
         void HandlePointer()
@@ -114,6 +117,7 @@ namespace ShiftRegister.Game.Input
             {
                 var b = controls.Buttons[hovered];
                 if (pressed && b.Enabled) game.TryShift(b.Move);
+                else if (pressed) Sfx.Play(Sound.Blocked);
             }
             else if ((moved || pressed) && BoardControls.HitCell(local, out int r, out int c))
             {

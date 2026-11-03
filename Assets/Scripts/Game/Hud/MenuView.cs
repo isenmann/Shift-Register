@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ShiftRegister.Core;
+using ShiftRegister.Game.Audio;
 using ShiftRegister.Game.View;
 using TMPro;
 using UnityEngine;
@@ -258,6 +259,7 @@ namespace ShiftRegister.Game.Hud
 
             // Focus the current or resume level.
             var (c, l) = game.Board != null ? (game.ChapterIndex, game.LevelIndex) : game.ResumeTarget();
+            focusFrame.enabled = false; // no focus tick when the screen opens
             SetFocus(c, l);
         }
 
@@ -283,6 +285,7 @@ namespace ShiftRegister.Game.Hud
                 level = 0;
             }
             level = Mathf.Clamp(level, 0, rows[chapter].Count - 1);
+            if (focusFrame.enabled && (chapter != focusChapter || level != focusLevel)) Sfx.Play(Sound.Tick);
             focusChapter = chapter;
             focusLevel = level;
             var row = rows[chapter][level];
@@ -293,7 +296,11 @@ namespace ShiftRegister.Game.Hud
 
         void TryPlay(int chapter, int level)
         {
-            if (chapter < 0 || !game.IsUnlocked(chapter, level)) return;
+            if (chapter < 0 || !game.IsUnlocked(chapter, level))
+            {
+                Sfx.Play(Sound.Blocked);
+                return;
+            }
             flow.Play(chapter, level);
         }
     }
