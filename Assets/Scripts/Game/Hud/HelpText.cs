@@ -78,7 +78,7 @@ namespace ShiftRegister.Game.Hud
                     GateOp.And => "& keeps only bits on its cells",
                     GateOp.Or => "| turns its cells on",
                     GateOp.Xor => "^ toggles its cells",
-                    _ => "¬ inverts the whole row if a bit sits on it"
+                    _ => "~ inverts the whole row if a bit sits on it"
                 });
             }
             string when = level.gatesOnColumnMoves

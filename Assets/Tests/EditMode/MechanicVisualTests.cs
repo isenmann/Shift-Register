@@ -51,7 +51,7 @@ namespace ShiftRegister.Tests
                 Assert.That(view.HasOverlay(5, 2), Is.False);
                 Assert.That(view.OverlaySymbol(5, 3), Is.EqualTo("^"));
                 Assert.That(view.OverlaySymbol(6, 2), Is.EqualTo("&"));
-                Assert.That(view.OverlaySymbol(6, 7), Is.EqualTo("¬"));
+                Assert.That(view.OverlaySymbol(6, 7), Is.EqualTo("~"));
                 Assert.That(view.OverlaySymbol(4, 0), Is.EqualTo("1›"));
             }
             finally

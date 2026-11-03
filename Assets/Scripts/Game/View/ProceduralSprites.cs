@@ -28,6 +28,15 @@ namespace ShiftRegister.Game.View
                 return new Color(1, 1, 1, Fill(d));
             });
 
+        /// <summary>Filled rectangle rounding only its top-left and bottom-right corners (a gate's corner tab).</summary>
+        public static Sprite CornerTab(float w, float h, float topLeftRadius, float bottomRightRadius) =>
+            Get($"tab {w} {h} {topLeftRadius} {bottomRightRadius}", w, h, false, (px, py, hw, hh) =>
+            {
+                float r = px < 0f && py > 0f ? topLeftRadius : px > 0f && py < 0f ? bottomRightRadius : 0f;
+                float d = RoundedRectDistance(px, py, hw, hh, r * Scale);
+                return new Color(1, 1, 1, Fill(d));
+            });
+
         /// <summary>Rounded outline drawn inside the shape's edge; dash = 0 for a solid line.</summary>
         public static Sprite RoundedOutline(float w, float h, float radius, float thickness, float dash = 0f, bool ui = false) =>
             Get($"outline {w} {h} {radius} {thickness} {dash}", w, h, ui, (px, py, hw, hh) =>
