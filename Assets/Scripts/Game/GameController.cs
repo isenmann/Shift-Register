@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ShiftRegister.Core;
 using ShiftRegister.Game.Input;
 using ShiftRegister.Game.Progress;
@@ -46,13 +47,54 @@ namespace ShiftRegister.Game
         /// <summary>Raised when a move solves the level (already recorded in <see cref="Progress"/>).</summary>
         public event Action<LevelResult> Solved;
 
-        void Start()
+        /// <summary>One catalog level, parsed once at startup.</summary>
+        public sealed class LevelEntry
+        {
+            public int Chapter;
+            public int Index;
+            /// <summary>Position in play order.</summary>
+            public int Order;
+            public LevelData Data;
+        }
+
+        readonly List<LevelEntry> levels = new List<LevelEntry>();
+
+        /// <summary>Every catalog level in play order.</summary>
+        public IReadOnlyList<LevelEntry> Levels => levels;
+
+        /// <summary>True when testing a fixed level: skip the title screen and load it directly.</summary>
+        public bool StartsInLevel => overrideStart;
+
+        void Awake()
         {
             Progress = ProgressStore.Load();
-            int chapter, level;
-            if (overrideStart) (chapter, level) = (startChapter, startLevel);
-            else if (!catalog.TryFind(Progress.lastLevelId, out chapter, out level)) catalog.TryFirst(out chapter, out level);
-            Load(chapter, level);
+            foreach (var (c, l, file) in catalog.AllLevels())
+                if (file != null)
+                    levels.Add(new LevelEntry { Chapter = c, Index = l, Order = levels.Count, Data = LevelJson.Parse(file) });
+        }
+
+        /// <summary>Loads the inspector's test level (see <see cref="StartsInLevel"/>).</summary>
+        public void LoadStartLevel() => Load(startChapter, startLevel);
+
+        public LevelEntry Entry(int chapter, int level) => levels.Find(e => e.Chapter == chapter && e.Index == level);
+
+        public bool IsUnlocked(int chapter, int level)
+        {
+            var entry = Entry(chapter, level);
+            if (entry == null) return false;
+            var solved = new List<bool>(levels.Count);
+            foreach (var e in levels) solved.Add(Progress.IsSolved(e.Data.id));
+            return Unlocks.IsUnlocked(solved, entry.Order);
+        }
+
+        /// <summary>Where PLAY goes: the last level played, else the first unsolved open level, else the first.</summary>
+        public (int chapter, int level) ResumeTarget()
+        {
+            var last = levels.Find(e => e.Data.id == Progress.lastLevelId);
+            if (last != null) return (last.Chapter, last.Index);
+            foreach (var e in levels)
+                if (!Progress.IsSolved(e.Data.id) && IsUnlocked(e.Chapter, e.Index)) return (e.Chapter, e.Index);
+            return levels.Count > 0 ? (levels[0].Chapter, levels[0].Index) : (0, 0);
         }
 
         public void Load(int chapter, int level)

@@ -1,6 +1,7 @@
 using ShiftRegister.Core;
 using ShiftRegister.Game.View;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace ShiftRegister.Game.Input
@@ -20,9 +21,18 @@ namespace ShiftRegister.Game.Input
         int row = 4, column = 3;
         int hovered = -1;
         Vector2 lastPointer = new Vector2(float.NaN, float.NaN);
+        int enabledFrame = -1;
 
         public int CursorRow => row;
         public int CursorColumn => column;
+
+        void OnEnable()
+        {
+            // The click that opened the level (e.g. on a menu row) must not also press the board.
+            enabledFrame = Time.frameCount;
+            hovered = -1;
+            lastPointer = new Vector2(float.NaN, float.NaN);
+        }
 
         void Update()
         {
@@ -79,6 +89,13 @@ namespace ShiftRegister.Game.Input
         {
             var p = Pointer.current;
             if (p == null || cam == null)
+            {
+                hovered = -1;
+                return;
+            }
+
+            bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            if (Time.frameCount == enabledFrame || overUi)
             {
                 hovered = -1;
                 return;

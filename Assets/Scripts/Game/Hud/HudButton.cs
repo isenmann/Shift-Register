@@ -13,6 +13,7 @@ namespace ShiftRegister.Game.Hud
         TextMeshProUGUI label;
         Action onClick;
         Color32 ink, paper;
+        bool solid;
 
         /// <summary>Ink-on-background button (top bar).</summary>
         public static HudButton Create(Transform parent, string text, float x, float y, float w, float h,
@@ -40,6 +41,16 @@ namespace ShiftRegister.Game.Hud
             return b;
         }
 
+        /// <summary>Filled button (the title screen's PLAY): ink box, paper label, lighter ink on hover.</summary>
+        public static HudButton CreateSolid(Transform parent, string text, float x, float y, float w, float h,
+            TMP_FontAsset font, float size, Action onClick)
+        {
+            var b = Create(parent, text, x, y, w, h, font, size, Lcd.Ink, Lcd.Light, onClick);
+            b.solid = true;
+            b.SetHot(false);
+            return b;
+        }
+
         void OnDisable() => SetHot(false);
 
         public void OnPointerEnter(PointerEventData e) => SetHot(true);
@@ -49,6 +60,13 @@ namespace ShiftRegister.Game.Hud
         void SetHot(bool hot)
         {
             if (fill == null) return;
+            if (solid)
+            {
+                fill.enabled = true;
+                fill.color = hot ? Lcd.Text3 : ink;
+                label.color = paper;
+                return;
+            }
             fill.enabled = hot;
             label.color = hot ? paper : ink;
         }

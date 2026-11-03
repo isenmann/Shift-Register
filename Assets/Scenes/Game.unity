@@ -228,6 +228,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 40693400a20f67111a44feb5ce216003, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ShiftRegister.Game::ShiftRegister.Game.View.BoardView
+  animate: 1
+  shiftTime: 0.13
+  gateTime: 0.15
+  flyTime: 0.55
   spriteMaterial: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
 --- !u!4 &1118623587
 Transform:
@@ -291,6 +295,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: ShiftRegister.Game::ShiftRegister.Game.Hud.HudView
   game: {fileID: 1924864242}
   input: {fileID: 1924864244}
+  flow: {fileID: 1924864245}
   displayBold: {fileID: 11400000, guid: 4eebf0e5b05d82bdd85f84ad97311be8, type: 2}
   display: {fileID: 11400000, guid: 068434e6b7efdeafca89eb6237b956cc, type: 2}
   mono: {fileID: 11400000, guid: 1ec31071a36f0f544af535745b5a5612, type: 2}
@@ -388,6 +393,7 @@ GameObject:
   - component: {fileID: 1924864243}
   - component: {fileID: 1924864242}
   - component: {fileID: 1924864244}
+  - component: {fileID: 1924864245}
   m_Layer: 0
   m_Name: Game
   m_TagString: Untagged
@@ -410,6 +416,7 @@ MonoBehaviour:
   catalog: {fileID: 11400000, guid: ca204f08c9a92ea4b833cacdec1a95dc, type: 2}
   boardView: {fileID: 1118623586}
   controls: {fileID: 1118623588}
+  overrideStart: 0
   startChapter: 1
   startLevel: 0
 --- !u!4 &1924864243
@@ -442,6 +449,22 @@ MonoBehaviour:
   game: {fileID: 1924864242}
   controls: {fileID: 1118623588}
   cam: {fileID: 1976558926}
+--- !u!114 &1924864245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1924864241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81137d27db896275ba66793c0d37b806, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ShiftRegister.Game::ShiftRegister.Game.ScreenFlow
+  game: {fileID: 1924864242}
+  input: {fileID: 1924864244}
+  hud: {fileID: 1136014058}
+  menu: {fileID: 2026119173}
 --- !u!1 &1976558924
 GameObject:
   m_ObjectHideFlags: 0
@@ -538,6 +561,126 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2026119172
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2026119177}
+  - component: {fileID: 2026119176}
+  - component: {fileID: 2026119175}
+  - component: {fileID: 2026119174}
+  - component: {fileID: 2026119173}
+  m_Layer: 0
+  m_Name: Menu
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2026119173
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2026119172}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa5a742fc5d19dcccb180472a4ad35a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ShiftRegister.Game::ShiftRegister.Game.Hud.MenuView
+  game: {fileID: 1924864242}
+  flow: {fileID: 1924864245}
+  displayBold: {fileID: 11400000, guid: 4eebf0e5b05d82bdd85f84ad97311be8, type: 2}
+  display: {fileID: 11400000, guid: 068434e6b7efdeafca89eb6237b956cc, type: 2}
+  mono: {fileID: 11400000, guid: 1ec31071a36f0f544af535745b5a5612, type: 2}
+--- !u!114 &2026119174
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2026119172}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc42784cf147c0c48a680349fa168899, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.GraphicRaycaster
+  m_IgnoreReversedGraphics: 1
+  m_BlockingObjects: 0
+  m_BlockingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!114 &2026119175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2026119172}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
+  m_UiScaleMode: 1
+  m_ReferencePixelsPerUnit: 100
+  m_ScaleFactor: 1
+  m_ReferenceResolution: {x: 1280, y: 720}
+  m_ScreenMatchMode: 1
+  m_MatchWidthOrHeight: 0
+  m_PhysicalUnit: 3
+  m_FallbackScreenDPI: 96
+  m_DefaultSpriteDPI: 96
+  m_DynamicPixelsPerUnit: 1
+  m_PresetInfoIsWorld: 0
+--- !u!223 &2026119176
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2026119172}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 0
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 0
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
+  m_UseReflectionProbes: 0
+  m_AdditionalShaderChannelsFlag: 0
+  m_UpdateRectTransformForStandalone: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 200
+  m_TargetDisplay: 0
+--- !u!224 &2026119177
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2026119172}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0, y: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -547,3 +690,4 @@ SceneRoots:
   - {fileID: 1924864243}
   - {fileID: 1136014063}
   - {fileID: 846755726}
+  - {fileID: 2026119177}

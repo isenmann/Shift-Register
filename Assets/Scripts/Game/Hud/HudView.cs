@@ -18,6 +18,7 @@ namespace ShiftRegister.Game.Hud
     {
         [SerializeField] GameController game;
         [SerializeField] BoardInput input;
+        [SerializeField] ScreenFlow flow;
         [Tooltip("Silkscreen Bold: level title and banner.")]
         [SerializeField] TMP_FontAsset displayBold;
         [Tooltip("Silkscreen Regular: card titles and buttons.")]
@@ -51,6 +52,13 @@ namespace ShiftRegister.Game.Hud
             if (game == null) return;
             game.Changed += OnChanged;
             if (game.BoardView != null) game.BoardView.Settled += OnSettled;
+            // The level may have changed while the HUD was hidden (menus).
+            if (game.Board != null)
+            {
+                solvedShown = brokenShown = false;
+                shownLost = game.Board.Lost;
+                OnChanged();
+            }
         }
 
         void OnDisable()
@@ -116,8 +124,9 @@ namespace ShiftRegister.Game.Hud
 
             var right = Ui.Fill(bar, "Actions");
             right.anchorMin = new Vector2(1f, 0f);
-            right.offsetMin = new Vector2(-560f, 0f);
+            right.offsetMin = new Vector2(-680f, 0f);
             right.offsetMax = new Vector2(-40f, 0f);
+            HudButton.Create(right, "MENU", 548, 10, 92, 44, display, 14, () => flow.Show(GameScreen.Chapters));
             HudButton.Create(right, "RESET", 420, 10, 100, 44, display, 14, () => game.ResetLevel());
             HudButton.Create(right, "UNDO", 304, 10, 88, 44, display, 14, () => game.Undo());
             moves = Ui.Text(right, "Moves", 0, 0, 276, 64, mono, 15, Lcd.Ink, TextAlignmentOptions.MidlineRight);
@@ -181,7 +190,7 @@ namespace ShiftRegister.Game.Hud
             Ui.Text(frame, "Plus", x + 82, y, 28, 32, mono, 14, Lcd.Ink, TextAlignmentOptions.Center, "+");
             KeyCap(frame, "← → ↑ ↓", x + 110, y, 112);
             cursorHint = Ui.Text(frame, "Cursor Hint", x, y + 40, 316, 20, mono, 14, Lcd.Text2);
-            Ui.Text(frame, "Undo Hint", x, y + 64, 316, 20, mono, 13, Lcd.Text3, text: "Z undo · R reset · Enter next");
+            Ui.Text(frame, "Undo Hint", x, y + 64, 316, 20, mono, 13, Lcd.Text3, text: "Z undo · R reset · Enter next · Esc menu");
         }
 
         void KeyCap(Transform frame, string text, float x, float y, float w)

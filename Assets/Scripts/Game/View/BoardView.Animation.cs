@@ -91,6 +91,12 @@ namespace ShiftRegister.Game.View
             }
         }
 
+        void OnDisable()
+        {
+            // Coroutines die with the object; finish the animation so the board is never left half-way.
+            if (busy || hopping || live.Count > 0) StopAnimation();
+        }
+
         /// <summary>Called by Build: the old cells (and floaters under them) are about to be destroyed.</summary>
         void ResetAnimationState()
         {
