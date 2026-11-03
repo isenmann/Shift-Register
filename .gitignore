@@ -99,3 +99,8 @@ Desktop.ini
 # ---------------------------------------------------------------
 /[Aa]ssets/ThirdParty-NonFree/
 /[Aa]ssets/ThirdParty-NonFree.meta
+
+# Level generator output
+/Tools/LevelGenerator/bin/
+/Tools/LevelGenerator/obj/
+/Tools/LevelGenerator/picked*.txt
