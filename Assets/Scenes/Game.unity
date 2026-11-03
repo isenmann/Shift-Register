@@ -232,6 +232,7 @@ MonoBehaviour:
   shiftTime: 0.13
   gateTime: 0.15
   flyTime: 0.55
+  symbolFont: {fileID: 11400000, guid: 1ec31071a36f0f544af535745b5a5612, type: 2}
   spriteMaterial: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
 --- !u!4 &1118623587
 Transform:

@@ -17,7 +17,7 @@ namespace ShiftRegister.Game.View
         const float OutlineMargin = 6f, OutlineRadius = 10f, OutlineWidth = 3f;
         const float DisabledAlpha = 0.25f;
 
-        enum Layer { Outline = 5, ButtonFill = 5, ButtonFrame = 6, ButtonIcon = 7 }
+        enum Layer { Belt = 4, Outline = 5, ButtonFill = 5, ButtonFrame = 6, ButtonIcon = 7 }
 
         public sealed class ArrowButton
         {
@@ -61,8 +61,33 @@ namespace ShiftRegister.Game.View
                 AddButton(Direction.Right, r, new Vector2(offset, y));
             }
 
+            BuildBelts(offset + ButtonShort / 2f / Px);
             rowOutline = Renderer(root, "Row outline", null, Lcd.Ink, (int)Layer.Outline);
             columnOutline = Renderer(root, "Column outline", null, Lcd.Ink, (int)Layer.Outline);
+        }
+
+        /// <summary>
+        /// Rows that move as a unit get a dashed "belt" around them and their arrow buttons:
+        /// a rotating row loops like a conveyor; a carry chain's two rows shift as one register.
+        /// </summary>
+        void BuildBelts(float halfWidth)
+        {
+            const float margin = 4.5f, thickness = 2f;
+            for (int r = 0; r < BoardBits.Size; r++)
+            {
+                int top = rules.ChainTopOf(r);
+                bool chain = top >= 0;
+                if (chain && top != r) continue; // a chain is drawn once, from its top row
+                if (!chain && !rules.IsRotating(r)) continue;
+
+                int count = chain ? 2 : 1;
+                float w = 2f * halfWidth * Px + 2f * margin;
+                float h = count * 46f + (count - 1) * 5f + 2f * margin;
+                var belt = Renderer(root, chain ? $"Chain belt {r + 1}-{r + 2}" : $"Wrap belt {r + 1}",
+                    ProceduralSprites.RoundedOutline(w, h, 14f, thickness, 6f), Lcd.Text3, (int)Layer.Belt);
+                float y = (BoardView.CellCenter(r, 0).y + BoardView.CellCenter(r + count - 1, 0).y) / 2f;
+                belt.transform.localPosition = new Vector3(0f, y, 0f);
+            }
         }
 
         /// <summary>Index of the arrow button under a board-local point, or -1.</summary>

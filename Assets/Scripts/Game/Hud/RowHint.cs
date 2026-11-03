@@ -20,6 +20,30 @@ namespace ShiftRegister.Game.Hud
             return true;
         }
 
+        /// <summary>
+        /// What makes a row special, for the tag column: "carry", "wrap", the gate ("AND", "OR", "XOR",
+        /// "NOT", "+" when a row has several) or "1-IN"; "" for a plain row.
+        /// </summary>
+        public static string Label(LevelRules rules, int row)
+        {
+            if (rules.ChainTopOf(row) >= 0) return "carry";
+            if (rules.IsRotating(row)) return "wrap";
+
+            string gate = null;
+            int gates = 0;
+            foreach (var g in rules.Data.gates ?? Array.Empty<RowGate>())
+            {
+                if (g.row != row) continue;
+                gates++;
+                gate ??= g.op.ToString().ToUpperInvariant();
+            }
+            if (gate != null) return gates > 1 ? gate + "+" : gate;
+
+            foreach (int r in rules.Data.fillLeftRows ?? Array.Empty<int>()) if (r == row) return "1-IN";
+            foreach (int r in rules.Data.fillRightRows ?? Array.Empty<int>()) if (r == row) return "1-IN";
+            return "";
+        }
+
         /// <summary>"OK" when equal; "need ×4" / "need ÷2" when that many plain shifts get there; else "".</summary>
         public static string For(int now, int target, bool arithmetic)
         {

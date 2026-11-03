@@ -255,12 +255,24 @@ namespace ShiftRegister.Game.Hud
                 int now = board.GetRow(r);
                 int target = BoardBits.GetRow(rules.Target, r);
                 rowBits[r].text = RowString(rules, now, r);
-                rowNow[r].text = $"<b>{now}</b>";
-                rowTarget[r].text = $"→ {target}";
-                string tag = RowHint.For(now, target, arithmetic);
-                bool ok = tag == RowHint.Ok;
-                rowTag[r].text = tag;
-                rowTag[r].color = ok ? Lcd.Light : Lcd.LossText;
+                string label = RowHint.Label(rules, r);
+
+                int chainTop = rules.ChainTopOf(r);
+                bool chainBottom = chainTop >= 0 && chainTop != r;
+                if (chainTop == r)
+                {
+                    // A carry chain reads as one 16-bit number on its top row.
+                    now = (now << 8) | board.GetRow(r + 1);
+                    target = (target << 8) | BoardBits.GetRow(rules.Target, r + 1);
+                }
+                rowNow[r].text = chainBottom ? "" : $"<b>{now}</b>";
+                rowTarget[r].text = chainBottom ? "" : $"→ {target}";
+
+                string hint = chainBottom ? "" : RowHint.For(now, target, arithmetic);
+                bool ok = hint == RowHint.Ok;
+                bool showHint = hint.Length > 0;
+                rowTag[r].text = showHint ? hint : label;
+                rowTag[r].color = ok ? Lcd.Light : showHint ? Lcd.LossText : Lcd.Text3;
                 rowTagBox[r].enabled = ok;
             }
 

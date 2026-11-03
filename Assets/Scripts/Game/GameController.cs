@@ -100,17 +100,35 @@ namespace ShiftRegister.Game
         public void Load(int chapter, int level)
         {
             var file = catalog.chapters[chapter].levels[level];
+            previewing = false;
             ChapterIndex = chapter;
             LevelIndex = level;
-            Level = LevelJson.Parse(file);
-            Board = new Board(Level);
-            LastResult = null;
+            Show(LevelJson.Parse(file));
 
             if (Progress != null && Progress.lastLevelId != Level.id)
             {
                 Progress.lastLevelId = Level.id;
                 ProgressStore.Save(Progress);
             }
+        }
+
+        /// <summary>
+        /// Plays a level that is not in the catalog (level design, visual checks). Keeps the current
+        /// chapter for the HUD; solves are not saved.
+        /// </summary>
+        public void Preview(LevelData data)
+        {
+            previewing = true;
+            Show(data);
+        }
+
+        bool previewing;
+
+        void Show(LevelData data)
+        {
+            Level = data;
+            Board = new Board(Level);
+            LastResult = null;
 
             boardView.transform.localPosition = ScreenLayout.BoardCenter;
             boardView.Build(Board.Rules);
@@ -138,10 +156,10 @@ namespace ShiftRegister.Game
 
             if (Board.IsSolved)
             {
-                var result = Progress != null
+                var result = Progress != null && !previewing
                     ? Progress.Record(Level.id, Board.MoveCount, Level.par)
                     : new LevelResult(Board.MoveCount, Level.par, Scoring.Stars(Board.MoveCount, Level.par), true, 0);
-                if (Progress != null) ProgressStore.Save(Progress);
+                if (Progress != null && !previewing) ProgressStore.Save(Progress);
                 LastResult = result;
                 Solved?.Invoke(result);
             }

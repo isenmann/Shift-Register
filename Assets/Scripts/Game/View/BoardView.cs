@@ -4,7 +4,8 @@ using UnityEngine;
 namespace ShiftRegister.Game.View
 {
     /// <summary>
-    /// Draws the 8×8 board: empty cells, walls, target ghosts, bits with eyes, and pins.
+    /// Draws the 8×8 board: empty cells, walls, target ghosts, bits with eyes, pins, and (in
+    /// BoardView.Overlays.cs) gate cells and 1-IN edges.
     /// The board's local origin is its centre; one cell is one unit.
     /// </summary>
     public sealed partial class BoardView : MonoBehaviour
@@ -75,6 +76,7 @@ namespace ShiftRegister.Game.View
                 cell.Pin.enabled = rules.IsPinned(r, c);
                 cells[r, c] = cell;
             }
+            BuildOverlays();
         }
 
         /// <summary>Shows a board state at once (stopping any animation); empty target cells get a dashed ghost.</summary>
@@ -98,6 +100,7 @@ namespace ShiftRegister.Game.View
                 cell.Bit.transform.localScale = Vector3.one;
                 cell.Ghost.enabled = !BoardBits.GetCell(ghostsFrom, r, c) && BoardBits.GetCell(rules.Target, r, c);
             }
+            UpdateOverlays(bits);
         }
 
         public bool IsBitShown(int row, int column) => cells[row, column].Bit.activeSelf;
