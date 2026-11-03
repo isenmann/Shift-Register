@@ -12,6 +12,7 @@ namespace ShiftRegister.Editor
         public const string WebPath = "Builds/Web";
         public const string WindowsPath = "Builds/Windows/ShiftRegister.exe";
         public const string LinuxPath = "Builds/Linux/ShiftRegister.x86_64";
+        public const string AndroidPath = "Builds/Android/ShiftRegister.apk";
 
         [MenuItem("Shift Register/Build/Web")]
         public static void BuildWeb() => Build(BuildTarget.WebGL, WebPath);
@@ -22,12 +23,19 @@ namespace ShiftRegister.Editor
         [MenuItem("Shift Register/Build/Linux")]
         public static void BuildLinux() => Build(BuildTarget.StandaloneLinux64, LinuxPath);
 
+        /// <summary>An installable APK for testing on a phone (signed with the debug keystore).</summary>
+        [MenuItem("Shift Register/Build/Android APK")]
+        public static void BuildAndroid() => Build(BuildTarget.Android, AndroidPath);
+
         public static BuildReport Build(BuildTarget target, string path)
         {
             // Smallest download for the web build. This setting lives in Library/, not in the
             // project settings, so set it here for every machine.
             if (target == BuildTarget.WebGL)
                 UnityEditor.WebGL.UserBuildSettings.codeOptimization = UnityEditor.WebGL.WasmCodeOptimization.DiskSizeLTO;
+            // An APK installs directly; an app bundle (.aab) only goes through the Play Store.
+            if (target == BuildTarget.Android)
+                EditorUserBuildSettings.buildAppBundle = false;
 
             var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
             if (scenes.Length == 0)
