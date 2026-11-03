@@ -104,6 +104,14 @@ namespace ShiftRegister.Game.Hud
             gap.GetComponent<LayoutElement>().minHeight = height;
         }
 
+        /// <summary>Portrait screens are narrower than the panel: shrink it to fit (until it gets its own layout).</summary>
+        void ScaleHelp(float scale)
+        {
+            if (helpRoot == null) return;
+            var panelFrame = helpRoot.Find("Frame");
+            if (panelFrame != null) panelFrame.localScale = Vector3.one * scale;
+        }
+
         void ToggleHelp()
         {
             if (HelpOpen) CloseHelp();

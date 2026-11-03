@@ -47,21 +47,26 @@ namespace ShiftRegister.Game.View
             root = new GameObject("Controls").transform;
             root.SetParent(transform, false);
 
+            // Portrait (mobile) shifts by swiping: no arrow buttons, and the belts hug the board.
+            bool arrows = !ScreenLayout.Portrait;
             float offset = ScreenLayout.BoardSize / 2f + (ButtonGap + ButtonShort / 2f) / Px;
-            for (int c = 0; c < BoardBits.Size; c++)
+            if (arrows)
             {
-                float x = BoardView.CellCenter(0, c).x;
-                AddButton(Direction.Up, c, new Vector2(x, offset));
-                AddButton(Direction.Down, c, new Vector2(x, -offset));
-            }
-            for (int r = 0; r < BoardBits.Size; r++)
-            {
-                float y = BoardView.CellCenter(r, 0).y;
-                AddButton(Direction.Left, r, new Vector2(-offset, y));
-                AddButton(Direction.Right, r, new Vector2(offset, y));
+                for (int c = 0; c < BoardBits.Size; c++)
+                {
+                    float x = BoardView.CellCenter(0, c).x;
+                    AddButton(Direction.Up, c, new Vector2(x, offset));
+                    AddButton(Direction.Down, c, new Vector2(x, -offset));
+                }
+                for (int r = 0; r < BoardBits.Size; r++)
+                {
+                    float y = BoardView.CellCenter(r, 0).y;
+                    AddButton(Direction.Left, r, new Vector2(-offset, y));
+                    AddButton(Direction.Right, r, new Vector2(offset, y));
+                }
             }
 
-            BuildBelts(offset + ButtonShort / 2f / Px);
+            BuildBelts(arrows ? offset + ButtonShort / 2f / Px : ScreenLayout.BoardSize / 2f + ButtonGap / Px);
             rowOutline = Renderer(root, "Row outline", null, Lcd.Ink, (int)Layer.Outline);
             columnOutline = Renderer(root, "Column outline", null, Lcd.Ink, (int)Layer.Outline);
         }

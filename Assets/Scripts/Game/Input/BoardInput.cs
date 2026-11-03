@@ -10,7 +10,8 @@ namespace ShiftRegister.Game.Input
     /// <summary>
     /// Keyboard and pointer controls. A cursor cell picks the row and column:
     /// arrows / WASD move it, Shift + arrow shifts the line part under it.
-    /// The pointer moves the cursor (hover or tap) and presses the arrow buttons.
+    /// The pointer moves the cursor (hover or tap) and presses the arrow buttons; in mobile mode
+    /// (<see cref="DeviceMode"/>) dragging a row or column shifts it (<see cref="SwipeTracker"/>).
     /// Z / Backspace undoes, R resets, Enter / Space / N goes to the next level once solved.
     /// </summary>
     public sealed class BoardInput : MonoBehaviour
@@ -23,6 +24,8 @@ namespace ShiftRegister.Game.Input
         int hovered = -1;
         Vector2 lastPointer = new Vector2(float.NaN, float.NaN);
         int enabledFrame = -1;
+        // First shift after 40 % of a cell, then one per cell dragged.
+        readonly SwipeTracker swipe = new SwipeTracker(ScreenLayout.Pitch, ScreenLayout.Pitch * 0.4f);
 
         public int CursorRow => row;
         public int CursorColumn => column;
@@ -33,6 +36,7 @@ namespace ShiftRegister.Game.Input
             enabledFrame = Time.frameCount;
             hovered = -1;
             lastPointer = new Vector2(float.NaN, float.NaN);
+            swipe.End();
         }
 
         void Update()
@@ -97,21 +101,42 @@ namespace ShiftRegister.Game.Input
                 hovered = -1;
                 return;
             }
-
             bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            Feed(p.position.ReadValue(), p.press.isPressed, p.press.wasPressedThisFrame, overUi);
+        }
+
+        /// <summary>
+        /// One frame of pointer input: hover, taps on cells and arrow buttons, and (mobile) swipes.
+        /// Public so play-mode checks can drive it without input devices.
+        /// </summary>
+        public void Feed(Vector2 screen, bool down, bool justPressed, bool overUi)
+        {
+            if (cam == null) return;
+            Vector3 world = cam.ScreenToWorldPoint(new Vector3(screen.x, screen.y, -cam.transform.position.z));
+            Vector2 local = controls.transform.InverseTransformPoint(world);
+
+            // A swipe keeps going even if the finger crosses a HUD element.
+            if (swipe.Active)
+            {
+                if (!down)
+                {
+                    swipe.End();
+                    return;
+                }
+                Direction? d;
+                while ((d = swipe.Step(local)).HasValue) game.TryShiftAt(swipe.Row, swipe.Column, d.Value);
+                return;
+            }
+
             if (Time.frameCount == enabledFrame || overUi)
             {
                 hovered = -1;
                 return;
             }
 
-            Vector2 screen = p.position.ReadValue();
             bool moved = screen != lastPointer;
             lastPointer = screen;
-            bool pressed = p.press.wasPressedThisFrame;
-
-            Vector3 world = cam.ScreenToWorldPoint(new Vector3(screen.x, screen.y, -cam.transform.position.z));
-            Vector2 local = controls.transform.InverseTransformPoint(world);
+            bool pressed = justPressed;
             hovered = controls.HitButton(local);
 
             if (hovered >= 0)
@@ -124,6 +149,7 @@ namespace ShiftRegister.Game.Input
             {
                 row = r;
                 column = c;
+                if (pressed && DeviceMode.IsMobile) swipe.Begin(local, r, c);
             }
         }
     }

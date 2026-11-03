@@ -22,8 +22,6 @@ namespace ShiftRegister.Game.View
         [SerializeField] float flyTime = 0.55f;
 
         const int FloatBodyOrder = 8, FloatEyesOrder = 9;
-        /// <summary>Where lost bits land: the bit bucket card in the 1280×720 mockup (layout A's right rail).</summary>
-        static readonly Vector2 BucketMockupPx = new Vector2(1144f, 388f);
         static readonly Color32 LostEye = new Color32(0xF1, 0xE3, 0xC8, 0xFF);
 
         sealed class Floater
@@ -231,7 +229,7 @@ namespace ShiftRegister.Game.View
             yield return Tween(shiftTime, t => f.T.localPosition = Vector2.Lerp(from, edge, EaseOutCubic(t)));
 
             SetLost(f, true);
-            Vector3 bucketWorld = ScreenLayout.FromMockup(BucketMockupPx.x, BucketMockupPx.y);
+            Vector3 bucketWorld = ScreenLayout.BucketCenter;
             Vector2 target = cellsRoot.InverseTransformPoint(bucketWorld);
             Vector2 control = (edge + target) / 2f + Vector2.up * 2.5f;
             yield return Tween(flyTime, t =>

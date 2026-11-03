@@ -24,6 +24,8 @@ namespace ShiftRegister.Game
         [SerializeField] int startChapter = 1;
         [Tooltip("0-based level within the chapter.")]
         [SerializeField] int startLevel;
+        [Tooltip("Editor only: behave like a phone or tablet (swipe input, portrait layouts).")]
+        [SerializeField] bool simulateMobile;
 
         public Board Board { get; private set; }
         public LevelData Level { get; private set; }
@@ -87,6 +89,7 @@ namespace ShiftRegister.Game
 
         void Awake()
         {
+            DeviceMode.Override = Application.isEditor && simulateMobile ? true : (bool?)null;
             Progress = ProgressStore.Load();
             Settings = SettingsStore.Load();
             ApplySettings();
@@ -171,11 +174,26 @@ namespace ShiftRegister.Game
             moveLog.Clear();
             LastResult = null;
 
-            boardView.transform.localPosition = ScreenLayout.BoardCenter;
-            boardView.transform.localScale = Vector3.one * ScreenLayout.BoardScale;
+            PlaceBoard();
             boardView.Build(Board.Rules);
             if (controls != null) controls.Build(Board.Rules);
             Refresh();
+        }
+
+        void PlaceBoard()
+        {
+            boardView.transform.localPosition = ScreenLayout.BoardCenter;
+            boardView.transform.localScale = Vector3.one * ScreenLayout.BoardScale;
+        }
+
+        void OnEnable() => ScreenLayout.OrientationChanged += OnOrientationChanged;
+        void OnDisable() => ScreenLayout.OrientationChanged -= OnOrientationChanged;
+
+        /// <summary>Portrait and landscape place the board differently; portrait has no arrow buttons.</summary>
+        void OnOrientationChanged()
+        {
+            PlaceBoard();
+            if (Board != null && controls != null) controls.Build(Board.Rules);
         }
 
         public bool NextLevel()
