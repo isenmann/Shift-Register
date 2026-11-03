@@ -99,6 +99,10 @@ namespace ShiftRegister.Game.Hud
             helpWide.Frame.parent.gameObject.SetActive(!tall);
             helpTall.Frame.parent.gameObject.SetActive(tall);
             var p = HelpCur;
+            // Still drawn in desktop units: shrink the panel to fit the frame (phones use 412 short-side units).
+            var panelSize = p.Frame.sizeDelta;
+            float scale = Mathf.Min(1f, (ScreenLayout.FrameWidthPx - 24f) / panelSize.x, (ScreenLayout.FrameHeightPx - 24f) / panelSize.y);
+            p.Frame.parent.localScale = Vector3.one * scale;
             Clear(p.Controls);
             Clear(p.Board);
 

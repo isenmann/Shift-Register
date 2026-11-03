@@ -6,9 +6,9 @@ namespace ShiftRegister.Game.View
 {
     /// <summary>
     /// World layout taken from the mockups: one world unit is 46 mockup px, and the board's local unit
-    /// is one cell. The layouts are drawn on a base frame, 1280×720 in landscape or 720×1280 in
-    /// portrait (mobile only); the visible frame keeps the 720 short side and stretches its long side
-    /// with the screen (up to <see cref="MaxLongPx"/>), so 20:9 phones and wide windows get
+    /// is one cell. The layouts are drawn on a base frame: 1280×720 on desktop, 412×915 / 915×412 on
+    /// phones and tablets (the phone mockups' CSS px, so text keeps its size); the visible frame keeps
+    /// the short side and stretches its long side with the screen, so 20:9 phones and wide windows get
     /// <see cref="ExtraPx"/> more room instead of empty bars. Centred content stays put; the HUD and
     /// menus move their outer groups out by half the extra on each side.
     /// </summary>
@@ -24,16 +24,28 @@ namespace ShiftRegister.Game.View
         public const float Pitch = (46f + GapPx) / PxPerUnit;
         public const float BoardSize = (8 * 46f + 7 * GapPx) / PxPerUnit;
 
-        public const float ShortPx = 720f, BaseLongPx = 1280f;
-        /// <summary>The frame stretches to about 21.5:9 at most; beyond that the screen shows a margin.</summary>
-        public const float MaxLongPx = 1720f;
+        /// <summary>
+        /// Desktop: 720 short side, 1280 base long side (16:9), stretching to about 21.5:9.
+        /// Phones and tablets: 412 × 915 (a 20:9 phone in CSS px), stretching from 860 (16:9 phones pull
+        /// the outer groups in) to 1000.
+        /// </summary>
+        public static float ShortPx => Phone ? 412f : 720f;
+        public static float BaseLongPx => Phone ? 915f : 1280f;
+        static float MinLongPx => Phone ? 860f : 1280f;
+        static float MaxLongPx => Phone ? 1000f : 1720f;
+
+        /// <summary>Phones and tablets in play: the phone layouts (B2 portrait, B3 landscape).</summary>
+        public static bool Phone { get; private set; }
 
         /// <summary>Landscape (layout A3b): 52 px cells, centred at x 596, y 360 of 1280×720.</summary>
         public const float LandscapeBoardScale = 52f / 46f;
         public static readonly Vector2 LandscapeBoardCenterPx = new Vector2(596f, 360f);
-        /// <summary>Portrait (P2): 58 px cells, left of the row tags and below the info cards, of 720×1280.</summary>
-        public const float PortraitBoardScale = 58f / 46f;
-        public static readonly Vector2 PortraitBoardCenterPx = new Vector2(287f, 693f);
+        /// <summary>Phone portrait (B2): the board spans the width, x 12–399, y 356–743 of 412×915.</summary>
+        public const float PhonePortraitBoardScale = 387f / 417f;
+        public static readonly Vector2 PhonePortraitBoardCenterPx = new Vector2(205.5f, 549.5f);
+        /// <summary>Phone landscape (B3): the board spans the height, x 236–607, y 20–391 of 915×412.</summary>
+        public const float PhoneLandscapeBoardScale = 371f / 417f;
+        public static readonly Vector2 PhoneLandscapeBoardCenterPx = new Vector2(421.5f, 205.5f);
 
         /// <summary>True on a phone or tablet held upright (<see cref="DeviceMode.IsMobile"/> only).</summary>
         public static bool Portrait { get; private set; }
@@ -48,10 +60,13 @@ namespace ShiftRegister.Game.View
         public static void SetScreen(float width, float height)
         {
             if (width <= 0f || height <= 0f) return;
-            bool portrait = Application.isPlaying && DeviceMode.IsMobile && height > width;
+            bool phone = Application.isPlaying && DeviceMode.IsMobile;
+            bool portrait = phone && height > width;
             float ratio = portrait ? height / width : width / height;
-            float extra = Mathf.Round(Mathf.Clamp(ShortPx * ratio, BaseLongPx, MaxLongPx) - BaseLongPx);
-            if (portrait == Portrait && Mathf.Approximately(extra, ExtraPx)) return;
+            bool wasPhone = Phone;
+            Phone = phone;
+            float extra = Mathf.Round(Mathf.Clamp(ShortPx * ratio, MinLongPx, MaxLongPx) - BaseLongPx);
+            if (phone == wasPhone && portrait == Portrait && Mathf.Approximately(extra, ExtraPx)) return;
             Portrait = portrait;
             ExtraPx = extra;
             LayoutChanged?.Invoke();
@@ -74,14 +89,17 @@ namespace ShiftRegister.Game.View
         /// </summary>
         public static float OuterShiftPx => ExtraPx / 2f;
 
-        public static float BoardScale => Portrait ? PortraitBoardScale : LandscapeBoardScale;
-        public static Vector2 BoardCenterPx => Portrait ? PortraitBoardCenterPx : LandscapeBoardCenterPx;
+        public static float BoardScale => !Phone ? LandscapeBoardScale : Portrait ? PhonePortraitBoardScale : PhoneLandscapeBoardScale;
+        public static Vector2 BoardCenterPx => !Phone ? LandscapeBoardCenterPx : Portrait ? PhonePortraitBoardCenterPx : PhoneLandscapeBoardCenterPx;
+
+        /// <summary>Menus and the help panel are still drawn in desktop units (720 short side): desktop units per frame px.</summary>
+        public static float MenuScale => 720f / ShortPx;
         public static Vector2 BoardCenter => FromMockup(BoardCenterPx.x, BoardCenterPx.y);
 
         /// <summary>Where lost bits land: the bit bucket card's centre (in an outer group, so it moves with it).</summary>
-        public static Vector2 BucketCenter => Portrait
-            ? FromMockup(360f, 290f - OuterShiftPx)
-            : FromMockup(1144f + OuterShiftPx, 199f);
+        public static Vector2 BucketCenter => !Phone
+            ? FromMockup(1144f + OuterShiftPx, 199f)
+            : Portrait ? FromMockup(226f, 196f - OuterShiftPx) : FromMockup(860f + OuterShiftPx, 80f);
 
         /// <summary>Converts base-frame mockup coordinates (origin top-left, y down) to world units.</summary>
         public static Vector2 FromMockup(float x, float y) =>

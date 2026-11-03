@@ -35,6 +35,7 @@ namespace ShiftRegister.Game.Hud
         // Move log rows, newest first; the last ones fade out instead of counting what is hidden.
         const int LogRows = 7;
         static readonly float[] LogAlpha = { 1f, 1f, 1f, 1f, 0.55f, 0.3f, 0.12f };
+        static readonly float[] ShortLogAlpha = { 1f, 0.6f, 0.3f };
 
         /// <summary>Everything one arrangement shows that changes during play.</summary>
         sealed class Layout
@@ -51,18 +52,21 @@ namespace ShiftRegister.Game.Hud
             public readonly Image[] RowTagBox = new Image[N];
             public Image BucketFrame;
             public TextMeshProUGUI BucketCount, BucketText, LogEmpty;
-            public readonly TextMeshProUGUI[] LogIndex = new TextMeshProUGUI[LogRows];
-            public readonly TextMeshProUGUI[] LogMove = new TextMeshProUGUI[LogRows];
+            public TextMeshProUGUI[] LogIndex, LogMove;
             public HudButton Sound;
+            /// <summary>Phone layouts: compact texts, and the readout of the selected row.</summary>
+            public bool Phone;
+            public TextMeshProUGUI ReadRow, ReadOk, ReadBits, ReadFrom, ReadArrow, ReadTo, ReadTag;
             /// <summary>Landscape only: the key caps (desktop) or the swipe hint (mobile).</summary>
             public GameObject Keys, SwipeHint;
             /// <summary>Outer groups that move out into the extra length: landscape left/right rails, portrait top/bottom blocks.</summary>
             public RectTransform A, B;
         }
 
-        Layout landscape, portrait;
+        Layout landscape, phoneLandscape, phonePortrait;
         Layout[] layouts;
-        Layout Active => ScreenLayout.Portrait ? portrait : landscape;
+        Layout Active => !ScreenLayout.Phone ? landscape : ScreenLayout.Portrait ? phonePortrait : phoneLandscape;
+        int shownReadRow = -1;
 
         RectTransform bannerFrame, solvedBanner, brokenBanner;
         TextMeshProUGUI solvedText, lastLevelText;
@@ -131,26 +135,32 @@ namespace ShiftRegister.Game.Hud
             if (game.Board != null) RefreshOutcome(true);
         }
 
-        void Update() => UpdateHelp();
+        void Update()
+        {
+            UpdateHelp();
+            if (ScreenLayout.Phone) RefreshReadout();
+        }
 
         /// <summary>Shows the arrangement for the current orientation and moves the shared parts with it.</summary>
         void ApplyOrientation()
         {
-            bool tall = ScreenLayout.Portrait;
             var scaler = GetComponent<CanvasScaler>();
             if (scaler != null) scaler.referenceResolution = new Vector2(ScreenLayout.FrameWidthPx, ScreenLayout.FrameHeightPx);
-            landscape.Root.gameObject.SetActive(!tall);
-            portrait.Root.gameObject.SetActive(tall);
+            var active = Active;
+            foreach (var l in layouts) l.Root.gameObject.SetActive(l == active);
             bool mobile = DeviceMode.IsMobile;
             landscape.Keys.SetActive(!mobile);
             landscape.SwipeHint.SetActive(mobile);
 
-            // The extra length of 20:9 phones and wide windows goes between the board and the outer groups.
+            // The extra length of long phones and wide windows goes between the board and the outer groups.
             float shift = ScreenLayout.OuterShiftPx;
-            landscape.A.anchoredPosition = new Vector2(-shift, 0f);
-            landscape.B.anchoredPosition = new Vector2(shift, 0f);
-            portrait.A.anchoredPosition = new Vector2(0f, shift);
-            portrait.B.anchoredPosition = new Vector2(0f, -shift);
+            foreach (var l in new[] { landscape, phoneLandscape })
+            {
+                l.A.anchoredPosition = new Vector2(-shift, 0f);
+                l.B.anchoredPosition = new Vector2(shift, 0f);
+            }
+            phonePortrait.A.anchoredPosition = new Vector2(0f, shift);
+            phonePortrait.B.anchoredPosition = new Vector2(0f, -shift);
 
             bannerFrame.sizeDelta = new Vector2(ScreenLayout.BaseWidthPx, ScreenLayout.BaseHeightPx);
             Vector2 centre = ScreenLayout.BoardCenterPx;
@@ -166,9 +176,11 @@ namespace ShiftRegister.Game.Hud
             var canvas = (RectTransform)transform;
             landscape = new Layout { Root = Frame(canvas, "Landscape", 1280, 720) };
             BuildLandscape(landscape);
-            portrait = new Layout { Root = Frame(canvas, "Portrait", 720, 1280) };
-            BuildPortrait(portrait);
-            layouts = new[] { landscape, portrait };
+            phoneLandscape = new Layout { Root = Frame(canvas, "Phone Landscape", 915, 412), Phone = true };
+            BuildPhoneLandscape(phoneLandscape);
+            phonePortrait = new Layout { Root = Frame(canvas, "Phone Portrait", 412, 915), Phone = true };
+            BuildPhonePortrait(phonePortrait);
+            layouts = new[] { landscape, phoneLandscape, phonePortrait };
 
             bannerFrame = Frame(canvas, "Banners", 1280, 720);
             BuildBanner(bannerFrame);
@@ -252,44 +264,135 @@ namespace ShiftRegister.Game.Hud
         }
 
         /// <summary>
-        /// P2, 720×1280: header, then the target / bucket / move log cards above the board so a
-        /// swiping thumb never covers them, the board with its row tags, and thumb-sized buttons.
+        /// B2, a 20:9 phone held upright (412×915 CSS px): header, the target / bucket / last moves
+        /// cards, the readout of the selected row, the board across the full width (no row tags), and
+        /// thumb-sized buttons. Text is at least 13 px, buttons at least 48 px tall.
         /// </summary>
-        void BuildPortrait(Layout l)
+        void BuildPhonePortrait(Layout l)
         {
             var f = l.Root;
-            var top = l.A = Group(f, "Top", 720, 1280);
-            var bottom = l.B = Group(f, "Bottom", 720, 1280);
-            const float x = 24f;
-            l.ChapterLabel = Ui.Text(top, "Chapter", x, 36, 440, 18, mono, 13, Lcd.Text3);
-            l.ChapterLabel.characterSpacing = 10;
-            l.LevelName = LevelName(top, x, 58, 440, 44, 40);
-            l.LevelId = Ui.Text(top, "Level Id", x, 104, 440, 18, mono, 14, Lcd.Text2);
-            l.Rule = Ui.Text(top, "Chapter Rule", x, 136, 440, 36, mono, 13, Lcd.Text2, TextAlignmentOptions.TopLeft);
-            l.Rule.textWrappingMode = TextWrappingModes.Normal;
+            var top = l.A = Group(f, "Top", 412, 915);
+            var bottom = l.B = Group(f, "Bottom", 412, 915);
+            l.ChapterLabel = Ui.Text(top, "Chapter", 12, 20, 236, 16, mono, 13, Lcd.Text3);
+            l.LevelName = LevelName(top, 12, 38, 236, 32, 30);
+            PhoneTile(top, "Moves", 250, 20, 70, 56, true, out l.Moves);
+            PhoneTile(top, "Par", 330, 20, 70, 56, false, out l.Par);
+            Outlook(l, top, 12, 92, 18f, 14f);
 
-            Ui.Box(top, "Moves Tile", 476, 36, 104, 72, 10f, Lcd.Cell);
-            Ui.Text(top, "Moves Label", 490, 46, 80, 16, mono, 12, Lcd.Text3, text: "MOVES").characterSpacing = 10;
-            l.Moves = Ui.Text(top, "Moves", 490, 64, 80, 36, display, 30, Lcd.Ink);
-            Ui.Frame(top, "Par Tile", 592, 36, 104, 72, 10f, 2f, Lcd.Ink);
-            Ui.Text(top, "Par Label", 606, 46, 80, 16, mono, 12, Lcd.Text3, text: "PAR").characterSpacing = 10;
-            l.Par = Ui.Text(top, "Par", 606, 64, 80, 36, display, 30, Lcd.Ink);
-            Outlook(l, top, 476, 130, 18f);
+            TargetCard(l, top, 12, 124, 150, 144, 12f, 14f, 12f, 13f, 32f);
+            PhoneBucket(l, top, 172, 124, 108, 144);
+            MoveLog(l, top, 290, 124, 110, 3, 15f, "MOVES", 30f);
 
-            TargetCard(l, top, x, 176, 216, 229, 19f, 22f);
-            Bucket(l, top, 256, 176, 208, 229);
-            MoveLog(l, top, 480, 176, 216);
+            Readout(l, top, 12, 280, 388, 64, 18f, 17f, 24f);
 
-            RowTags(l, f, 560f, ScreenLayout.PortraitBoardCenterPx.y, ScreenLayout.PortraitBoardScale);
+            Ui.Text(bottom, "Swipe Hint", 12, 756, 388, 18, mono, 14, Lcd.Text3, TextAlignmentOptions.Center,
+                "Swipe to shift · tap a row to read it");
+            HudButton.CreateSolid(bottom, "UNDO", 12, 782, 189, 56, display, 20, () => game.Undo());
+            HudButton.Create(bottom, "RESET", 211, 782, 189, 56, display, 20, () => game.ResetLevel());
+            HudButton.Create(bottom, "MENU", 12, 848, 122, 48, display, 14, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(bottom, "HELP", 145, 848, 122, 48, display, 14, ToggleHelp);
+            l.Sound = HudButton.Create(bottom, "SOUND", 278, 848, 122, 48, display, 14, ToggleMute);
+        }
 
-            Ui.Text(bottom, "Swipe Hint", x, 990, 672, 20, mono, 13, Lcd.Text3, TextAlignmentOptions.Center,
-                "Swipe a row or column to shift it · tap a cell to select");
+        /// <summary>
+        /// B3, a 20:9 phone held sideways (915×412 CSS px): slim left rail (level, moves/par, outlook,
+        /// row readout, undo/reset), the board across the full height with compact row tags, and a slim
+        /// right rail (target, bucket, last moves, menu/help/sound).
+        /// </summary>
+        void BuildPhoneLandscape(Layout l)
+        {
+            var f = l.Root;
+            var left = l.A = Group(f, "Left Rail", 915, 412);
+            var right = l.B = Group(f, "Right Rail", 915, 412);
+            l.ChapterLabel = Ui.Text(left, "Chapter", 16, 20, 206, 16, mono, 13, Lcd.Text3);
+            l.LevelName = LevelName(left, 16, 38, 206, 30, 28);
+            PhoneTile(left, "Moves", 16, 84, 99, 54, true, out l.Moves);
+            PhoneTile(left, "Par", 123, 84, 99, 54, false, out l.Par);
+            Outlook(l, left, 16, 150, 16f, 14f);
+            Readout(l, left, 16, 180, 206, 84, 15f, 15f, 20f);
+            HudButton.CreateSolid(left, "UNDO", 16, 336, 99, 56, display, 18, () => game.Undo());
+            HudButton.Create(left, "RESET", 123, 336, 99, 56, display, 18, () => game.ResetLevel());
 
-            HudButton.CreateSolid(bottom, "UNDO", x, 1056, 330, 76, display, 20, () => game.Undo());
-            HudButton.Create(bottom, "RESET", 366, 1056, 330, 76, display, 20, () => game.ResetLevel());
-            HudButton.Create(bottom, "MENU", x, 1156, 216, 56, display, 14, () => flow.Show(GameScreen.Chapters));
-            HudButton.Create(bottom, "HELP", 252, 1156, 216, 56, display, 14, ToggleHelp);
-            l.Sound = HudButton.Create(bottom, "SOUND", 480, 1156, 216, 56, display, 14, ToggleMute);
+            CompactRowTags(l, f, 618f, ScreenLayout.PhoneLandscapeBoardCenterPx.y, ScreenLayout.PhoneLandscapeBoardScale);
+
+            // Target thumbnail with the bucket count beside it.
+            Ui.Box(right, "Target Card", 716, 20, 96, 96, 8f, Lcd.Cell);
+            for (int r = 0; r < N; r++)
+            for (int c = 0; c < N; c++)
+                l.Thumb[r * N + c] = Ui.Box(right, $"Thumb {r + 1},{c + 1}", 724 + c * 10, 28 + r * 10, 9, 9, 1.5f, Lcd.Background);
+            Ui.Text(right, "Target Title", 822, 20, 80, 16, display, 13, Lcd.Ink, text: "TARGET");
+            Ui.Text(right, "Bucket Title", 822, 52, 80, 16, display, 13, Lcd.Ink, text: "BUCKET");
+            l.BucketCount = Ui.Text(right, "Bucket Count", 822, 70, 80, 34, display, 30, Lcd.Ink);
+            MoveLog(l, right, 716, 130, 183, 3, 15f, "MOVES", 30f);
+            HudButton.Create(right, "MENU", 716, 346, 56, 46, display, 12, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(right, "HELP", 778, 346, 56, 46, display, 12, ToggleHelp);
+            l.Sound = HudButton.Create(right, "SOUND", 840, 346, 59, 46, display, 12, ToggleMute);
+        }
+
+        /// <summary>A MOVES (filled) or PAR (outlined) tile with its label over a large value.</summary>
+        void PhoneTile(Transform f, string label, float x, float y, float w, float h, bool filled, out TextMeshProUGUI value)
+        {
+            if (filled) Ui.Box(f, label + " Tile", x, y, w, h, 8f, Lcd.Cell);
+            else Ui.Frame(f, label + " Tile", x, y, w, h, 8f, 2f, Lcd.Ink);
+            Ui.Text(f, label + " Label", x + 10, y + 6, w - 20, 14, mono, 12, Lcd.Text3, text: label.ToUpperInvariant());
+            value = Ui.Text(f, label, x + 10, y + 22, w - 20, h - 26, display, 24, Lcd.Ink);
+        }
+
+        /// <summary>Bucket card for phones: title, a big count and one short line about the rule.</summary>
+        void PhoneBucket(Layout l, Transform f, float x, float y, float w, float h)
+        {
+            l.BucketFrame = Ui.Frame(f, "Bucket Frame", x, y, w, h, 10f, 3f, Lcd.Ink, 8f);
+            Ui.Text(f, "Bucket Title", x + 10, y + 10, w - 20, 16, display, 13, Lcd.Ink, text: "BUCKET");
+            l.BucketCount = Ui.Text(f, "Bucket Count", x + 10, y + 30, w - 20, 50, display, 40, Lcd.Ink);
+            l.BucketText = Ui.Text(f, "Bucket Text", x + 10, y + 84, w - 20, h - 92, mono, 13, Lcd.Text2, TextAlignmentOptions.TopLeft);
+            l.BucketText.textWrappingMode = TextWrappingModes.Normal;
+        }
+
+        /// <summary>
+        /// The selected row, large: "ROW n" and how many rows match, the bits spread across the
+        /// readout, "now → target" pinned to the same edges, and the tag (OK, ×2, a label).
+        /// </summary>
+        void Readout(Layout l, Transform f, float x, float y, float w, float h, float bitSize, float numberSize, float tagSize)
+        {
+            Ui.Frame(f, "Readout Frame", x, y, w, h, 10f, 2f, Lcd.Ink);
+            bool wide = w > 300f;
+            float inner = wide ? x + 98 : x + 12, innerW = wide ? w - 170 : w - 76;
+            if (wide)
+            {
+                l.ReadRow = Ui.Text(f, "Readout Row", x + 14, y + 12, 80, 18, mono, 13, Lcd.Text3);
+                l.ReadOk = Ui.Text(f, "Readout OK", x + 14, y + 34, 80, 18, mono, 13, Lcd.Text3);
+            }
+            else
+            {
+                l.ReadRow = Ui.Text(f, "Readout Row", x + 12, y + 8, 90, 16, mono, 13, Lcd.Text3);
+                l.ReadOk = Ui.Text(f, "Readout OK", x + w - 102, y + 8, 90, 16, mono, 13, Lcd.Text3, TextAlignmentOptions.MidlineRight);
+            }
+            float bitsY = wide ? y + 8 : y + 28, numbersY = bitsY + bitSize + 6;
+            l.ReadBits = Ui.Text(f, "Readout Bits", inner, bitsY, innerW + 10, bitSize + 4, mono, bitSize, Lcd.Text3);
+            l.ReadBits.characterSpacing = (innerW - 8f * 0.6f * bitSize) / 7f / bitSize * 100f;
+            l.ReadFrom = Ui.Text(f, "Readout Now", inner, numbersY, innerW, numberSize + 4, mono, numberSize, Lcd.Ink);
+            l.ReadArrow = Ui.Text(f, "Readout Arrow", inner, numbersY, innerW, numberSize + 4, mono, numberSize, Lcd.Text3, TextAlignmentOptions.Center, "→");
+            l.ReadTo = Ui.Text(f, "Readout Target", inner, numbersY, innerW, numberSize + 4, mono, numberSize, Lcd.Text3, TextAlignmentOptions.MidlineRight);
+            float tagW = wide ? 56f : 52f;
+            l.ReadTag = Ui.Text(f, "Readout Tag", x + w - tagW - 10, wide ? y + (h - 32) / 2 : y + 36, tagW, 32, mono, tagSize, Lcd.LossText, TextAlignmentOptions.MidlineRight);
+            l.ReadTag.fontStyle = FontStyles.Bold;
+        }
+
+        /// <summary>Phone landscape row tags: "now → target" and the tag under it, no bits.</summary>
+        void CompactRowTags(Layout l, Transform f, float x, float boardCenterY, float scale)
+        {
+            float pitch = ScreenLayout.Pitch * ScreenLayout.PxPerUnit * scale;
+            float firstCenter = boardCenterY - 3.5f * pitch;
+            const float w = 86f;
+            for (int r = 0; r < N; r++)
+            {
+                float c = firstCenter + r * pitch;
+                l.RowFrom[r] = Ui.Text(f, $"Row {r + 1} Now", x, c - 17, w, 16, mono, 13, Lcd.Ink);
+                l.RowArrow[r] = Ui.Text(f, $"Row {r + 1} Arrow", x, c - 17, w, 16, mono, 13, Lcd.Text3, TextAlignmentOptions.Center, "→");
+                l.RowTo[r] = Ui.Text(f, $"Row {r + 1} Target", x, c - 17, w, 16, mono, 13, Lcd.Text3, TextAlignmentOptions.MidlineRight);
+                l.RowTagBox[r] = Ui.Box(f, $"Row {r + 1} Tag Box", x + w - 30, c + 1, 30, 16, 3f, Lcd.Ink);
+                l.RowTag[r] = Ui.Text(f, $"Row {r + 1} Tag", x + w - 30, c + 1, 30, 16, mono, 13, Lcd.Light, TextAlignmentOptions.MidlineRight);
+            }
         }
 
         void ToggleMute() => game.ChangeSettings(s => s.muted = !s.muted);
@@ -303,17 +406,17 @@ namespace ShiftRegister.Game.Hud
             return t;
         }
 
-        void TargetCard(Layout l, Transform f, float x, float y, float w, float h, float cell, float pitch)
+        void TargetCard(Layout l, Transform f, float x, float y, float w, float h, float cell, float pitch,
+            float pad = 16f, float titleSize = 14f, float gridTop = 42f)
         {
-            const float pad = 16f;
             Ui.Box(f, "Target Card", x, y, w, h, 10f, Lcd.Cell);
-            Ui.Text(f, "Target Title", x + pad, y + 14, 160, 18, display, 14, Lcd.Ink, text: "TARGET");
+            Ui.Text(f, "Target Title", x + pad, y + 12, 160, 18, display, titleSize, Lcd.Ink, text: "TARGET");
             for (int r = 0; r < N; r++)
             for (int c = 0; c < N; c++)
-                l.Thumb[r * N + c] = Ui.Box(f, $"Thumb {r + 1},{c + 1}", x + pad + c * pitch, y + 42f + r * pitch, cell, cell, 3f, Lcd.Background);
+                l.Thumb[r * N + c] = Ui.Box(f, $"Thumb {r + 1},{c + 1}", x + pad + c * pitch, y + gridTop + r * pitch, cell, cell, 2f, Lcd.Background);
         }
 
-        void Outlook(Layout l, Transform f, float x, float y, float star)
+        void Outlook(Layout l, Transform f, float x, float y, float star, float textSize = 12f)
         {
             for (int i = 0; i < Scoring.MaxStars; i++)
             {
@@ -321,7 +424,7 @@ namespace ShiftRegister.Game.Hud
                 Ui.Shape(f, $"Outlook Star {i + 1} Outline", sx, y, star, star, ProceduralSprites.Star(star, 1.6f, ui: true), Lcd.Ink);
                 l.OutlookStars[i] = Ui.Shape(f, $"Outlook Star {i + 1}", sx, y, star, star, ProceduralSprites.Star(star, ui: true), Lcd.Ink);
             }
-            l.Outlook = Ui.Text(f, "Outlook", x + Scoring.MaxStars * (star + 6f) + 4f, y, 160, star, mono, 12, Lcd.Text2);
+            l.Outlook = Ui.Text(f, "Outlook", x + Scoring.MaxStars * (star + 6f) + 4f, y - 1, 200, star + 2, mono, textSize, Lcd.Text2);
         }
 
         /// <summary>
@@ -362,18 +465,21 @@ namespace ShiftRegister.Game.Hud
         }
 
         /// <summary>Move log: a light counterweight; newest move first.</summary>
-        void MoveLog(Layout l, Transform f, float x, float y, float w)
+        void MoveLog(Layout l, Transform f, float x, float y, float w, int rows = LogRows, float size = 13f,
+            string title = "MOVES SO FAR", float firstRow = 36f)
         {
             const float row = 22f;
+            l.LogIndex = new TextMeshProUGUI[rows];
+            l.LogMove = new TextMeshProUGUI[rows];
             Ui.Box(f, "Log Rule", x, y, w, 2, 0f, Lcd.Cell);
-            Ui.Text(f, "Log Title", x, y + 12, w, 16, mono, 12, Lcd.Text3, text: "MOVES SO FAR").characterSpacing = 10;
-            for (int i = 0; i < LogRows; i++)
+            Ui.Text(f, "Log Title", x, y + 10, w, 16, mono, l.Phone ? 13 : 12, Lcd.Text3, text: title).characterSpacing = l.Phone ? 4 : 10;
+            for (int i = 0; i < rows; i++)
             {
-                float ry = y + 36 + i * row;
-                l.LogIndex[i] = Ui.Text(f, $"Log {i + 1} Index", x, ry, 40, row, mono, 13, Lcd.Text3);
-                l.LogMove[i] = Ui.Text(f, $"Log {i + 1} Move", x + 40, ry, w - 40, row, mono, 13, Lcd.Text3, TextAlignmentOptions.MidlineRight);
+                float ry = y + firstRow + i * row;
+                l.LogIndex[i] = Ui.Text(f, $"Log {i + 1} Index", x, ry, 40, row, mono, size, Lcd.Text3);
+                l.LogMove[i] = Ui.Text(f, $"Log {i + 1} Move", x + 40, ry, w - 40, row, mono, size, Lcd.Text3, TextAlignmentOptions.MidlineRight);
             }
-            l.LogEmpty = Ui.Text(f, "Log Empty", x, y + 36, w, row, mono, 13, Lcd.Cell, text: "no moves yet");
+            l.LogEmpty = Ui.Text(f, "Log Empty", x, y + firstRow, w, row, mono, size, Lcd.Cell, text: "no moves yet");
         }
 
         /// <summary>An outlined key cap; returns its right edge.</summary>
@@ -430,6 +536,16 @@ namespace ShiftRegister.Game.Hud
 
         // ------------------------------------------------------------------ refresh
 
+        /// <summary>What one board row shows: bits, "now → target" (carry chains read as one 16-bit number), and its tag.</summary>
+        struct RowInfo
+        {
+            public string Bits, From, Arrow, To, Tag;
+            public bool Ok, Hint;
+        }
+
+        readonly RowInfo[] rowInfo = new RowInfo[N];
+        int rowsOk;
+
         void RefreshBoard()
         {
             var board = game.Board;
@@ -437,12 +553,42 @@ namespace ShiftRegister.Game.Hud
             var rules = board.Rules;
             bool arithmetic = RowHint.ArithmeticHintsApply(rules);
 
+            rowsOk = 0;
+            for (int r = 0; r < N; r++)
+            {
+                int now = board.GetRow(r);
+                int target = BoardBits.GetRow(rules.Target, r);
+                var info = new RowInfo { Bits = RowString(rules, now, r) };
+                if (now == target) rowsOk++;
+                string label = RowHint.Label(rules, r);
+
+                int chainTop = rules.ChainTopOf(r);
+                bool chainBottom = chainTop >= 0 && chainTop != r;
+                if (chainTop >= 0)
+                {
+                    // A carry chain reads as one 16-bit number: "now" on its top row, "→ target" below.
+                    now = (board.GetRow(chainTop) << 8) | board.GetRow(chainTop + 1);
+                    target = (BoardBits.GetRow(rules.Target, chainTop) << 8) | BoardBits.GetRow(rules.Target, chainTop + 1);
+                }
+                info.From = chainBottom ? "" : $"<b>{now}</b>";
+                info.Arrow = chainTop >= 0 ? "" : "→";
+                info.To = chainTop == r ? "" : chainBottom ? $"→ {target}" : target.ToString();
+
+                string hint = chainBottom ? "" : RowHint.For(now, target, arithmetic).Replace("need ", "");
+                info.Ok = hint == RowHint.Ok;
+                info.Hint = hint.Length > 0;
+                info.Tag = info.Hint ? hint : label;
+                rowInfo[r] = info;
+            }
+
             foreach (var l in layouts)
             {
-                l.ChapterLabel.text = $"CHAPTER {game.ChapterIndex + 1} · {game.Chapter.name.ToUpperInvariant()}";
-                l.Rule.text = game.Chapter.description;
+                l.ChapterLabel.text = l.Phone
+                    ? $"CH {game.ChapterIndex + 1} · {game.Chapter.name.ToUpperInvariant()} · {level.id}"
+                    : $"CHAPTER {game.ChapterIndex + 1} · {game.Chapter.name.ToUpperInvariant()}";
+                if (l.Rule != null) l.Rule.text = game.Chapter.description;
                 l.LevelName.text = level.name.ToUpperInvariant();
-                l.LevelId.text = $"Level {level.id}";
+                if (l.LevelId != null) l.LevelId.text = $"Level {level.id}";
                 l.Moves.text = board.MoveCount.ToString();
                 l.Par.text = level.par > 0 ? level.par.ToString() : "?";
                 RefreshOutlook(l, board.MoveCount, level.par);
@@ -450,36 +596,47 @@ namespace ShiftRegister.Game.Hud
 
                 for (int r = 0; r < N; r++)
                 {
-                    int now = board.GetRow(r);
-                    int target = BoardBits.GetRow(rules.Target, r);
-                    l.RowBits[r].text = RowString(rules, now, r);
-                    string label = RowHint.Label(rules, r);
-
-                    int chainTop = rules.ChainTopOf(r);
-                    bool chainBottom = chainTop >= 0 && chainTop != r;
-                    if (chainTop >= 0)
-                    {
-                        // A carry chain reads as one 16-bit number: "now" on its top row, "→ target" below.
-                        now = (board.GetRow(chainTop) << 8) | board.GetRow(chainTop + 1);
-                        target = (BoardBits.GetRow(rules.Target, chainTop) << 8) | BoardBits.GetRow(rules.Target, chainTop + 1);
-                    }
-                    l.RowFrom[r].text = chainBottom ? "" : $"<b>{now}</b>";
-                    l.RowArrow[r].text = chainTop >= 0 ? "" : "→";
-                    l.RowTo[r].text = chainTop == r ? "" : chainBottom ? $"→ {target}" : target.ToString();
-
-                    string hint = chainBottom ? "" : RowHint.For(now, target, arithmetic).Replace("need ", "");
-                    bool ok = hint == RowHint.Ok;
-                    bool showHint = hint.Length > 0;
-                    l.RowTag[r].text = showHint ? hint : label;
-                    l.RowTag[r].color = ok ? Lcd.Light : showHint ? Lcd.LossText : Lcd.Text3;
-                    l.RowTag[r].fontStyle = showHint && !ok ? FontStyles.Bold : FontStyles.Normal;
-                    l.RowTag[r].fontSize = ok ? 11 : 13;
-                    l.RowTagBox[r].enabled = ok;
+                    if (l.RowFrom[r] == null) continue;
+                    var info = rowInfo[r];
+                    if (l.RowBits[r] != null) l.RowBits[r].text = info.Bits;
+                    l.RowFrom[r].text = info.From;
+                    l.RowArrow[r].text = info.Arrow;
+                    l.RowTo[r].text = info.To;
+                    l.RowTag[r].text = info.Tag;
+                    l.RowTag[r].color = info.Ok ? Lcd.Light : info.Hint ? Lcd.LossText : Lcd.Text3;
+                    l.RowTag[r].fontStyle = info.Hint && !info.Ok ? FontStyles.Bold : FontStyles.Normal;
+                    l.RowTag[r].fontSize = info.Ok ? (l.Phone ? 12 : 11) : 13;
+                    l.RowTag[r].alignment = info.Ok || !l.Phone ? TextAlignmentOptions.Center : TextAlignmentOptions.MidlineRight;
+                    l.RowTagBox[r].enabled = info.Ok;
                 }
 
                 for (int r = 0; r < N; r++)
                 for (int c = 0; c < N; c++)
                     l.Thumb[r * N + c].color = BoardBits.GetCell(rules.Target, r, c) ? Lcd.Ink : Lcd.Background;
+            }
+            shownReadRow = -1;
+            RefreshReadout();
+        }
+
+        /// <summary>The phone layouts' readout follows the cursor row (the row last tapped or swiped).</summary>
+        void RefreshReadout()
+        {
+            if (input == null || game.Board == null) return;
+            int r = input.CursorRow;
+            if (r == shownReadRow) return;
+            shownReadRow = r;
+            var info = rowInfo[r];
+            foreach (var l in layouts)
+            {
+                if (l.ReadRow == null) continue;
+                l.ReadRow.text = $"ROW {r + 1}";
+                l.ReadOk.text = $"{rowsOk}/{N} OK";
+                l.ReadBits.text = info.Bits;
+                l.ReadFrom.text = info.From;
+                l.ReadArrow.text = info.Arrow;
+                l.ReadTo.text = info.To;
+                l.ReadTag.text = info.Tag;
+                l.ReadTag.color = info.Ok ? Lcd.Ink : info.Hint ? Lcd.LossText : Lcd.Text3;
             }
         }
 
@@ -488,17 +645,19 @@ namespace ShiftRegister.Game.Hud
         {
             var log = game.MoveLog;
             l.LogEmpty.enabled = log.Count == 0;
-            for (int i = 0; i < LogRows; i++)
+            int rows = l.LogIndex.Length;
+            for (int i = 0; i < rows; i++)
             {
                 int m = log.Count - 1 - i;
                 bool shown = m >= 0;
                 l.LogIndex[i].text = shown ? (m + 1).ToString("00") : "";
                 l.LogMove[i].text = shown ? log[m].ToString() : "";
                 Color move = i == 0 ? Lcd.Ink : Lcd.Text3;
-                move.a = LogAlpha[i];
+                float alpha = rows == LogRows ? LogAlpha[i] : ShortLogAlpha[Mathf.Min(i, ShortLogAlpha.Length - 1)];
+                move.a = alpha;
                 l.LogMove[i].color = move;
                 Color index = Lcd.Text3;
-                index.a = LogAlpha[i];
+                index.a = alpha;
                 l.LogIndex[i].color = index;
                 l.LogMove[i].fontStyle = i == 0 ? FontStyles.Bold : FontStyles.Normal;
             }
@@ -518,9 +677,13 @@ namespace ShiftRegister.Game.Hud
             {
                 l.BucketCount.text = board.Lost.ToString();
                 l.BucketCount.color = board.Lost > 0 ? Lcd.Loss : Lcd.Ink;
-                l.BucketFrame.color = broken ? Lcd.Loss : Lcd.Ink;
-                l.BucketText.text = broken ? "Rule broken. Undo to continue." : RuleText(rules);
-                l.BucketText.color = broken ? Lcd.Loss : Lcd.Text2;
+                if (l.BucketFrame != null) l.BucketFrame.color = broken ? Lcd.Loss : Lcd.Ink;
+                if (l.BucketText != null)
+                {
+                    l.BucketText.text = broken ? (l.Phone ? "rule broken" : "Rule broken. Undo to continue.")
+                        : l.Phone ? ShortRuleText(rules) : RuleText(rules);
+                    l.BucketText.color = broken ? Lcd.Loss : Lcd.Text2;
+                }
             }
 
             bool solved = board.IsSolved;
@@ -582,7 +745,7 @@ namespace ShiftRegister.Game.Hud
             if (!show) return;
             l.Outlook.text = game.LastResult != null ? $"solved for {earned}"
                 : moves == 0 ? $"{par} moves for {Scoring.MaxStars}"
-                : earned == Scoring.MaxStars ? $"still on track for {earned}"
+                : earned == Scoring.MaxStars && !l.Phone ? $"still on track for {earned}"
                 : $"on track for {earned}";
         }
 
@@ -594,6 +757,15 @@ namespace ShiftRegister.Game.Hud
                 sb.Append(rules.IsWall(row, c) ? '#' : ((value >> (7 - c)) & 1) != 0 ? '1' : '0');
             return sb.ToString();
         }
+
+        /// <summary>The bucket rule in a few words for the phone's small bucket card.</summary>
+        static string ShortRuleText(LevelRules rules) => rules.LossRule switch
+        {
+            LossRule.AtMost when rules.LossCount == 0 => "lose none",
+            LossRule.AtMost => $"lose at most {rules.LossCount}",
+            LossRule.Exactly => $"lose exactly {rules.LossCount}",
+            _ => "bits lost"
+        };
 
         static string RuleText(LevelRules rules) => rules.LossRule switch
         {

@@ -105,14 +105,18 @@ namespace ShiftRegister.Game.Hud
         void ApplyFrame()
         {
             var scaler = GetComponent<CanvasScaler>();
-            if (scaler != null) scaler.referenceResolution = new Vector2(ScreenLayout.FrameWidthPx, ScreenLayout.FrameHeightPx);
+            // Menus are still drawn in desktop units (720 short side), on phones too.
+            float units = ScreenLayout.MenuScale;
+            if (scaler != null) scaler.referenceResolution = new Vector2(ScreenLayout.FrameWidthPx, ScreenLayout.FrameHeightPx) * units;
 
             // The extra length of 20:9 phones and wide windows goes between the centre and the outer groups.
-            float shift = ScreenLayout.OuterShiftPx;
+            // The menus' own extra length beyond their 1280 base, in desktop units.
+            float longSide = (ScreenLayout.Portrait ? ScreenLayout.FrameHeightPx : ScreenLayout.FrameWidthPx) * units;
+            float extra = longSide - 1280f, shift = extra / 2f;
             foreach (var s in Both)
                 foreach (var (group, direction) in s.Outer)
                     group.anchoredPosition = direction * shift;
-            tall.ScrollView.sizeDelta = new Vector2(tall.ScrollView.sizeDelta.x, 1080f + ScreenLayout.ExtraPx);
+            tall.ScrollView.sizeDelta = new Vector2(tall.ScrollView.sizeDelta.x, 1080f + extra);
 
             bool mobile = DeviceMode.IsMobile;
             foreach (var s in Both)
