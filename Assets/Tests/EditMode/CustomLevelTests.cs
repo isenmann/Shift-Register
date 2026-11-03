@@ -84,6 +84,87 @@ namespace ShiftRegister.Tests
             Assert.That(lib.Get(id).bestMoves, Is.EqualTo(3));
         }
 
+        static LevelData Unproven()
+        {
+            var d = Simple();
+            d.par = 0;
+            d.solution = "";
+            return d;
+        }
+
+        /// <summary>One shift right solves Simple; these detours take three moves.</summary>
+        static readonly Move[] Quick = { Move.Row(0, Direction.Right) };
+        static readonly Move[] Detour = { Move.Row(0, Direction.Left), Move.Row(0, Direction.Right), Move.Row(0, Direction.Right) };
+
+        [Test]
+        public void RecordWin_ProvesAnUnprovenLevel()
+        {
+            var lib = new CustomLevelLibrary();
+            string id = lib.Add(Unproven(), LevelProof.None, 1).level.id;
+
+            var r = lib.RecordWin(id, Detour, out bool proved);
+
+            Assert.That(proved, Is.True);
+            var entry = lib.Get(id);
+            Assert.That(entry.proof, Is.EqualTo(LevelProof.Replayed));
+            Assert.That(entry.level.par, Is.EqualTo(3));
+            Assert.That(entry.level.solution, Is.EqualTo("R1← R1→ R1→"));
+            Assert.That(r.Par, Is.EqualTo(3));
+            Assert.That(r.Stars, Is.EqualTo(3));
+            Assert.That(entry.bestMoves, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void RecordWin_FewerMovesLowerAPlayedPar_MoreDoNot()
+        {
+            var lib = new CustomLevelLibrary();
+            string id = lib.Add(Unproven(), LevelProof.None, 1).level.id;
+            lib.RecordWin(id, Detour, out _);
+
+            lib.RecordWin(id, Quick, out bool proved);
+            Assert.That(proved, Is.False);
+            Assert.That(lib.Get(id).level.par, Is.EqualTo(1));
+
+            var r = lib.RecordWin(id, Detour, out _);
+            Assert.That(lib.Get(id).level.par, Is.EqualTo(1));
+            Assert.That(r.Stars, Is.LessThan(3));
+            Assert.That(lib.Get(id).bestMoves, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void RecordWin_KeepsTheSolversPar()
+        {
+            var lib = new CustomLevelLibrary();
+            string id = lib.Add(Simple(), LevelProof.Searched, 1).level.id;
+            lib.RecordWin(id, Detour, out bool proved);
+            Assert.That(proved, Is.False);
+            Assert.That(lib.Get(id).proof, Is.EqualTo(LevelProof.Searched));
+            Assert.That(lib.Get(id).level.par, Is.EqualTo(1));
+            Assert.That(lib.Get(id).bestMoves, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void RecordWin_IgnoresMovesThatDoNotSolve()
+        {
+            var lib = new CustomLevelLibrary();
+            string id = lib.Add(Unproven(), LevelProof.None, 1).level.id;
+            lib.RecordWin(id, new[] { Move.Row(0, Direction.Left) }, out bool proved);
+            Assert.That(proved, Is.False);
+            Assert.That(lib.Get(id).proof, Is.EqualTo(LevelProof.None));
+        }
+
+        [Test]
+        public void Duplicate_MarksTheNameAsACopy_WithinTheLimit()
+        {
+            var lib = new CustomLevelLibrary();
+            var d = Simple();
+            d.name = "Sixteen letters!";
+            var copy = lib.Duplicate(lib.Add(d, LevelProof.Searched, 1).level.id, 2);
+            Assert.That(copy.level.name.Length, Is.LessThanOrEqualTo(LevelEdit.MaxNameLength));
+            StringAssert.EndsWith(" COPY", copy.level.name);
+            Assert.That(LevelEdit.AuthoredErrors(copy.level), Is.Empty);
+        }
+
         [Test]
         public void Remove_TakesTheLevelOut()
         {

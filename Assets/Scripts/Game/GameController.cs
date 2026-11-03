@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ShiftRegister.Core;
+using ShiftRegister.Game.CustomLevels;
 using ShiftRegister.Game.Input;
 using ShiftRegister.Game.Progress;
 using ShiftRegister.Game.Settings;
@@ -49,7 +50,21 @@ namespace ShiftRegister.Game
         /// <summary>The result of the latest solve of the current level, if it is solved.</summary>
         public LevelResult? LastResult { get; private set; }
 
-        public bool HasNextLevel => catalog.TryNext(ChapterIndex, LevelIndex, out _, out _);
+        /// <summary>A custom level's "next" is leaving it (see <see cref="LeaveCustom"/>).</summary>
+        public bool HasNextLevel => IsCustom || catalog.TryNext(ChapterIndex, LevelIndex, out _, out _);
+
+        /// <summary>The player's own levels; kept apart from <see cref="Progress"/>, so they never earn stars or unlocks.</summary>
+        public CustomLevelLibrary CustomLevels { get; private set; }
+
+        /// <summary>The custom level being played, or null.</summary>
+        public CustomLevel CustomEntry { get; private set; }
+        public bool IsCustom => CustomEntry != null;
+
+        /// <summary>True if the latest solve gave this custom level its first proof.</summary>
+        public bool JustProved { get; private set; }
+
+        /// <summary>Raised when "next" is asked for on a solved custom level: go back where it was opened from.</summary>
+        public event Action LeaveCustom;
 
         /// <summary>Raised after every board change: a move, undo, reset or a new level.</summary>
         public event Action Changed;
@@ -96,6 +111,7 @@ namespace ShiftRegister.Game
             DeviceMode.Override = Application.isEditor && simulateMobile ? true : (bool?)null;
             Progress = ProgressStore.Load();
             Settings = SettingsStore.Load();
+            CustomLevels = CustomLevelStore.Load();
             ApplySettings();
             foreach (var (c, l, file) in catalog.AllLevels())
                 if (file != null)
@@ -145,6 +161,7 @@ namespace ShiftRegister.Game
         {
             var file = catalog.chapters[chapter].levels[level];
             previewing = false;
+            CustomEntry = null;
             ChapterIndex = chapter;
             LevelIndex = level;
             Show(LevelJson.Parse(file));
@@ -163,7 +180,17 @@ namespace ShiftRegister.Game
         public void Preview(LevelData data)
         {
             previewing = true;
+            CustomEntry = null;
             Show(data);
+        }
+
+        /// <summary>Plays one of the player's own levels. Keeps the current chapter for the menus; a win goes to the library.</summary>
+        public void PlayCustom(CustomLevel entry)
+        {
+            previewing = true;
+            CustomEntry = entry;
+            JustProved = false;
+            Show(LevelEdit.Clone(entry.level));
         }
 
         bool previewing;
@@ -203,6 +230,11 @@ namespace ShiftRegister.Game
 
         public bool NextLevel()
         {
+            if (IsCustom)
+            {
+                LeaveCustom?.Invoke();
+                return true;
+            }
             if (!catalog.TryNext(ChapterIndex, LevelIndex, out int c, out int l)) return false;
             Load(c, l);
             return true;
@@ -210,6 +242,7 @@ namespace ShiftRegister.Game
 
         public bool PreviousLevel()
         {
+            if (IsCustom) return false;
             if (!catalog.TryPrevious(ChapterIndex, LevelIndex, out int c, out int l)) return false;
             Load(c, l);
             return true;
@@ -227,10 +260,21 @@ namespace ShiftRegister.Game
 
             if (Board.IsSolved)
             {
-                var result = Progress != null && !previewing
-                    ? Progress.Record(Level.id, Board.MoveCount, Level.par)
-                    : new LevelResult(Board.MoveCount, Level.par, Scoring.Stars(Board.MoveCount, Level.par), true, 0);
-                if (Progress != null && !previewing) ProgressStore.Save(Progress);
+                LevelResult result;
+                if (IsCustom)
+                {
+                    result = CustomLevels.RecordWin(Level.id, moveLog, out bool proved);
+                    JustProved = proved;
+                    Level.par = result.Par;
+                    CustomLevelStore.Save(CustomLevels);
+                }
+                else
+                {
+                    result = Progress != null && !previewing
+                        ? Progress.Record(Level.id, Board.MoveCount, Level.par)
+                        : new LevelResult(Board.MoveCount, Level.par, Scoring.Stars(Board.MoveCount, Level.par), true, 0);
+                    if (Progress != null && !previewing) ProgressStore.Save(Progress);
+                }
                 LastResult = result;
                 Solved?.Invoke(result);
             }

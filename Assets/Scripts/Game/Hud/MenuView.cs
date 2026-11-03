@@ -48,6 +48,8 @@ namespace ShiftRegister.Game.Hud
         sealed class Screens
         {
             public RectTransform Title, Chapters, Options;
+            /// <summary>Desktop only until the phone layouts of E6.</summary>
+            public RectTransform MyLevels;
             public TextMeshProUGUI TitleProgress, ChaptersStats, SoundText;
             /// <summary>Keyboard hints (absent where there is no room); hidden or reworded on phones.</summary>
             public TextMeshProUGUI ChaptersKeys, OptionsKeys;
@@ -85,7 +87,9 @@ namespace ShiftRegister.Game.Hud
                 s.Title.gameObject.SetActive(cur && screen == GameScreen.Title);
                 s.Chapters.gameObject.SetActive(cur && screen == GameScreen.Chapters);
                 s.Options.gameObject.SetActive(cur && screen == GameScreen.Options);
+                if (s.MyLevels != null) s.MyLevels.gameObject.SetActive(cur && screen == GameScreen.MyLevels);
             }
+            if (screen == GameScreen.MyLevels) EnterMyLevels();
             if (screen == GameScreen.Options) RefreshOptions(true);
             if (screen == GameScreen.Title) RefreshTitle();
             if (screen == GameScreen.Title && !introPlayed) StartIntro();
@@ -146,7 +150,7 @@ namespace ShiftRegister.Game.Hud
             {
                 if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame) flow.Resume();
                 else if (kb.cKey.wasPressedThisFrame) flow.Show(GameScreen.Chapters);
-                else if (kb.lKey.wasPressedThisFrame && ScreenFlow.CanEdit) flow.Show(GameScreen.Editor);
+                else if (kb.lKey.wasPressedThisFrame && ScreenFlow.CanEdit) flow.Show(GameScreen.MyLevels);
                 else if (kb.oKey.wasPressedThisFrame) flow.Show(GameScreen.Options);
                 else if (kb.qKey.wasPressedThisFrame) flow.Quit();
                 return;
@@ -154,6 +158,11 @@ namespace ShiftRegister.Game.Hud
             if (flow.Current == GameScreen.Options)
             {
                 UpdateOptions(kb);
+                return;
+            }
+            if (flow.Current == GameScreen.MyLevels)
+            {
+                UpdateMyLevels(kb);
                 return;
             }
             if (flow.Current != GameScreen.Chapters) return;
@@ -201,6 +210,8 @@ namespace ShiftRegister.Game.Hud
             BuildOptions(wide, OptionsMode.Desktop);
             BuildOptions(phoneWide, OptionsMode.PhoneLandscape);
             BuildOptions(phoneTall, OptionsMode.PhonePortrait);
+            wide.MyLevels = Frame(canvas, "My Levels", 1280, 720);
+            BuildMyLevels(wide);
             game.SettingsChanged += OnSettingsChanged;
             ApplyFrame();
         }
@@ -237,7 +248,7 @@ namespace ShiftRegister.Game.Hud
 
             HudButton.CreateSolid(a, "PLAY", x, 458, 104, 52, display, 18, () => flow.Resume());
             HudButton.Create(a, "CHAPTERS", x + 112, 458, 138, 52, display, 14, () => flow.Show(GameScreen.Chapters));
-            HudButton.Create(a, "MY LEVELS", x + 258, 458, 146, 52, display, 14, () => flow.Show(GameScreen.Editor));
+            HudButton.Create(a, "MY LEVELS", x + 258, 458, 146, 52, display, 14, () => flow.Show(GameScreen.MyLevels));
             HudButton.Create(a, "OPTIONS", x + 412, 458, 124, 52, display, 14, () => flow.Show(GameScreen.Options));
             // Desktop builds only: a browser tab or a phone app is closed from outside the game.
             bool canQuit = ScreenFlow.CanQuit;

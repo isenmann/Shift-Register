@@ -16,7 +16,7 @@ namespace ShiftRegister.Game.LevelEditor
     /// The level editor screen (layout A of the editor canvas), desktop only, on its own canvas. The board
     /// stays where the game draws it and is painted directly: click or drag, or arrows and Space. Tab swaps
     /// start and target, 1–5 pick a tool, 6 changes the gate tool's operator, Z / Y undo and redo, Enter
-    /// solves, Esc cancels a search or leaves. Each row's options sit beside it: 1-IN toggles in the arrow
+    /// solves, T test plays, Esc cancels a search or leaves. Each row's options sit beside it: 1-IN toggles in the arrow
     /// button slots, then wrap, gate operator and the link to the next row.
     /// </summary>
     public sealed class EditorView : MonoBehaviour
@@ -32,7 +32,6 @@ namespace ShiftRegister.Game.LevelEditor
         const int N = BoardBits.Size;
         const double SolveBudgetMs = 8.0;
         const float AutosaveDelay = 2f;
-        const string DefaultName = "MY LEVEL";
         const float CaretBlink = 0.53f;
         static readonly PaintTool[] ToolOrder = { PaintTool.Bit, PaintTool.Wall, PaintTool.Pin, PaintTool.Gate, PaintTool.Erase };
         static readonly string[] ToolLabels = { "BIT  1", "WALL  2", "PIN  3", "GATE  4", "ERASE  5" };
@@ -40,7 +39,8 @@ namespace ShiftRegister.Game.LevelEditor
         static readonly string[] LossLabels = { "ANY", "MAX", "EXACT" };
 
         EditorSession session;
-        CustomLevelLibrary library;
+        string levelId;
+        bool keepSession;
         LevelData shownBoard;
         int row = 4, column = 3, enabledFrame = -1;
         bool painting, dirty;
@@ -52,7 +52,7 @@ namespace ShiftRegister.Game.LevelEditor
         Image nameCaret;
         int caretShownAt = -1;
         float caretMovedTime;
-        HudButton startTab, targetTab, solveButton, undoButton, redoButton;
+        HudButton startTab, targetTab, solveButton, testPlayButton, undoButton, redoButton;
         readonly HudButton[] toolButtons = new HudButton[ToolOrder.Length];
         HudButton opButton, lossDown, lossUp;
         readonly HudButton[] fillLeft = new HudButton[N], fillRight = new HudButton[N], wrap = new HudButton[N], gate = new HudButton[N];
@@ -64,6 +64,9 @@ namespace ShiftRegister.Game.LevelEditor
         TextMeshProUGUI otherName, paintLabel, ghostLabel, statusText, proofTitle, proofText;
         Image statusDot;
         RectTransform progressBox, progressFill;
+
+        /// <summary>The level the screen opens next.</summary>
+        public void SetLevel(string id) => levelId = id;
 
         /// <summary>The session being edited, for checks; null until the screen first opens.</summary>
         public EditorSession Session => session;
@@ -80,7 +83,8 @@ namespace ShiftRegister.Game.LevelEditor
             game.BoardLent = true;
             ScreenLayout.LayoutChanged += ApplyFrame;
             ApplyFrame();
-            Open();
+            if (session != null) ResumeAfterTestPlay();
+            else Open();
         }
 
         void OnDisable()
@@ -92,6 +96,7 @@ namespace ShiftRegister.Game.LevelEditor
             session.CancelSolve();
             CommitName();
             Save();
+            if (keepSession) return; // test play comes back here, with the undo history
             session.Edit.Changed -= OnEdited;
             session = null;
             shownBoard = null;
@@ -118,18 +123,10 @@ namespace ShiftRegister.Game.LevelEditor
 
         // ---------------------------------------------------------------- level
 
-        /// <summary>Opens the player's most recently edited level, or a new one. MY LEVELS will choose in E4.</summary>
         void Open()
         {
-            library = CustomLevelStore.Load();
-            CustomLevel entry = null;
-            foreach (var l in library.levels)
-                if (entry == null || l.editedTicks > entry.editedTicks) entry = l;
-            if (entry == null)
-            {
-                entry = library.Add(new LevelData { name = DefaultName }, LevelProof.None, DateTime.UtcNow.Ticks);
-                CustomLevelStore.Save(library);
-            }
+            var entry = game.CustomLevels.Get(levelId);
+            if (entry == null) throw new InvalidOperationException($"No custom level '{levelId}' to edit.");
 
             session = new EditorSession(entry.level, entry.proof);
             session.Edit.Changed += OnEdited;
@@ -137,6 +134,34 @@ namespace ShiftRegister.Game.LevelEditor
             dirty = false;
             nameField.SetTextWithoutNotify(session.Edit.Level.name.ToUpperInvariant());
             Refresh();
+        }
+
+        /// <summary>Back from test play: a win may have proven the level or lowered its par.</summary>
+        void ResumeAfterTestPlay()
+        {
+            keepSession = false;
+            shownBoard = null;
+            var entry = game.CustomLevels.Get(levelId);
+            var level = session.Edit.Level;
+            if (entry != null && (entry.proof != session.Edit.Proof || entry.level.par != level.par)
+                && Move.TryParseList(entry.level.solution, out var moves))
+                session.Edit.SetSolution(moves, entry.proof);
+            Refresh();
+        }
+
+        void TestPlay()
+        {
+            if (session.Edit.Problems().Count > 0)
+            {
+                Sfx.Play(Sound.Blocked);
+                return;
+            }
+            session.EndPaint();
+            session.CancelSolve();
+            CommitName();
+            Save();
+            keepSession = true;
+            flow.PlayCustom(game.CustomLevels.Get(levelId), GameScreen.Editor);
         }
 
         void OnEdited()
@@ -150,8 +175,8 @@ namespace ShiftRegister.Game.LevelEditor
         {
             if (!dirty) return;
             dirty = false;
-            library.Update(session.Edit.Level, session.Edit.Proof, DateTime.UtcNow.Ticks);
-            CustomLevelStore.Save(library);
+            game.CustomLevels.Update(session.Edit.Level, session.Edit.Proof, DateTime.UtcNow.Ticks);
+            CustomLevelStore.Save(game.CustomLevels);
         }
 
         void CommitName() => session.Edit.SetName(nameField.text);
@@ -252,6 +277,7 @@ namespace ShiftRegister.Game.LevelEditor
             else if (kb.zKey.wasPressedThisFrame) Undo();
 
             if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) ToggleSolve();
+            if (kb.tKey.wasPressedThisFrame) TestPlay();
         }
 
         void MoveCursor(int dr, int dc)
@@ -373,6 +399,7 @@ namespace ShiftRegister.Game.LevelEditor
 
             solveButton.Text = session.IsSolving ? "CANCEL" : "SOLVE";
             solveButton.Disabled = !session.IsSolving && !session.CanSolve;
+            testPlayButton.Disabled = problem;
             RefreshProof();
         }
 
@@ -576,12 +603,13 @@ namespace ShiftRegister.Game.LevelEditor
             progressFill.gameObject.AddComponent<Image>().color = Lcd.Ink;
             progressFill.GetComponent<Image>().raycastTarget = false;
 
-            var keys = Ui.Text(root, "Keys", x, 400, w, 120, mono, 12, Lcd.Text3, TextAlignmentOptions.BottomLeft,
-                "Space paint\nZ undo · Y redo\nEnter solve\nEsc back");
+            var keys = Ui.Text(root, "Keys", x, 372, w, 108, mono, 12, Lcd.Text3, TextAlignmentOptions.BottomLeft,
+                "Space paint\nZ undo · Y redo\nEnter solve · T test\nEsc back");
             keys.textWrappingMode = TextWrappingModes.Normal;
 
-            solveButton = HudButton.CreateSolid(root, "SOLVE", x, 536, w, 52, display, 15, ToggleSolve);
-            HudButton.Create(root, "BACK", x, 604, w, 40, display, 12, Lcd.Text2, Lcd.Light, () => flow.Show(GameScreen.Title));
+            solveButton = HudButton.CreateSolid(root, "SOLVE", x, 492, w, 52, display, 15, ToggleSolve);
+            testPlayButton = HudButton.Create(root, "TEST PLAY", x, 552, w, 44, display, 14, TestPlay);
+            HudButton.Create(root, "BACK", x, 604, w, 40, display, 12, Lcd.Text2, Lcd.Light, () => flow.Show(GameScreen.MyLevels));
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ShiftRegister.Core;
+using ShiftRegister.Game.Progress;
 
 namespace ShiftRegister.Game.CustomLevels
 {
@@ -62,7 +63,16 @@ namespace ShiftRegister.Game.CustomLevels
         public CustomLevel Duplicate(string id, long nowTicks)
         {
             var entry = Get(id);
-            return entry == null ? null : Add(entry.level, entry.proof, nowTicks);
+            if (entry == null) return null;
+            var copy = Add(entry.level, entry.proof, nowTicks);
+            if (copy != null)
+            {
+                string name = entry.level.name.Length > LevelEdit.MaxNameLength - 5
+                    ? entry.level.name.Substring(0, LevelEdit.MaxNameLength - 5).TrimEnd()
+                    : entry.level.name;
+                copy.level.name = name + " COPY";
+            }
+            return copy;
         }
 
         public bool Remove(string id) => levels.RemoveAll(l => l.level.id == id) > 0;
@@ -74,6 +84,32 @@ namespace ShiftRegister.Game.CustomLevels
             if (entry == null || (entry.bestMoves != 0 && entry.bestMoves <= moves)) return false;
             entry.bestMoves = moves;
             return true;
+        }
+
+        /// <summary>
+        /// The player beat a level with these moves. On a level without a proof this proves it, and par
+        /// becomes the move count; on one proven by play, fewer moves lower par. A par the solver found
+        /// is the true minimum and stays.
+        /// </summary>
+        /// <param name="justProved">True if this win gave the level its first proof.</param>
+        public LevelResult RecordWin(string id, IReadOnlyList<Move> moves, out bool justProved)
+        {
+            justProved = false;
+            var entry = Get(id);
+            if (entry == null) return default;
+
+            var d = entry.level;
+            if (Solver.Replays(LevelRules.Compile(d), moves) && (entry.proof == LevelProof.None || (entry.proof == LevelProof.Replayed && moves.Count < d.par)))
+            {
+                justProved = entry.proof == LevelProof.None;
+                d.par = moves.Count;
+                d.solution = string.Join(" ", moves);
+                entry.proof = LevelProof.Replayed;
+            }
+
+            int previous = entry.bestMoves;
+            bool better = RecordSolve(id, moves.Count);
+            return new LevelResult(moves.Count, d.par, Scoring.Stars(moves.Count, d.par), better, previous);
         }
 
         /// <summary>

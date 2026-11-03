@@ -258,7 +258,7 @@ namespace ShiftRegister.Game.Hud
             l.SwipeHint = swipe.gameObject;
 
             const float menuY = 604f;
-            HudButton.Create(right, "MENU", rx, menuY, 56, 40, display, 12, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(right, "MENU", rx, menuY, 56, 40, display, 12, () => flow.LeaveLevel());
             HudButton.Create(right, "HELP", rx + 60, menuY, 56, 40, display, 12, ToggleHelp);
             l.Sound = HudButton.Create(right, "SOUND", rx + 120, menuY, 72, 40, display, 12, ToggleMute);
         }
@@ -289,7 +289,7 @@ namespace ShiftRegister.Game.Hud
                 "Swipe to shift · tap a row to read it");
             HudButton.CreateSolid(bottom, "UNDO", 12, 782, 189, 56, display, 20, () => game.Undo());
             HudButton.Create(bottom, "RESET", 211, 782, 189, 56, display, 20, () => game.ResetLevel());
-            HudButton.Create(bottom, "MENU", 12, 848, 122, 48, display, 14, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(bottom, "MENU", 12, 848, 122, 48, display, 14, () => flow.LeaveLevel());
             HudButton.Create(bottom, "HELP", 145, 848, 122, 48, display, 14, ToggleHelp);
             l.Sound = HudButton.Create(bottom, "SOUND", 278, 848, 122, 48, display, 14, ToggleMute);
         }
@@ -319,7 +319,7 @@ namespace ShiftRegister.Game.Hud
             TargetCard(l, right, 716, 20, 93, 112, 9f, 10f, 7f, 13f, 26f, 6f);
             PhoneBucket(l, right, 817, 20, 82, 112, withText: false);
             MoveLog(l, right, 716, 146, 183, 3, 15f, "MOVES", 30f);
-            HudButton.Create(right, "MENU", 716, 346, 56, 46, display, 12, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(right, "MENU", 716, 346, 56, 46, display, 12, () => flow.LeaveLevel());
             HudButton.Create(right, "HELP", 778, 346, 56, 46, display, 12, ToggleHelp);
             l.Sound = HudButton.Create(right, "SOUND", 840, 346, 59, 46, display, 12, ToggleMute);
         }
@@ -579,12 +579,14 @@ namespace ShiftRegister.Game.Hud
 
             foreach (var l in layouts)
             {
-                l.ChapterLabel.text = l.Phone
-                    ? $"CH {game.ChapterIndex + 1} · {game.Chapter.name.ToUpperInvariant()} · {level.id}"
-                    : $"CHAPTER {game.ChapterIndex + 1} · {game.Chapter.name.ToUpperInvariant()}";
-                if (l.Rule != null) l.Rule.text = game.Chapter.description;
+                if (game.IsCustom) l.ChapterLabel.text = "MY LEVELS";
+                else
+                    l.ChapterLabel.text = l.Phone
+                        ? $"CH {game.ChapterIndex + 1} · {game.Chapter.name.ToUpperInvariant()} · {level.id}"
+                        : $"CHAPTER {game.ChapterIndex + 1} · {game.Chapter.name.ToUpperInvariant()}";
+                if (l.Rule != null) l.Rule.text = game.IsCustom ? CustomRule() : game.Chapter.description;
                 l.LevelName.text = level.name.ToUpperInvariant();
-                if (l.LevelId != null) l.LevelId.text = $"Level {level.id}";
+                if (l.LevelId != null) l.LevelId.text = game.IsCustom ? "" : $"Level {level.id}";
                 l.Moves.text = board.MoveCount.ToString();
                 l.Par.text = level.par > 0 ? level.par.ToString() : "?";
                 RefreshOutlook(l, board.MoveCount, level.par);
@@ -688,10 +690,12 @@ namespace ShiftRegister.Game.Hud
                 var result = game.LastResult ?? new Progress.LevelResult(board.MoveCount, game.Level.par,
                     Scoring.Stars(board.MoveCount, game.Level.par), false, 0);
                 string best = result.IsNewBest && result.PreviousBest > 0 ? " · new best" : "";
+                if (game.JustProved && game.IsCustom) best = " · proven";
                 solvedText.text = $"{result.Moves} moves · par {par}{best}";
                 for (int i = 0; i < stars.Length; i++) stars[i].enabled = i < result.Stars;
                 bool hasNext = game.HasNextLevel;
                 nextButton.gameObject.SetActive(hasNext);
+                nextButton.Text = game.IsCustom ? "BACK" : "NEXT →";
                 lastLevelText.gameObject.SetActive(!hasNext);
             }
             ShowBanner(solvedBanner, solved, ref solvedShown, animate);
@@ -732,6 +736,17 @@ namespace ShiftRegister.Game.Hud
         }
 
         /// <summary>The stars a solve could still earn: finishing at par or later, never sooner.</summary>
+        /// <summary>The line under "MY LEVELS": what par means on this level.</summary>
+        string CustomRule()
+        {
+            switch (game.CustomEntry.proof)
+            {
+                case LevelProof.Searched: return "Your level. Par is the shortest possible.";
+                case LevelProof.Replayed: return "Your level. Par is the best solve so far.";
+                default: return "Your level, not proven yet. Beat it to prove it.";
+            }
+        }
+
         void RefreshOutlook(Layout l, int moves, int par)
         {
             bool show = par > 0;

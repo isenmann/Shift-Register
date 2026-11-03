@@ -6,11 +6,12 @@ using UnityEngine.InputSystem;
 
 namespace ShiftRegister.Game
 {
-    public enum GameScreen { Title, Chapters, Playing, Options, Editor }
+    public enum GameScreen { Title, Chapters, Playing, Options, MyLevels, Editor }
 
     /// <summary>
     /// Switches between the title screen, chapter select and the level being played, all in one scene.
-    /// Esc steps back: level → chapters → title, options → title, editor → title. M mutes anywhere,
+    /// Esc steps back: level → chapters → title, options → title, editor → my levels → title; a custom
+    /// level goes back to where it was opened from. M mutes anywhere,
     /// except while typing in a text field.
     /// </summary>
     public sealed class ScreenFlow : MonoBehaviour
@@ -25,6 +26,7 @@ namespace ShiftRegister.Game
         public GameScreen Current { get; private set; } = GameScreen.Title;
 
         HudView hudView;
+        GameScreen customReturn = GameScreen.MyLevels;
 
         /// <summary>Raised after the screen changes.</summary>
         public event Action<GameScreen> Changed;
@@ -32,6 +34,7 @@ namespace ShiftRegister.Game
         void Start()
         {
             hudView = hud.GetComponentInChildren<HudView>(true);
+            game.LeaveCustom += LeaveLevel;
             if (game.StartsInLevel)
             {
                 game.LoadStartLevel();
@@ -56,11 +59,11 @@ namespace ShiftRegister.Game
             }
             if (Current == GameScreen.Editor)
             {
-                if (!editor.CancelSolve()) Show(GameScreen.Title);
+                if (!editor.CancelSolve()) Show(GameScreen.MyLevels);
                 return;
             }
-            if (Current == GameScreen.Playing) Show(GameScreen.Chapters);
-            else if (Current == GameScreen.Chapters || Current == GameScreen.Options) Show(GameScreen.Title);
+            if (Current == GameScreen.Playing) LeaveLevel();
+            else if (Current == GameScreen.Chapters || Current == GameScreen.Options || Current == GameScreen.MyLevels) Show(GameScreen.Title);
         }
 
         /// <summary>PLAY on the title screen: the last level played, or the first open unsolved one.</summary>
@@ -74,6 +77,24 @@ namespace ShiftRegister.Game
         {
             game.Load(chapter, level);
             Show(GameScreen.Playing);
+        }
+
+        /// <summary>Leaves the level being played: a custom one to where it came from, any other to chapter select.</summary>
+        public void LeaveLevel() => Show(game.IsCustom ? customReturn : GameScreen.Chapters);
+
+        /// <summary>Plays one of the player's own levels; leaving it returns to <paramref name="returnTo"/>.</summary>
+        public void PlayCustom(CustomLevels.CustomLevel entry, GameScreen returnTo)
+        {
+            customReturn = returnTo;
+            game.PlayCustom(entry);
+            Show(GameScreen.Playing);
+        }
+
+        /// <summary>Opens one of the player's own levels in the editor.</summary>
+        public void EditLevel(string id)
+        {
+            editor.SetLevel(id);
+            Show(GameScreen.Editor);
         }
 
         /// <summary>
