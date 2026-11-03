@@ -34,6 +34,10 @@ namespace ShiftRegister.Game
         public LevelCatalog Catalog => catalog;
         public LevelCatalog.Chapter Chapter => catalog.chapters[ChapterIndex];
         public BoardView BoardView => boardView;
+        public BoardControls Controls => controls;
+
+        /// <summary>True while the level editor owns the board: the game leaves its view and controls alone.</summary>
+        public bool BoardLent { get; set; }
         public PlayerProgress Progress { get; private set; }
 
         /// <summary>The player's options; change them through <see cref="ChangeSettings"/>.</summary>
@@ -180,7 +184,8 @@ namespace ShiftRegister.Game
             Refresh();
         }
 
-        void PlaceBoard()
+        /// <summary>Puts the board where the current orientation wants it.</summary>
+        public void PlaceBoard()
         {
             boardView.transform.localPosition = ScreenLayout.BoardCenter;
             boardView.transform.localScale = Vector3.one * ScreenLayout.BoardScale;
@@ -193,7 +198,7 @@ namespace ShiftRegister.Game
         void OnOrientationChanged()
         {
             PlaceBoard();
-            if (Board != null && controls != null) controls.Build(Board.Rules);
+            if (Board != null && controls != null && !BoardLent) controls.Build(Board.Rules);
         }
 
         public bool NextLevel()

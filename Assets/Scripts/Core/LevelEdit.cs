@@ -39,12 +39,23 @@ namespace ShiftRegister.Core
         const int MaxHistory = 200;
         const int Last = BoardBits.Size - 1;
 
-        readonly List<LevelData> undo = new List<LevelData>();
-        readonly List<LevelData> redo = new List<LevelData>();
-        LevelData strokeBefore;
+        /// <summary>A level with its proof, so undo also brings back what was proven about it.</summary>
+        sealed class Snapshot
+        {
+            public readonly LevelData Level;
+            public readonly LevelProof Proof;
+            public Snapshot(LevelData level, LevelProof proof) { Level = level; Proof = proof; }
+        }
+
+        readonly List<Snapshot> undo = new List<Snapshot>();
+        readonly List<Snapshot> redo = new List<Snapshot>();
+        Snapshot strokeBefore;
 
         /// <summary>The level as it stands. Treat it as read-only; change it through this class.</summary>
         public LevelData Level { get; private set; }
+
+        /// <summary>How par and solution were proven; None after any change to the puzzle.</summary>
+        public LevelProof Proof { get; private set; }
 
         public bool CanUndo => undo.Count > 0;
         public bool CanRedo => redo.Count > 0;
@@ -53,11 +64,12 @@ namespace ShiftRegister.Core
         public event Action Changed;
 
         /// <param name="level">Copied, not kept. Must pass <see cref="AuthoredErrors"/>.</param>
-        public LevelEdit(LevelData level)
+        public LevelEdit(LevelData level, LevelProof proof = LevelProof.None)
         {
             var errors = AuthoredErrors(level);
             if (errors.Count > 0) throw new LevelValidationException(level?.id ?? "?", errors);
             Level = Clone(level);
+            Proof = proof;
         }
 
         /// <summary>A new level with an empty board.</summary>
@@ -68,7 +80,7 @@ namespace ShiftRegister.Core
         /// <summary>Groups the edits until <see cref="EndStroke"/> into one undo step (one mouse drag).</summary>
         public void BeginStroke()
         {
-            if (strokeBefore == null) strokeBefore = Clone(Level);
+            if (strokeBefore == null) strokeBefore = Now();
         }
 
         public void EndStroke()
@@ -76,24 +88,28 @@ namespace ShiftRegister.Core
             if (strokeBefore == null) return;
             var before = strokeBefore;
             strokeBefore = null;
-            if (!SameLevel(before, Level)) Remember(before);
+            if (!SameLevel(before.Level, Level)) Remember(before);
         }
 
         public bool Undo() => Swap(undo, redo);
         public bool Redo() => Swap(redo, undo);
 
-        bool Swap(List<LevelData> from, List<LevelData> to)
+        bool Swap(List<Snapshot> from, List<Snapshot> to)
         {
             EndStroke();
             if (from.Count == 0) return false;
-            to.Add(Level);
-            Level = from[from.Count - 1];
+            to.Add(new Snapshot(Level, Proof));
+            var back = from[from.Count - 1];
             from.RemoveAt(from.Count - 1);
+            Level = back.Level;
+            Proof = back.Proof;
             Changed?.Invoke();
             return true;
         }
 
-        void Remember(LevelData before)
+        Snapshot Now() => new Snapshot(Clone(Level), Proof);
+
+        void Remember(Snapshot before)
         {
             undo.Add(before);
             if (undo.Count > MaxHistory) undo.RemoveAt(0);
@@ -102,30 +118,31 @@ namespace ShiftRegister.Core
 
         void Edit(Action change)
         {
-            var before = Clone(Level);
+            var before = Now();
             change();
-            if (SameLevel(before, Level)) return;
+            if (SameLevel(before.Level, Level)) return;
 
             Level.par = 0;
             Level.solution = "";
+            Proof = LevelProof.None;
             if (strokeBefore == null) Remember(before);
             Changed?.Invoke();
         }
 
-        /// <summary>
-        /// Stores a proof's result. The level's rules do not change, so this is not an undo step, but
-        /// history is kept: undoing to an older level brings back that level's own par (none).
-        /// </summary>
-        public void SetSolution(IReadOnlyList<Move> solution)
+        /// <summary>Stores a proof's result. The puzzle does not change, so this is not an undo step.</summary>
+        public void SetSolution(IReadOnlyList<Move> solution, LevelProof proof)
         {
             Level.par = solution.Count;
             Level.solution = string.Join(" ", solution);
+            Proof = proof;
             Changed?.Invoke();
         }
 
         // ----- Cells -----
 
         public bool GetBit(EditLayer layer, int row, int column) => (Rows(layer)[row] & Mask(column)) != 0;
+        public bool IsWall(int row, int column) => (Level.walls[row] & Mask(column)) != 0;
+        public bool IsPin(int row, int column) => (Level.pins[row] & Mask(column)) != 0;
 
         public void SetBit(EditLayer layer, int row, int column, bool on) => Edit(() =>
         {
@@ -300,7 +317,7 @@ namespace ShiftRegister.Core
         {
             string clean = SanitizeName(name);
             if (clean == Level.name) return;
-            if (strokeBefore == null) Remember(Clone(Level));
+            if (strokeBefore == null) Remember(Now());
             Level.name = clean;
             Changed?.Invoke();
         }
@@ -348,12 +365,15 @@ namespace ShiftRegister.Core
             foreach (char ch in name ?? "")
             {
                 if (kept.Length == MaxNameLength) break;
-                bool ok = (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')
-                    || ch == ' ' || ch == '-' || ch == '.' || ch == '!' || ch == '?' || ch == '\'';
-                if (ok) kept.Append(ch);
+                if (IsNameChar(ch)) kept.Append(ch);
             }
             return kept.ToString().Trim();
         }
+
+        /// <summary>The characters a level name may hold.</summary>
+        public static bool IsNameChar(char ch) =>
+            (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')
+            || ch == ' ' || ch == '-' || ch == '.' || ch == '!' || ch == '?' || ch == '\'';
 
         // ----- Copies -----
 

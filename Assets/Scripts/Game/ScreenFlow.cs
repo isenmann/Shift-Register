@@ -6,11 +6,12 @@ using UnityEngine.InputSystem;
 
 namespace ShiftRegister.Game
 {
-    public enum GameScreen { Title, Chapters, Playing, Options }
+    public enum GameScreen { Title, Chapters, Playing, Options, Editor }
 
     /// <summary>
     /// Switches between the title screen, chapter select and the level being played, all in one scene.
-    /// Esc steps back: level → chapters → title, options → title. M mutes anywhere.
+    /// Esc steps back: level → chapters → title, options → title, editor → title. M mutes anywhere,
+    /// except while typing in a text field.
     /// </summary>
     public sealed class ScreenFlow : MonoBehaviour
     {
@@ -19,6 +20,7 @@ namespace ShiftRegister.Game
         [Tooltip("The in-level HUD canvas.")]
         [SerializeField] GameObject hud;
         [SerializeField] MenuView menu;
+        [SerializeField] LevelEditor.EditorView editor;
 
         public GameScreen Current { get; private set; } = GameScreen.Title;
 
@@ -44,12 +46,17 @@ namespace ShiftRegister.Game
         void Update()
         {
             var kb = Keyboard.current;
-            if (kb == null) return;
+            if (kb == null || Ui.IsTyping) return;
             if (kb.mKey.wasPressedThisFrame) game.ChangeSettings(s => s.muted = !s.muted);
             if (!kb.escapeKey.wasPressedThisFrame) return;
             if (Current == GameScreen.Playing && hudView != null && hudView.HelpOpen)
             {
                 hudView.CloseHelp();
+                return;
+            }
+            if (Current == GameScreen.Editor)
+            {
+                if (!editor.CancelSolve()) Show(GameScreen.Title);
                 return;
             }
             if (Current == GameScreen.Playing) Show(GameScreen.Chapters);
@@ -76,6 +83,9 @@ namespace ShiftRegister.Game
         public static bool CanQuit =>
             Application.platform != RuntimePlatform.WebGLPlayer && !Application.isMobilePlatform && !DeviceMode.IsMobile;
 
+        /// <summary>The level editor needs a mouse and keyboard until its phone layouts exist.</summary>
+        public static bool CanEdit => !DeviceMode.IsMobile;
+
         /// <summary>QUIT on the title screen. Progress is already saved after every solved level.</summary>
         public void Quit()
         {
@@ -91,10 +101,12 @@ namespace ShiftRegister.Game
         {
             Current = screen;
             bool playing = screen == GameScreen.Playing;
-            game.BoardView.gameObject.SetActive(playing);
+            bool editing = screen == GameScreen.Editor;
+            game.BoardView.gameObject.SetActive(playing || editing);
             input.enabled = playing;
             hud.SetActive(playing);
             menu.Show(screen);
+            if (editor != null) editor.gameObject.SetActive(editing);
             Changed?.Invoke(screen);
         }
     }

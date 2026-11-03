@@ -31,7 +31,7 @@ namespace ShiftRegister.Game.View
         [SerializeField] Material spriteMaterial;
 
         readonly List<ArrowButton> buttons = new List<ArrowButton>();
-        SpriteRenderer rowOutline, columnOutline;
+        SpriteRenderer rowOutline, columnOutline, cellOutline;
         readonly List<SpriteRenderer> crossPieces = new List<SpriteRenderer>();
         Transform crossRoot;
         Transform root;
@@ -40,7 +40,8 @@ namespace ShiftRegister.Game.View
 
         public IReadOnlyList<ArrowButton> Buttons => buttons;
 
-        public void Build(LevelRules levelRules)
+        /// <param name="withArrows">False for the level editor, where the board is painted and nothing shifts.</param>
+        public void Build(LevelRules levelRules, bool withArrows = true)
         {
             rules = levelRules;
             buttons.Clear();
@@ -50,7 +51,7 @@ namespace ShiftRegister.Game.View
             root.SetParent(transform, false);
 
             // Phones and tablets shift by swiping in either orientation: no arrow buttons, and the belts hug the board.
-            bool arrows = !DeviceMode.IsMobile;
+            bool arrows = withArrows && !DeviceMode.IsMobile;
             float offset = ScreenLayout.BoardSize / 2f + (ButtonGap + ButtonShort / 2f) / Px;
             if (arrows)
             {
@@ -74,6 +75,17 @@ namespace ShiftRegister.Game.View
             crossPieces.Clear();
             crossRoot = new GameObject("Cursor outline").transform;
             crossRoot.SetParent(root, false);
+            float cellOutlineSize = 46f + 2f * OutlineMargin;
+            cellOutline = Renderer(root, "Cell outline", ProceduralSprites.RoundedOutline(cellOutlineSize, cellOutlineSize, OutlineRadius, OutlineWidth), Lcd.Ink, (int)Layer.Outline);
+            cellOutline.enabled = false;
+        }
+
+        /// <summary>The level editor's cursor: outlines one cell.</summary>
+        public void HighlightCell(int row, int column)
+        {
+            if (cellOutline == null) return;
+            cellOutline.transform.localPosition = BoardView.CellCenter(row, column);
+            cellOutline.enabled = true;
         }
 
         /// <summary>

@@ -172,7 +172,7 @@ namespace ShiftRegister.Tests
             var e = Blank();
             e.SetBit(EditLayer.Start, 0, 0, true);
             e.SetBit(EditLayer.Target, 0, 1, true);
-            e.SetSolution(new[] { Move.Row(0, Direction.Right) });
+            e.SetSolution(new[] { Move.Row(0, Direction.Right) }, LevelProof.Searched);
             Assert.That(e.Level.par, Is.EqualTo(1));
 
             e.SetBit(EditLayer.Start, 0, 0, true);
@@ -181,6 +181,25 @@ namespace ShiftRegister.Tests
 
             e.SetBit(EditLayer.Start, 7, 7, true);
             Assert.That(e.Level.par, Is.Zero);
+            Assert.That(e.Level.solution, Is.Empty);
+            Assert.That(e.Proof, Is.EqualTo(LevelProof.None));
+        }
+
+        [Test]
+        public void Undo_BringsTheProofBack_RedoTakesItAway()
+        {
+            var e = Blank();
+            e.SetBit(EditLayer.Start, 0, 0, true);
+            e.SetBit(EditLayer.Target, 0, 1, true);
+            e.SetSolution(new[] { Move.Row(0, Direction.Right) }, LevelProof.Replayed);
+
+            e.SetBit(EditLayer.Start, 7, 7, true);
+            e.Undo();
+            Assert.That(e.Proof, Is.EqualTo(LevelProof.Replayed));
+            Assert.That(e.Level.solution, Is.EqualTo("R1→"));
+
+            e.Redo();
+            Assert.That(e.Proof, Is.EqualTo(LevelProof.None));
             Assert.That(e.Level.solution, Is.Empty);
         }
 

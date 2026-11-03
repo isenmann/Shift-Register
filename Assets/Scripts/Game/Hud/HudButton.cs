@@ -14,7 +14,8 @@ namespace ShiftRegister.Game.Hud
         TextMeshProUGUI label;
         Action onClick;
         Color32 ink, paper;
-        bool solid;
+        bool solid, selected, disabled;
+        Image frame;
 
         /// <summary>Ink-on-background button (top bar).</summary>
         public static HudButton Create(Transform parent, string text, float x, float y, float w, float h,
@@ -37,7 +38,7 @@ namespace ShiftRegister.Game.Hud
             b.paper = paper;
             b.fill = Ui.Box(rt, "Fill", 0, 0, w, h, 6f, ink);
             b.fill.enabled = false;
-            Ui.Frame(rt, "Frame", 0, 0, w, h, 6f, 2f, ink);
+            b.frame = Ui.Frame(rt, "Frame", 0, 0, w, h, 6f, 2f, ink);
             b.label = Ui.Text(rt, "Label", 0, 0, w, h, font, size, ink, TextAlignmentOptions.Center, text);
             return b;
         }
@@ -58,12 +59,39 @@ namespace ShiftRegister.Game.Hud
             set => label.text = value;
         }
 
+        /// <summary>Stays filled, for a tool or tab that is on.</summary>
+        public bool Selected
+        {
+            get => selected;
+            set
+            {
+                selected = value;
+                SetHot(false);
+            }
+        }
+
+        /// <summary>Greyed out; a click only makes the blocked sound.</summary>
+        public bool Disabled
+        {
+            get => disabled;
+            set
+            {
+                disabled = value;
+                SetHot(false);
+            }
+        }
+
         void OnDisable() => SetHot(false);
 
         public void OnPointerEnter(PointerEventData e) => SetHot(true);
         public void OnPointerExit(PointerEventData e) => SetHot(false);
         public void OnPointerClick(PointerEventData e)
         {
+            if (disabled)
+            {
+                Sfx.Play(Sound.Blocked);
+                return;
+            }
             Sfx.Play(Sound.Click);
             onClick?.Invoke();
         }
@@ -71,6 +99,21 @@ namespace ShiftRegister.Game.Hud
         void SetHot(bool hot)
         {
             if (fill == null) return;
+            if (disabled)
+            {
+                fill.enabled = false;
+                frame.color = Lcd.Cell;
+                label.color = Lcd.Text3;
+                return;
+            }
+            frame.color = ink;
+            if (selected)
+            {
+                fill.enabled = true;
+                fill.color = ink;
+                label.color = paper;
+                return;
+            }
             if (solid)
             {
                 fill.enabled = true;

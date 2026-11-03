@@ -14,7 +14,7 @@ namespace ShiftRegister.Game.Hud
     /// Title screen, chapter select and options, built from code on their own canvas in three
     /// arrangements: desktop (1280×720 units) and phone landscape / portrait (915×412 / 412×915, the
     /// phone mockups' CSS px, so text keeps its size); the one matching the screen is shown.
-    /// Title: Enter plays, C opens chapters, O options, Q quits (desktop builds only). Chapters: arrows pick a level, Enter plays it;
+    /// Title: Enter plays, C opens chapters, L my levels, O options, Q quits (desktop builds only). Chapters: arrows pick a level, Enter plays it;
     /// on an upright phone the chapters are a scrolling list of cards.
     /// </summary>
     public sealed partial class MenuView : MonoBehaviour
@@ -146,6 +146,7 @@ namespace ShiftRegister.Game.Hud
             {
                 if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame) flow.Resume();
                 else if (kb.cKey.wasPressedThisFrame) flow.Show(GameScreen.Chapters);
+                else if (kb.lKey.wasPressedThisFrame && ScreenFlow.CanEdit) flow.Show(GameScreen.Editor);
                 else if (kb.oKey.wasPressedThisFrame) flow.Show(GameScreen.Options);
                 else if (kb.qKey.wasPressedThisFrame) flow.Quit();
                 return;
@@ -234,12 +235,13 @@ namespace ShiftRegister.Game.Hud
                 "Slide whole rows of bits to draw the picture. Whatever falls off the edge is gone for good.");
             blurb.textWrappingMode = TextWrappingModes.Normal;
 
-            HudButton.CreateSolid(a, "PLAY", x, 458, 130, 52, display, 18, () => flow.Resume());
-            HudButton.Create(a, "CHAPTERS", x + 142, 458, 170, 52, display, 16, () => flow.Show(GameScreen.Chapters));
-            HudButton.Create(a, "OPTIONS", x + 324, 458, 160, 52, display, 16, () => flow.Show(GameScreen.Options));
+            HudButton.CreateSolid(a, "PLAY", x, 458, 104, 52, display, 18, () => flow.Resume());
+            HudButton.Create(a, "CHAPTERS", x + 112, 458, 138, 52, display, 14, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(a, "MY LEVELS", x + 258, 458, 146, 52, display, 14, () => flow.Show(GameScreen.Editor));
+            HudButton.Create(a, "OPTIONS", x + 412, 458, 124, 52, display, 14, () => flow.Show(GameScreen.Options));
             // Desktop builds only: a browser tab or a phone app is closed from outside the game.
             bool canQuit = ScreenFlow.CanQuit;
-            if (canQuit) HudButton.Create(a, "QUIT", x + 496, 458, 110, 52, display, 16, () => flow.Quit());
+            if (canQuit) HudButton.Create(a, "QUIT", x + 544, 458, 76, 52, display, 14, () => flow.Quit());
             s.TitleProgress = Ui.Text(a, "Progress", x, 526, 560, 20, mono, 14, Lcd.Text2);
 
             TitleGrid(b, 740f, 120f);
@@ -247,7 +249,7 @@ namespace ShiftRegister.Game.Hud
 
             var keys = Ui.Rect(a, "Keys", 0, 0, 1280, 720);
             s.TitleKeys = keys.gameObject;
-            Ui.Text(keys, "Keys Hint", x, 550, 560, 20, mono, 13, Lcd.Text3, text: canQuit ? "Enter play · C chapters · O options · Q quit" : "Enter play · C chapters · O options");
+            Ui.Text(keys, "Keys Hint", x, 550, 560, 20, mono, 13, Lcd.Text3, text: canQuit ? "Enter play · C chapters · L my levels · O options · Q quit" : "Enter play · C chapters · L my levels · O options");
             const float ky = 642f;
             KeyCap(keys, "⇧ Shift", x, ky, 82);
             Ui.Text(keys, "Plus", x + 82, ky, 28, 34, mono, 14, Lcd.Ink, TextAlignmentOptions.Center, "+");

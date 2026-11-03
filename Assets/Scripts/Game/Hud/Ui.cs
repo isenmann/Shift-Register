@@ -1,6 +1,7 @@
 using ShiftRegister.Game.View;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ShiftRegister.Game.Hud
@@ -91,6 +92,27 @@ namespace ShiftRegister.Game.Hud
             canvas.worldCamera = cam;
             canvas.planeDistance = 5f;
             canvas.sortingOrder = order;
+        }
+
+        /// <summary>Frames after a text field closes in which its closing key still belongs to it.</summary>
+        const int TypingGraceFrames = 2;
+        static int typingEndedFrame = -TypingGraceFrames - 1;
+
+        /// <summary>
+        /// A text field just closed. The field can handle Esc or Enter before the game's own key checks
+        /// see the same press, and that press must not also act as a shortcut.
+        /// </summary>
+        public static void NoteTypingEnded() => typingEndedFrame = Time.frameCount;
+
+        /// <summary>True while a text field has the keyboard: keys belong to it, not to game shortcuts.</summary>
+        public static bool IsTyping
+        {
+            get
+            {
+                if (Time.frameCount - typingEndedFrame <= TypingGraceFrames) return true;
+                var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
+                return selected != null && selected.TryGetComponent<TMP_InputField>(out var field) && field.isFocused;
+            }
         }
 
         public static string Hex(Color32 c) => $"#{c.r:X2}{c.g:X2}{c.b:X2}";
