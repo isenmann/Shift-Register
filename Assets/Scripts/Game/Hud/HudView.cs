@@ -222,7 +222,7 @@ namespace ShiftRegister.Game.Hud
             kx = KeyCap(keys, "M", kx + 8f, k3, 26f);
             KeyLabel(keys, "mute", kx + 6f, k3, 50f);
             var swipe = Ui.Text(f, "Swipe Hint", rx, 504, rw, 90, mono, 13, Lcd.Text3, TextAlignmentOptions.TopLeft,
-                "Swipe a row or column to shift it, or tap an arrow.");
+                "Swipe a row or column to shift it. Tap a cell to select it.");
             swipe.textWrappingMode = TextWrappingModes.Normal;
             swipe.lineSpacing = 6;
             l.SwipeHint = swipe.gameObject;

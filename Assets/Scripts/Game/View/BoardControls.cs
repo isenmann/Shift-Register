@@ -47,8 +47,8 @@ namespace ShiftRegister.Game.View
             root = new GameObject("Controls").transform;
             root.SetParent(transform, false);
 
-            // Portrait (mobile) shifts by swiping: no arrow buttons, and the belts hug the board.
-            bool arrows = !ScreenLayout.Portrait;
+            // Phones and tablets shift by swiping in either orientation: no arrow buttons, and the belts hug the board.
+            bool arrows = !DeviceMode.IsMobile;
             float offset = ScreenLayout.BoardSize / 2f + (ButtonGap + ButtonShort / 2f) / Px;
             if (arrows)
             {
