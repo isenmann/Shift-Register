@@ -5,6 +5,7 @@ using ShiftRegister.Game.Input;
 using ShiftRegister.Game.View;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace ShiftRegister.Game.Hud
@@ -14,7 +15,7 @@ namespace ShiftRegister.Game.Hud
     /// "now → target", target thumbnail, bit bucket, key hint, and the solved / rule-broken banner.
     /// Built from code on a Screen Space canvas scaled like the camera (1280×720 reference, Expand).
     /// </summary>
-    public sealed class HudView : MonoBehaviour
+    public sealed partial class HudView : MonoBehaviour
     {
         [SerializeField] GameController game;
         [SerializeField] BoardInput input;
@@ -50,6 +51,7 @@ namespace ShiftRegister.Game.Hud
         void OnEnable()
         {
             if (game == null) return;
+            if (Keyboard.current != null) Keyboard.current.onTextInput += OnTextInput;
             game.Changed += OnChanged;
             game.SettingsChanged += RefreshSound;
             RefreshSound();
@@ -66,6 +68,8 @@ namespace ShiftRegister.Game.Hud
         void OnDisable()
         {
             if (game == null) return;
+            CloseHelp();
+            if (Keyboard.current != null) Keyboard.current.onTextInput -= OnTextInput;
             game.Changed -= OnChanged;
             game.SettingsChanged -= RefreshSound;
             if (game.BoardView != null) game.BoardView.Settled -= OnSettled;
@@ -79,6 +83,7 @@ namespace ShiftRegister.Game.Hud
         /// <summary>Board info updates at once; the bucket and banner wait for the move animation to land.</summary>
         void OnChanged()
         {
+            CheckFirstHelp();
             RefreshBoard();
             bool animating = game.BoardView != null && game.BoardView.IsAnimating;
             if (!animating) RefreshOutcome(false);
@@ -96,6 +101,7 @@ namespace ShiftRegister.Game.Hud
 
         void Update()
         {
+            UpdateHelp();
             if (input == null) return;
             int cursor = input.CursorRow * N + input.CursorColumn;
             if (cursor == shownCursor) return;
@@ -132,14 +138,15 @@ namespace ShiftRegister.Game.Hud
 
             var right = Ui.Fill(bar, "Actions");
             right.anchorMin = new Vector2(1f, 0f);
-            right.offsetMin = new Vector2(-680f, 0f);
+            right.offsetMin = new Vector2(-790f, 0f);
             right.offsetMax = new Vector2(-40f, 0f);
-            HudButton.Create(right, "MENU", 548, 10, 92, 44, display, 14, () => flow.Show(GameScreen.Chapters));
-            HudButton.Create(right, "RESET", 420, 10, 100, 44, display, 14, () => game.ResetLevel());
-            HudButton.Create(right, "UNDO", 304, 10, 88, 44, display, 14, () => game.Undo());
-            soundButton = HudButton.Create(right, "SOUND", 184, 10, 96, 44, display, 14,
+            HudButton.Create(right, "MENU", 658, 10, 92, 44, display, 14, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(right, "RESET", 530, 10, 100, 44, display, 14, () => game.ResetLevel());
+            HudButton.Create(right, "UNDO", 414, 10, 88, 44, display, 14, () => game.Undo());
+            soundButton = HudButton.Create(right, "SOUND", 298, 10, 96, 44, display, 14,
                 () => game.ChangeSettings(s => s.muted = !s.muted));
-            moves = Ui.Text(right, "Moves", 0, 0, 164, 64, mono, 15, Lcd.Ink, TextAlignmentOptions.MidlineRight);
+            HudButton.Create(right, "HELP", 194, 10, 80, 44, display, 14, ToggleHelp);
+            moves = Ui.Text(right, "Moves", 0, 0, 174, 64, mono, 15, Lcd.Ink, TextAlignmentOptions.MidlineRight);
 
             var frame = Ui.Rect(canvas, "Frame", 0, 0, 1280, 720);
             frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(0.5f, 0.5f);
@@ -150,6 +157,7 @@ namespace ShiftRegister.Game.Hud
             BuildBucket(frame);
             BuildKeyHint(frame);
             BuildBanner(frame);
+            BuildHelp(canvas);
         }
 
         void BuildRows(Transform frame)

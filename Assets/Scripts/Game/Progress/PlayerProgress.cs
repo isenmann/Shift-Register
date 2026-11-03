@@ -42,6 +42,17 @@ namespace ShiftRegister.Game.Progress
         public int version = 1;
         public string lastLevelId = "";
         public List<LevelRecord> levels = new List<LevelRecord>();
+        /// <summary>Levels whose help panel already opened by itself (each chapter's first level).</summary>
+        public List<string> helpSeen = new List<string>();
+
+        /// <summary>True the first time it is asked for a level id, then false.</summary>
+        public bool MarkHelpSeen(string id)
+        {
+            if (helpSeen == null) helpSeen = new List<string>();
+            if (helpSeen.Contains(id)) return false;
+            helpSeen.Add(id);
+            return true;
+        }
 
         public LevelRecord Get(string id) => levels.Find(r => r.id == id);
 

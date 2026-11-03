@@ -22,11 +22,14 @@ namespace ShiftRegister.Game
 
         public GameScreen Current { get; private set; } = GameScreen.Title;
 
+        HudView hudView;
+
         /// <summary>Raised after the screen changes.</summary>
         public event Action<GameScreen> Changed;
 
         void Start()
         {
+            hudView = hud.GetComponentInChildren<HudView>(true);
             if (game.StartsInLevel)
             {
                 game.LoadStartLevel();
@@ -44,6 +47,11 @@ namespace ShiftRegister.Game
             if (kb == null) return;
             if (kb.mKey.wasPressedThisFrame) game.ChangeSettings(s => s.muted = !s.muted);
             if (!kb.escapeKey.wasPressedThisFrame) return;
+            if (Current == GameScreen.Playing && hudView != null && hudView.HelpOpen)
+            {
+                hudView.CloseHelp();
+                return;
+            }
             if (Current == GameScreen.Playing) Show(GameScreen.Chapters);
             else if (Current == GameScreen.Chapters || Current == GameScreen.Options) Show(GameScreen.Title);
         }

@@ -46,7 +46,8 @@ namespace ShiftRegister.Game.Input
         void HandleKeyboard()
         {
             var kb = Keyboard.current;
-            if (kb == null) return;
+            // The key that closed the help panel or opened the level must not also act on the board.
+            if (kb == null || Time.frameCount == enabledFrame) return;
 
             Direction? d = null;
             if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame) d = Direction.Left;

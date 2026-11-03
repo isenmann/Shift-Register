@@ -157,6 +157,9 @@ namespace ShiftRegister.Game
 
         bool previewing;
 
+        /// <summary>True while playing a level from <see cref="Preview"/> (not in the catalog, not saved).</summary>
+        public bool IsPreviewing => previewing;
+
         void Show(LevelData data)
         {
             Level = data;
