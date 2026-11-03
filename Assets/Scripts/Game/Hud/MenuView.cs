@@ -239,6 +239,7 @@ namespace ShiftRegister.Game.Hud
             s.TitleProgress = Ui.Text(a, "Progress", x, 526, 560, 20, mono, 14, Lcd.Text2);
 
             TitleGrid(b, 740f, 120f);
+            Credit(b, 1234f - 400f, 650f, 400f, 13, TextAlignmentOptions.MidlineRight);
 
             var keys = Ui.Rect(a, "Keys", 0, 0, 1280, 720);
             s.TitleKeys = keys.gameObject;
@@ -271,6 +272,7 @@ namespace ShiftRegister.Game.Hud
             HudButton.Create(bottom, "CHAPTERS", x, 726, 184, 54, display, 16, () => flow.Show(GameScreen.Chapters));
             HudButton.Create(bottom, "OPTIONS", x + 196, 726, 184, 54, display, 16, () => flow.Show(GameScreen.Options));
             s.TitleProgress = Ui.Text(bottom, "Progress", x, 796, w, 18, mono, 14, Lcd.Text2, TextAlignmentOptions.Center);
+            Credit(bottom, x, 875, w, 13, TextAlignmentOptions.Center);
         }
 
         /// <summary>Phone landscape title: name, blurb and buttons on the left, the smiley on the right.</summary>
@@ -293,7 +295,12 @@ namespace ShiftRegister.Game.Hud
             s.TitleProgress = Ui.Text(a, "Progress", x, 334, 440, 18, mono, 14, Lcd.Text2);
 
             TitleGrid(b, 915f - 32f - 356f, 28f, 38f, 4f, 12f);
+            Credit(b, 915f - 32f - 356f, 388f, 356f, 12, TextAlignmentOptions.MidlineRight);
         }
+
+        /// <summary>The version and studio line in the title screen's bottom corner (centred in portrait).</summary>
+        void Credit(Transform root, float x, float y, float w, float size, TextAlignmentOptions align) =>
+            Ui.Text(root, "Credit", x, y, w, 18, mono, size, Lcd.Text3, align, $"v{Application.version} · by dev.play.repeat");
 
         /// <summary>The smiley bit grid (8 × 52 px cells, 6 px gaps, 18 px padding: 494 px square); its bits join the intro.</summary>
         void TitleGrid(Transform root, float gx, float gy, float cell = 52f, float gap = 6f, float pad = 18f)
