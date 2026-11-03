@@ -91,9 +91,6 @@ namespace ShiftRegister.Game.View
 
         public static float BoardScale => !Phone ? LandscapeBoardScale : Portrait ? PhonePortraitBoardScale : PhoneLandscapeBoardScale;
         public static Vector2 BoardCenterPx => !Phone ? LandscapeBoardCenterPx : Portrait ? PhonePortraitBoardCenterPx : PhoneLandscapeBoardCenterPx;
-
-        /// <summary>Menus and the help panel are still drawn in desktop units (720 short side): desktop units per frame px.</summary>
-        public static float MenuScale => 720f / ShortPx;
         public static Vector2 BoardCenter => FromMockup(BoardCenterPx.x, BoardCenterPx.y);
 
         /// <summary>Where lost bits land: the bit bucket card's centre (in an outer group, so it moves with it).</summary>

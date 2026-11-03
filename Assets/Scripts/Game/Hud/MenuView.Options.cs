@@ -29,60 +29,90 @@ namespace ShiftRegister.Game.Hud
 
         OptionRow optionFocus;
 
-        void BuildOptions(Screens s, bool portrait)
+        enum OptionsMode { Desktop, PhoneLandscape, PhonePortrait }
+
+        /// <summary>Sizes of one options arrangement: rows, labels, volume controls and switches.</summary>
+        sealed class OptionsSpec
+        {
+            public float X, Top, W, H, Pitch;
+            public float LabelSize, TextSize, TextW, TextH;
+            public float MinusX, ControlsY, Button, CellW, CellGap, CellsGap;
+            public float ToggleW, ToggleH;
+        }
+
+        static OptionsSpec Spec(OptionsMode mode) => mode switch
+        {
+            OptionsMode.PhonePortrait => new OptionsSpec
+            {
+                X = 16, Top = 96, W = 380, H = 120, Pitch = 136, LabelSize = 18, TextSize = 14, TextW = 230, TextH = 60,
+                MinusX = 12, ControlsY = 66, Button = 44, CellW = 22, CellGap = 4, CellsGap = 8, ToggleW = 110, ToggleH = 48
+            },
+            OptionsMode.PhoneLandscape => new OptionsSpec
+            {
+                X = (915 - 560) / 2f, Top = 76, W = 560, H = 86, Pitch = 98, LabelSize = 18, TextSize = 14, TextW = 300, TextH = 40,
+                MinusX = 230, ControlsY = 20, Button = 44, CellW = 18, CellGap = 4, CellsGap = 8, ToggleW = 110, ToggleH = 48
+            },
+            _ => new OptionsSpec
+            {
+                X = (1280 - 760) / 2f, Top = 160, W = 760, H = 76, Pitch = 92, LabelSize = 18, TextSize = 13, TextW = 560, TextH = 20,
+                MinusX = 330, ControlsY = 16, Button = 44, CellW = 24, CellGap = 6, CellsGap = 14, ToggleW = 120, ToggleH = 44
+            }
+        };
+
+        void BuildOptions(Screens s, OptionsMode mode)
         {
             var root = s.Options;
+            var spec = Spec(mode);
+            var o = s.Opt = new OptionsUi { X = spec.X, Top = spec.Top, W = spec.W, H = spec.H, Pitch = spec.Pitch };
+            bool portrait = mode == OptionsMode.PhonePortrait;
+
             // Portrait: header and rows hang from the top; landscape: header ends move out, rows stay centred.
             var top = portrait ? Outer(s, root, "Top", 0f, 1f) : null;
-            var bottom = portrait ? Outer(s, root, "Bottom", 0f, -1f) : null;
             var left = portrait ? null : Outer(s, root, "Left", -1f, 0f);
             var right = portrait ? null : Outer(s, root, "Right", 1f, 0f);
             var rows = portrait ? top : root;
-            var o = s.Opt = portrait
-                ? new OptionsUi { X = 24f, Top = 140f, W = 672f, H = 132f, Pitch = 152f }
-                : new OptionsUi { X = (1280f - 760f) / 2f, Top = 160f, W = 760f, H = 76f, Pitch = 92f };
-
-            if (portrait)
+            switch (mode)
             {
-                Ui.Text(top, "Heading", 24, 32, 400, 52, displayBold, 34, Lcd.Ink, text: "OPTIONS");
-                HudButton.Create(top, "BACK", 566, 32, 130, 52, display, 15, () => flow.Show(GameScreen.Title));
-            }
-            else
-            {
-                Ui.Text(left, "Heading", 56, 36, 400, 48, displayBold, 34, Lcd.Ink, text: "OPTIONS");
-                HudButton.Create(right, "BACK", 1124, 38, 100, 44, display, 14, () => flow.Show(GameScreen.Title));
+                case OptionsMode.PhonePortrait:
+                    Ui.Text(top, "Heading", 16, 24, 270, 40, displayBold, 28, Lcd.Ink, text: "OPTIONS");
+                    HudButton.Create(top, "BACK", 300, 22, 96, 48, display, 15, () => flow.Show(GameScreen.Title));
+                    break;
+                case OptionsMode.PhoneLandscape:
+                    Ui.Text(left, "Heading", 24, 16, 300, 40, displayBold, 26, Lcd.Ink, text: "OPTIONS");
+                    HudButton.Create(right, "BACK", 795, 14, 96, 44, display, 15, () => flow.Show(GameScreen.Title));
+                    break;
+                default:
+                    Ui.Text(left, "Heading", 56, 36, 400, 48, displayBold, 34, Lcd.Ink, text: "OPTIONS");
+                    HudButton.Create(right, "BACK", 1124, 38, 100, 44, display, 14, () => flow.Show(GameScreen.Title));
+                    break;
             }
 
-            // Volume: − [10 cells] +; in portrait on its own line under the label.
-            var volume = OptionRowRoot(rows, o, OptionRow.Volume, "VOLUME", out o.VolumeText, portrait);
-            float controlsY = portrait ? 78f : 16f, minusX = portrait ? 24f : 330f;
-            float cellW = portrait ? 36f : 24f, cellGap = portrait ? 8f : 6f, button = portrait ? 52f : 44f;
-            HudButton.Create(volume, "-", minusX, controlsY, button, 44, display, 18, () => StepVolume(-1));
-            float cellsX = minusX + button + (portrait ? 16f : 14f);
+            // Volume: − [10 cells] +; on an upright phone on its own line under the label.
+            var volume = OptionRowRoot(rows, o, spec, OptionRow.Volume, "VOLUME", out o.VolumeText);
+            HudButton.Create(volume, "-", spec.MinusX, spec.ControlsY, spec.Button, 44, display, 18, () => StepVolume(-1));
+            float cellsX = spec.MinusX + spec.Button + spec.CellsGap;
             for (int i = 0; i < o.VolumeCells.Length; i++)
             {
-                float cx = cellsX + i * (cellW + cellGap);
-                o.VolumeCells[i] = Ui.Box(volume, $"Volume {i + 1}", cx, controlsY + 6, cellW, 32, 4f, Lcd.Cell);
+                float cx = cellsX + i * (spec.CellW + spec.CellGap);
+                o.VolumeCells[i] = Ui.Box(volume, $"Volume {i + 1}", cx, spec.ControlsY + 6, spec.CellW, 32, 4f, Lcd.Cell);
                 int step = i + 1;
-                UiHotspot.Create(volume, $"Volume {i + 1} Hotspot", cx - cellGap / 2f, controlsY, cellW + cellGap, 44).Click =
+                UiHotspot.Create(volume, $"Volume {i + 1} Hotspot", cx - spec.CellGap / 2f, spec.ControlsY, spec.CellW + spec.CellGap, 44).Click =
                     () => SetVolume(game.Settings.volume == step && step == 1 ? 0 : step);
             }
-            float plusX = cellsX + o.VolumeCells.Length * (cellW + cellGap) + 8f;
-            HudButton.Create(volume, "+", plusX, controlsY, button, 44, display, 18, () => StepVolume(1));
+            float plusX = cellsX + o.VolumeCells.Length * (spec.CellW + spec.CellGap) - spec.CellGap + spec.CellsGap;
+            HudButton.Create(volume, "+", plusX, spec.ControlsY, spec.Button, 44, display, 18, () => StepVolume(1));
 
             // Switches sit at the row's right edge, vertically centred.
-            float toggleW = portrait ? 144f : 120f, toggleH = portrait ? 52f : 44f;
-            float toggleX = o.W - toggleW - 24f, toggleY = (o.H - toggleH) / 2f;
-            var sound = OptionRowRoot(rows, o, OptionRow.Sound, "SOUND", out s.SoundText, portrait);
-            o.Sound = HudButton.Create(sound, "ON", toggleX, toggleY, toggleW, toggleH, display, 16, () => Toggle(OptionRow.Sound));
-            var motion = OptionRowRoot(rows, o, OptionRow.Motion, "REDUCED MOTION", out var motionText, portrait);
+            float toggleX = o.W - spec.ToggleW - 16f, toggleY = (o.H - spec.ToggleH) / 2f;
+            var sound = OptionRowRoot(rows, o, spec, OptionRow.Sound, "SOUND", out s.SoundText);
+            o.Sound = HudButton.Create(sound, "ON", toggleX, toggleY, spec.ToggleW, spec.ToggleH, display, 16, () => Toggle(OptionRow.Sound));
+            var motion = OptionRowRoot(rows, o, spec, OptionRow.Motion, "REDUCED MOTION", out var motionText);
             motionText.text = "Moves snap into place: no sliding, flying or hopping.";
-            o.Motion = HudButton.Create(motion, "OFF", toggleX, toggleY, toggleW, toggleH, display, 16, () => Toggle(OptionRow.Motion));
+            o.Motion = HudButton.Create(motion, "OFF", toggleX, toggleY, spec.ToggleW, spec.ToggleH, display, 16, () => Toggle(OptionRow.Motion));
 
             o.Focus = Ui.Frame(rows, "Focus", o.X, o.Top, o.W, o.H, 10f, 3f, Lcd.Ink);
-            s.OptionsKeys = portrait
-                ? Ui.Text(bottom, "Keys", 24, 1232, 672, 20, mono, 13, Lcd.Text3, TextAlignmentOptions.Center, "Arrows choose and change · Enter switch · Esc back")
-                : Ui.Text(left, "Keys", 56, 690, 1168, 20, mono, 13, Lcd.Text3, text: "Arrows choose and change · Enter switch · M mute · Esc back");
+            if (mode == OptionsMode.Desktop)
+                s.OptionsKeys = Ui.Text(left, "Keys", 56, 690, 1168, 20, mono, 13, Lcd.Text3, text: "Arrows choose and change · Enter switch · M mute · Esc back");
         }
 
         void OnDestroy()
@@ -91,24 +121,17 @@ namespace ShiftRegister.Game.Hud
         }
 
         /// <summary>A card row that focuses on hover; its controls are children so hovering them keeps the focus.</summary>
-        RectTransform OptionRowRoot(Transform root, OptionsUi o, OptionRow row, string label, out TextMeshProUGUI text, bool portrait)
+        RectTransform OptionRowRoot(Transform root, OptionsUi o, OptionsSpec spec, OptionRow row, string label, out TextMeshProUGUI text)
         {
             float y = o.Top + (int)row * o.Pitch;
             var hot = UiHotspot.Create(root, label, o.X, y, o.W, o.H);
             hot.Enter = () => SetOptionFocus(row);
             var rt = (RectTransform)hot.transform;
             Ui.Box(rt, "Card", 0, 0, o.W, o.H, 10f, Lcd.Card);
-            if (portrait)
-            {
-                Ui.Text(rt, "Label", 24, 16, 440, 26, display, 20, Lcd.Ink, text: label);
-                text = Ui.Text(rt, "Text", 24, 46, 440, 40, mono, 13, Lcd.Text2, TextAlignmentOptions.TopLeft);
-                text.textWrappingMode = TextWrappingModes.Normal;
-            }
-            else
-            {
-                Ui.Text(rt, "Label", 24, 14, 300, 24, display, 18, Lcd.Ink, text: label);
-                text = Ui.Text(rt, "Text", 24, 42, 560, 20, mono, 13, Lcd.Text2);
-            }
+            float pad = spec.H > 80 ? 16f : 24f;
+            Ui.Text(rt, "Label", pad, 12, 300, 24, display, spec.LabelSize, Lcd.Ink, text: label);
+            text = Ui.Text(rt, "Text", pad, 40, spec.TextW, spec.TextH, mono, spec.TextSize, Lcd.Text2, TextAlignmentOptions.TopLeft);
+            text.textWrappingMode = TextWrappingModes.Normal;
             return rt;
         }
 
