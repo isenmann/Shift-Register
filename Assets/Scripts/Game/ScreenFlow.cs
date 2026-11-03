@@ -6,11 +6,11 @@ using UnityEngine.InputSystem;
 
 namespace ShiftRegister.Game
 {
-    public enum GameScreen { Title, Chapters, Playing }
+    public enum GameScreen { Title, Chapters, Playing, Options }
 
     /// <summary>
     /// Switches between the title screen, chapter select and the level being played, all in one scene.
-    /// Esc steps back: level → chapters → title.
+    /// Esc steps back: level → chapters → title, options → title. M mutes anywhere.
     /// </summary>
     public sealed class ScreenFlow : MonoBehaviour
     {
@@ -41,9 +41,11 @@ namespace ShiftRegister.Game
         void Update()
         {
             var kb = Keyboard.current;
-            if (kb == null || !kb.escapeKey.wasPressedThisFrame) return;
+            if (kb == null) return;
+            if (kb.mKey.wasPressedThisFrame) game.ChangeSettings(s => s.muted = !s.muted);
+            if (!kb.escapeKey.wasPressedThisFrame) return;
             if (Current == GameScreen.Playing) Show(GameScreen.Chapters);
-            else if (Current == GameScreen.Chapters) Show(GameScreen.Title);
+            else if (Current == GameScreen.Chapters || Current == GameScreen.Options) Show(GameScreen.Title);
         }
 
         /// <summary>PLAY on the title screen: the last level played, or the first open unsolved one.</summary>

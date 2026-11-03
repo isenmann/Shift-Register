@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using ShiftRegister.Core;
 using ShiftRegister.Game.Input;
 using ShiftRegister.Game.Progress;
+using ShiftRegister.Game.Settings;
 using ShiftRegister.Game.View;
 using UnityEngine;
 
@@ -32,6 +33,12 @@ namespace ShiftRegister.Game
         public LevelCatalog.Chapter Chapter => catalog.chapters[ChapterIndex];
         public BoardView BoardView => boardView;
         public PlayerProgress Progress { get; private set; }
+
+        /// <summary>The player's options; change them through <see cref="ChangeSettings"/>.</summary>
+        public GameSettings Settings { get; private set; } = new GameSettings();
+
+        /// <summary>Raised after the options change (already saved and applied).</summary>
+        public event Action SettingsChanged;
 
         /// <summary>The result of the latest solve of the current level, if it is solved.</summary>
         public LevelResult? LastResult { get; private set; }
@@ -77,9 +84,26 @@ namespace ShiftRegister.Game
         void Awake()
         {
             Progress = ProgressStore.Load();
+            Settings = SettingsStore.Load();
+            ApplySettings();
             foreach (var (c, l, file) in catalog.AllLevels())
                 if (file != null)
                     levels.Add(new LevelEntry { Chapter = c, Index = l, Order = levels.Count, Data = LevelJson.Parse(file) });
+        }
+
+        /// <summary>Changes, saves and applies the options.</summary>
+        public void ChangeSettings(Action<GameSettings> change)
+        {
+            change(Settings);
+            SettingsStore.Save(Settings);
+            ApplySettings();
+            SettingsChanged?.Invoke();
+        }
+
+        void ApplySettings()
+        {
+            AudioListener.volume = Settings.EffectiveVolume;
+            if (boardView != null) boardView.Animate = !Settings.reducedMotion;
         }
 
         /// <summary>Loads the inspector's test level (see <see cref="StartsInLevel"/>).</summary>

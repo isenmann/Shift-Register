@@ -40,7 +40,7 @@ namespace ShiftRegister.Game.Hud
         RectTransform solvedBanner, brokenBanner;
         TextMeshProUGUI solvedText, lastLevelText;
         readonly Image[] stars = new Image[Scoring.MaxStars];
-        HudButton nextButton;
+        HudButton nextButton, soundButton;
         int shownCursor = -1;
         int shownLost;
         bool solvedShown, brokenShown;
@@ -51,6 +51,8 @@ namespace ShiftRegister.Game.Hud
         {
             if (game == null) return;
             game.Changed += OnChanged;
+            game.SettingsChanged += RefreshSound;
+            RefreshSound();
             if (game.BoardView != null) game.BoardView.Settled += OnSettled;
             // The level may have changed while the HUD was hidden (menus).
             if (game.Board != null)
@@ -65,6 +67,7 @@ namespace ShiftRegister.Game.Hud
         {
             if (game == null) return;
             game.Changed -= OnChanged;
+            game.SettingsChanged -= RefreshSound;
             if (game.BoardView != null) game.BoardView.Settled -= OnSettled;
         }
 
@@ -79,6 +82,11 @@ namespace ShiftRegister.Game.Hud
             RefreshBoard();
             bool animating = game.BoardView != null && game.BoardView.IsAnimating;
             if (!animating) RefreshOutcome(false);
+        }
+
+        void RefreshSound()
+        {
+            if (soundButton != null) soundButton.Text = game.Settings.muted ? "MUTED" : "SOUND";
         }
 
         void OnSettled()
@@ -129,7 +137,9 @@ namespace ShiftRegister.Game.Hud
             HudButton.Create(right, "MENU", 548, 10, 92, 44, display, 14, () => flow.Show(GameScreen.Chapters));
             HudButton.Create(right, "RESET", 420, 10, 100, 44, display, 14, () => game.ResetLevel());
             HudButton.Create(right, "UNDO", 304, 10, 88, 44, display, 14, () => game.Undo());
-            moves = Ui.Text(right, "Moves", 0, 0, 276, 64, mono, 15, Lcd.Ink, TextAlignmentOptions.MidlineRight);
+            soundButton = HudButton.Create(right, "SOUND", 184, 10, 96, 44, display, 14,
+                () => game.ChangeSettings(s => s.muted = !s.muted));
+            moves = Ui.Text(right, "Moves", 0, 0, 164, 64, mono, 15, Lcd.Ink, TextAlignmentOptions.MidlineRight);
 
             var frame = Ui.Rect(canvas, "Frame", 0, 0, 1280, 720);
             frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(0.5f, 0.5f);
@@ -286,6 +296,7 @@ namespace ShiftRegister.Game.Hud
         {
             var board = game.Board;
             var rules = board.Rules;
+            animate &= !game.Settings.reducedMotion;
             string par = game.Level.par > 0 ? game.Level.par.ToString() : "?";
 
             bool broken = board.IsRuleBroken;

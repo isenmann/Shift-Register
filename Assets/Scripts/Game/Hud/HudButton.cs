@@ -52,6 +52,12 @@ namespace ShiftRegister.Game.Hud
             return b;
         }
 
+        public string Text
+        {
+            get => label.text;
+            set => label.text = value;
+        }
+
         void OnDisable() => SetHot(false);
 
         public void OnPointerEnter(PointerEventData e) => SetHot(true);

@@ -10,10 +10,10 @@ using UnityEngine.UI;
 namespace ShiftRegister.Game.Hud
 {
     /// <summary>
-    /// Title screen and chapter select from the mockups, built from code on their own canvas.
-    /// Title: Enter plays, C opens chapters. Chapters: arrows pick a level, Enter plays it.
+    /// Title screen, chapter select and options, built from code on their own canvas.
+    /// Title: Enter plays, C opens chapters, O options. Chapters: arrows pick a level, Enter plays it.
     /// </summary>
-    public sealed class MenuView : MonoBehaviour
+    public sealed partial class MenuView : MonoBehaviour
     {
         [SerializeField] GameController game;
         [SerializeField] ScreenFlow flow;
@@ -39,7 +39,7 @@ namespace ShiftRegister.Game.Hud
             public CanvasGroup Group;
         }
 
-        RectTransform titleRoot, chaptersRoot;
+        RectTransform titleRoot, chaptersRoot, optionsRoot;
         TextMeshProUGUI titleProgress, chaptersStats;
         Image focusFrame;
         readonly List<List<LevelRow>> rows = new List<List<LevelRow>>();
@@ -53,6 +53,8 @@ namespace ShiftRegister.Game.Hud
             if (!built) Build();
             titleRoot.gameObject.SetActive(screen == GameScreen.Title);
             chaptersRoot.gameObject.SetActive(screen == GameScreen.Chapters);
+            optionsRoot.gameObject.SetActive(screen == GameScreen.Options);
+            if (screen == GameScreen.Options) RefreshOptions(true);
             if (screen == GameScreen.Title) RefreshTitle();
             if (screen == GameScreen.Chapters) RefreshChapters();
         }
@@ -66,6 +68,12 @@ namespace ShiftRegister.Game.Hud
             {
                 if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame) flow.Resume();
                 else if (kb.cKey.wasPressedThisFrame) flow.Show(GameScreen.Chapters);
+                else if (kb.oKey.wasPressedThisFrame) flow.Show(GameScreen.Options);
+                return;
+            }
+            if (flow.Current == GameScreen.Options)
+            {
+                UpdateOptions(kb);
                 return;
             }
             if (flow.Current != GameScreen.Chapters) return;
@@ -87,8 +95,10 @@ namespace ShiftRegister.Game.Hud
             var canvas = (RectTransform)transform;
             titleRoot = Frame(canvas, "Title Screen");
             chaptersRoot = Frame(canvas, "Chapter Select");
+            optionsRoot = Frame(canvas, "Options");
             BuildTitle(titleRoot);
             BuildChapters(chaptersRoot);
+            BuildOptions(optionsRoot);
         }
 
         static RectTransform Frame(RectTransform canvas, string name)
@@ -112,8 +122,9 @@ namespace ShiftRegister.Game.Hud
 
             HudButton.CreateSolid(root, "PLAY", x, 458, 130, 52, display, 18, () => flow.Resume());
             HudButton.Create(root, "CHAPTERS", x + 142, 458, 170, 52, display, 16, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(root, "OPTIONS", x + 324, 458, 160, 52, display, 16, () => flow.Show(GameScreen.Options));
             titleProgress = Ui.Text(root, "Progress", x, 526, 560, 20, mono, 14, Lcd.Text2);
-            Ui.Text(root, "Keys", x, 550, 560, 20, mono, 13, Lcd.Text3, text: "Enter play · C chapters");
+            Ui.Text(root, "Keys", x, 550, 560, 20, mono, 13, Lcd.Text3, text: "Enter play · C chapters · O options");
 
             // The smiley bit grid (mockup: 8 × 52 px cells, 6 px gaps, 18 px padding).
             const float gx = 740f, gy = 120f, cell = 52f, gap = 6f, pad = 18f;

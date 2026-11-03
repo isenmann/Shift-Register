@@ -52,6 +52,17 @@ namespace ShiftRegister.Game.View
         int flights;
         bool busy, hopping;
 
+        /// <summary>False for reduced motion: moves snap into place (the sound events still fire).</summary>
+        public bool Animate
+        {
+            get => animate;
+            set
+            {
+                animate = value;
+                if (!value) StopAnimation();
+            }
+        }
+
         /// <summary>True while a move animation runs (the solved hop does not count).</summary>
         public bool IsAnimating => busy;
 
