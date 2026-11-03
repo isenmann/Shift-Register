@@ -24,6 +24,11 @@ namespace ShiftRegister.Editor
 
         public static BuildReport Build(BuildTarget target, string path)
         {
+            // Smallest download for the web build. This setting lives in Library/, not in the
+            // project settings, so set it here for every machine.
+            if (target == BuildTarget.WebGL)
+                UnityEditor.WebGL.UserBuildSettings.codeOptimization = UnityEditor.WebGL.WasmCodeOptimization.DiskSizeLTO;
+
             var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
             if (scenes.Length == 0)
             {
