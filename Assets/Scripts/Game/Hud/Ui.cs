@@ -79,6 +79,20 @@ namespace ShiftRegister.Game.Hud
             float thickness, Color color, float dash = 0f) =>
             Shape(parent, name, x, y, w, h, ProceduralSprites.RoundedOutline(w, h, radius, thickness, dash, ui: true), color);
 
+        /// <summary>
+        /// Draws a canvas through the main camera instead of over the whole screen, so it follows the
+        /// camera's viewport (the safe area on phones). <paramref name="order"/> keeps it above the board's sprites.
+        /// </summary>
+        public static void RenderWithMainCamera(Canvas canvas, int order)
+        {
+            var cam = Camera.main;
+            if (canvas == null || cam == null) return;
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = cam;
+            canvas.planeDistance = 5f;
+            canvas.sortingOrder = order;
+        }
+
         public static string Hex(Color32 c) => $"#{c.r:X2}{c.g:X2}{c.b:X2}";
     }
 }

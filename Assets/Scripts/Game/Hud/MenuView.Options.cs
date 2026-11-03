@@ -32,23 +32,29 @@ namespace ShiftRegister.Game.Hud
         void BuildOptions(Screens s, bool portrait)
         {
             var root = s.Options;
+            // Portrait: header and rows hang from the top; landscape: header ends move out, rows stay centred.
+            var top = portrait ? Outer(s, root, "Top", 0f, 1f) : null;
+            var bottom = portrait ? Outer(s, root, "Bottom", 0f, -1f) : null;
+            var left = portrait ? null : Outer(s, root, "Left", -1f, 0f);
+            var right = portrait ? null : Outer(s, root, "Right", 1f, 0f);
+            var rows = portrait ? top : root;
             var o = s.Opt = portrait
                 ? new OptionsUi { X = 24f, Top = 140f, W = 672f, H = 132f, Pitch = 152f }
                 : new OptionsUi { X = (1280f - 760f) / 2f, Top = 160f, W = 760f, H = 76f, Pitch = 92f };
 
             if (portrait)
             {
-                Ui.Text(root, "Heading", 24, 32, 400, 52, displayBold, 34, Lcd.Ink, text: "OPTIONS");
-                HudButton.Create(root, "BACK", 566, 32, 130, 52, display, 15, () => flow.Show(GameScreen.Title));
+                Ui.Text(top, "Heading", 24, 32, 400, 52, displayBold, 34, Lcd.Ink, text: "OPTIONS");
+                HudButton.Create(top, "BACK", 566, 32, 130, 52, display, 15, () => flow.Show(GameScreen.Title));
             }
             else
             {
-                Ui.Text(root, "Heading", 56, 36, 400, 48, displayBold, 34, Lcd.Ink, text: "OPTIONS");
-                HudButton.Create(root, "BACK", 1124, 38, 100, 44, display, 14, () => flow.Show(GameScreen.Title));
+                Ui.Text(left, "Heading", 56, 36, 400, 48, displayBold, 34, Lcd.Ink, text: "OPTIONS");
+                HudButton.Create(right, "BACK", 1124, 38, 100, 44, display, 14, () => flow.Show(GameScreen.Title));
             }
 
             // Volume: − [10 cells] +; in portrait on its own line under the label.
-            var volume = OptionRowRoot(root, o, OptionRow.Volume, "VOLUME", out o.VolumeText, portrait);
+            var volume = OptionRowRoot(rows, o, OptionRow.Volume, "VOLUME", out o.VolumeText, portrait);
             float controlsY = portrait ? 78f : 16f, minusX = portrait ? 24f : 330f;
             float cellW = portrait ? 36f : 24f, cellGap = portrait ? 8f : 6f, button = portrait ? 52f : 44f;
             HudButton.Create(volume, "-", minusX, controlsY, button, 44, display, 18, () => StepVolume(-1));
@@ -67,16 +73,16 @@ namespace ShiftRegister.Game.Hud
             // Switches sit at the row's right edge, vertically centred.
             float toggleW = portrait ? 144f : 120f, toggleH = portrait ? 52f : 44f;
             float toggleX = o.W - toggleW - 24f, toggleY = (o.H - toggleH) / 2f;
-            var sound = OptionRowRoot(root, o, OptionRow.Sound, "SOUND", out s.SoundText, portrait);
+            var sound = OptionRowRoot(rows, o, OptionRow.Sound, "SOUND", out s.SoundText, portrait);
             o.Sound = HudButton.Create(sound, "ON", toggleX, toggleY, toggleW, toggleH, display, 16, () => Toggle(OptionRow.Sound));
-            var motion = OptionRowRoot(root, o, OptionRow.Motion, "REDUCED MOTION", out var motionText, portrait);
+            var motion = OptionRowRoot(rows, o, OptionRow.Motion, "REDUCED MOTION", out var motionText, portrait);
             motionText.text = "Moves snap into place: no sliding, flying or hopping.";
             o.Motion = HudButton.Create(motion, "OFF", toggleX, toggleY, toggleW, toggleH, display, 16, () => Toggle(OptionRow.Motion));
 
-            o.Focus = Ui.Frame(root, "Focus", o.X, o.Top, o.W, o.H, 10f, 3f, Lcd.Ink);
+            o.Focus = Ui.Frame(rows, "Focus", o.X, o.Top, o.W, o.H, 10f, 3f, Lcd.Ink);
             s.OptionsKeys = portrait
-                ? Ui.Text(root, "Keys", 24, 1232, 672, 20, mono, 13, Lcd.Text3, TextAlignmentOptions.Center, "Arrows choose and change · Enter switch · Esc back")
-                : Ui.Text(root, "Keys", 56, 690, 1168, 20, mono, 13, Lcd.Text3, text: "Arrows choose and change · Enter switch · M mute · Esc back");
+                ? Ui.Text(bottom, "Keys", 24, 1232, 672, 20, mono, 13, Lcd.Text3, TextAlignmentOptions.Center, "Arrows choose and change · Enter switch · Esc back")
+                : Ui.Text(left, "Keys", 56, 690, 1168, 20, mono, 13, Lcd.Text3, text: "Arrows choose and change · Enter switch · M mute · Esc back");
         }
 
         void OnDestroy()

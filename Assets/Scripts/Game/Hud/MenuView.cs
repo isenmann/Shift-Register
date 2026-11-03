@@ -56,6 +56,10 @@ namespace ShiftRegister.Game.Hud
             public ScrollRect Scroll;
             public readonly List<float> CardTops = new List<float>();
             public OptionsUi Opt;
+            /// <summary>Groups that move out into the extra length, with their direction (x right, y up).</summary>
+            public readonly List<(RectTransform Group, Vector2 Direction)> Outer = new List<(RectTransform, Vector2)>();
+            /// <summary>Portrait only: the chapter list's viewport, which grows with the extra length.</summary>
+            public RectTransform ScrollView;
         }
 
         Screens wide, tall;
@@ -84,8 +88,10 @@ namespace ShiftRegister.Game.Hud
             if (screen == GameScreen.Chapters) RefreshChapters();
         }
 
-        void OnEnable() => ScreenLayout.OrientationChanged += ApplyOrientation;
-        void OnDisable() => ScreenLayout.OrientationChanged -= ApplyOrientation;
+        void Awake() => Ui.RenderWithMainCamera(GetComponent<Canvas>(), 20);
+
+        void OnEnable() => ScreenLayout.LayoutChanged += ApplyOrientation;
+        void OnDisable() => ScreenLayout.LayoutChanged -= ApplyOrientation;
 
         /// <summary>Switches arrangement and shows the current screen in it.</summary>
         void ApplyOrientation()
@@ -100,6 +106,13 @@ namespace ShiftRegister.Game.Hud
         {
             var scaler = GetComponent<CanvasScaler>();
             if (scaler != null) scaler.referenceResolution = new Vector2(ScreenLayout.FrameWidthPx, ScreenLayout.FrameHeightPx);
+
+            // The extra length of 20:9 phones and wide windows goes between the centre and the outer groups.
+            float shift = ScreenLayout.OuterShiftPx;
+            foreach (var s in Both)
+                foreach (var (group, direction) in s.Outer)
+                    group.anchoredPosition = direction * shift;
+            tall.ScrollView.sizeDelta = new Vector2(tall.ScrollView.sizeDelta.x, 1080f + ScreenLayout.ExtraPx);
 
             bool mobile = DeviceMode.IsMobile;
             foreach (var s in Both)
@@ -176,6 +189,14 @@ namespace ShiftRegister.Game.Hud
             ApplyFrame();
         }
 
+        /// <summary>A screen-sized child for one outer group; it moves by half the extra length in <paramref name="dx"/>, <paramref name="dy"/>.</summary>
+        static RectTransform Outer(Screens s, RectTransform screen, string name, float dx, float dy)
+        {
+            var group = Ui.Rect(screen, name, 0, 0, screen.sizeDelta.x, screen.sizeDelta.y);
+            s.Outer.Add((group, new Vector2(dx, dy)));
+            return group;
+        }
+
         static RectTransform Frame(RectTransform canvas, string name, float w, float h)
         {
             var frame = Ui.Rect(canvas, name, 0, 0, w, h);
@@ -187,23 +208,25 @@ namespace ShiftRegister.Game.Hud
         void BuildTitle(Screens s)
         {
             var root = s.Title;
+            var a = Outer(s, root, "Left", -1f, 0f);
+            var b = Outer(s, root, "Right", 1f, 0f);
             const float x = 80f;
-            var tagline = Ui.Text(root, "Tagline", x, 120, 560, 20, mono, 14, Lcd.Text3, text: "A PUZZLE ABOUT MOVING BITS · GAME OFF 2026");
+            var tagline = Ui.Text(a, "Tagline", x, 120, 560, 20, mono, 14, Lcd.Text3, text: "A PUZZLE ABOUT MOVING BITS · GAME OFF 2026");
             tagline.characterSpacing = 12;
-            Ui.Text(root, "Shift", x - 4, 160, 620, 100, displayBold, 100, Lcd.Ink, text: "SHIFT");
-            Ui.Text(root, "Register", x - 4, 255, 620, 100, displayBold, 100, Lcd.Ink, text: "REGISTER");
-            var blurb = Ui.Text(root, "Blurb", x, 378, 560, 52, mono, 17, Lcd.Text2, TextAlignmentOptions.TopLeft,
+            Ui.Text(a, "Shift", x - 4, 160, 620, 100, displayBold, 100, Lcd.Ink, text: "SHIFT");
+            Ui.Text(a, "Register", x - 4, 255, 620, 100, displayBold, 100, Lcd.Ink, text: "REGISTER");
+            var blurb = Ui.Text(a, "Blurb", x, 378, 560, 52, mono, 17, Lcd.Text2, TextAlignmentOptions.TopLeft,
                 "Slide whole rows of bits to draw the picture. Whatever falls off the edge is gone for good.");
             blurb.textWrappingMode = TextWrappingModes.Normal;
 
-            HudButton.CreateSolid(root, "PLAY", x, 458, 130, 52, display, 18, () => flow.Resume());
-            HudButton.Create(root, "CHAPTERS", x + 142, 458, 170, 52, display, 16, () => flow.Show(GameScreen.Chapters));
-            HudButton.Create(root, "OPTIONS", x + 324, 458, 160, 52, display, 16, () => flow.Show(GameScreen.Options));
-            s.TitleProgress = Ui.Text(root, "Progress", x, 526, 560, 20, mono, 14, Lcd.Text2);
+            HudButton.CreateSolid(a, "PLAY", x, 458, 130, 52, display, 18, () => flow.Resume());
+            HudButton.Create(a, "CHAPTERS", x + 142, 458, 170, 52, display, 16, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(a, "OPTIONS", x + 324, 458, 160, 52, display, 16, () => flow.Show(GameScreen.Options));
+            s.TitleProgress = Ui.Text(a, "Progress", x, 526, 560, 20, mono, 14, Lcd.Text2);
 
-            TitleGrid(root, 740f, 120f);
+            TitleGrid(b, 740f, 120f);
 
-            var keys = Ui.Rect(root, "Keys", 0, 0, 1280, 720);
+            var keys = Ui.Rect(a, "Keys", 0, 0, 1280, 720);
             s.TitleKeys = keys.gameObject;
             Ui.Text(keys, "Keys Hint", x, 550, 560, 20, mono, 13, Lcd.Text3, text: "Enter play · C chapters · O options");
             const float ky = 642f;
@@ -217,22 +240,24 @@ namespace ShiftRegister.Game.Hud
         void BuildTitlePortrait(Screens s)
         {
             var root = s.Title;
+            var top = Outer(s, root, "Top", 0f, 1f);
+            var bottom = Outer(s, root, "Bottom", 0f, -1f);
             const float x = 48f, w = 624f;
-            var tagline = Ui.Text(root, "Tagline", x, 72, w, 20, mono, 13, Lcd.Text3, text: "A PUZZLE ABOUT MOVING BITS · GAME OFF 2026");
+            var tagline = Ui.Text(top, "Tagline", x, 72, w, 20, mono, 13, Lcd.Text3, text: "A PUZZLE ABOUT MOVING BITS · GAME OFF 2026");
             tagline.characterSpacing = 8;
-            Ui.Text(root, "Shift", x - 4, 104, w, 90, displayBold, 84, Lcd.Ink, text: "SHIFT");
-            Ui.Text(root, "Register", x - 4, 190, w, 90, displayBold, 84, Lcd.Ink, text: "REGISTER");
+            Ui.Text(top, "Shift", x - 4, 104, w, 90, displayBold, 84, Lcd.Ink, text: "SHIFT");
+            Ui.Text(top, "Register", x - 4, 190, w, 90, displayBold, 84, Lcd.Ink, text: "REGISTER");
 
             TitleGrid(root, (720f - 494f) / 2f, 300f);
 
-            var blurb = Ui.Text(root, "Blurb", x, 826, w, 60, mono, 17, Lcd.Text2, TextAlignmentOptions.TopLeft,
+            var blurb = Ui.Text(bottom, "Blurb", x, 826, w, 60, mono, 17, Lcd.Text2, TextAlignmentOptions.TopLeft,
                 "Slide whole rows of bits to draw the picture. Whatever falls off the edge is gone for good.");
             blurb.textWrappingMode = TextWrappingModes.Normal;
 
-            HudButton.CreateSolid(root, "PLAY", x, 912, w, 76, display, 22, () => flow.Resume());
-            HudButton.Create(root, "CHAPTERS", x, 1004, 306, 64, display, 17, () => flow.Show(GameScreen.Chapters));
-            HudButton.Create(root, "OPTIONS", x + 318, 1004, 306, 64, display, 17, () => flow.Show(GameScreen.Options));
-            s.TitleProgress = Ui.Text(root, "Progress", x, 1088, w, 20, mono, 14, Lcd.Text2, TextAlignmentOptions.Center);
+            HudButton.CreateSolid(bottom, "PLAY", x, 912, w, 76, display, 22, () => flow.Resume());
+            HudButton.Create(bottom, "CHAPTERS", x, 1004, 306, 64, display, 17, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(bottom, "OPTIONS", x + 318, 1004, 306, 64, display, 17, () => flow.Show(GameScreen.Options));
+            s.TitleProgress = Ui.Text(bottom, "Progress", x, 1088, w, 20, mono, 14, Lcd.Text2, TextAlignmentOptions.Center);
         }
 
         /// <summary>The smiley bit grid (8 × 52 px cells, 6 px gaps, 18 px padding: 494 px square); its bits join the intro.</summary>
@@ -266,10 +291,12 @@ namespace ShiftRegister.Game.Hud
         void BuildChapters(Screens s)
         {
             var root = s.Chapters;
+            var left = Outer(s, root, "Left", -1f, 0f);
+            var right = Outer(s, root, "Right", 1f, 0f);
             const float rowW = 163f, rowH = 62f;
-            Ui.Text(root, "Heading", 56, 36, 400, 48, displayBold, 34, Lcd.Ink, text: "CHAPTERS");
-            s.ChaptersStats = Ui.Text(root, "Stats", 500, 36, 600, 48, mono, 15, Lcd.Text2, TextAlignmentOptions.MidlineRight);
-            HudButton.Create(root, "BACK", 1124, 38, 100, 44, display, 14, () => flow.Show(GameScreen.Title));
+            Ui.Text(left, "Heading", 56, 36, 400, 48, displayBold, 34, Lcd.Ink, text: "CHAPTERS");
+            s.ChaptersStats = Ui.Text(right, "Stats", 500, 36, 600, 48, mono, 15, Lcd.Text2, TextAlignmentOptions.MidlineRight);
+            HudButton.Create(right, "BACK", 1124, 38, 100, 44, display, 14, () => flow.Show(GameScreen.Title));
 
             var chapters = game.Catalog.chapters;
             const float top = 100f, height = 580f, gap = 14f;
@@ -318,19 +345,22 @@ namespace ShiftRegister.Game.Hud
 
             s.Focus = Ui.Frame(root, "Focus", 0, 0, rowW, rowH, 8f, 3f, Lcd.Ink);
             s.Focus.enabled = false;
-            s.ChaptersKeys = Ui.Text(root, "Keys", 56, 690, 1168, 20, mono, 13, Lcd.Text3);
+            s.ChaptersKeys = Ui.Text(left, "Keys", 56, 690, 1168, 20, mono, 13, Lcd.Text3);
         }
 
         /// <summary>P3: a scrolling list of chapter cards, each with its levels as tiles.</summary>
         void BuildChaptersPortrait(Screens s)
         {
             var root = s.Chapters;
-            Ui.Text(root, "Heading", 24, 32, 400, 52, displayBold, 34, Lcd.Ink, text: "CHAPTERS");
-            HudButton.Create(root, "BACK", 566, 32, 130, 52, display, 15, () => flow.Show(GameScreen.Title));
-            s.ChaptersStats = Ui.Text(root, "Stats", 24, 96, 672, 20, mono, 14, Lcd.Text2);
+            var top = Outer(s, root, "Top", 0f, 1f);
+            var bottom = Outer(s, root, "Bottom", 0f, -1f);
+            Ui.Text(top, "Heading", 24, 32, 400, 52, displayBold, 34, Lcd.Ink, text: "CHAPTERS");
+            HudButton.Create(top, "BACK", 566, 32, 130, 52, display, 15, () => flow.Show(GameScreen.Title));
+            s.ChaptersStats = Ui.Text(top, "Stats", 24, 96, 672, 20, mono, 14, Lcd.Text2);
 
             // Scroll view: a masked viewport, the content grows with the cards.
-            var viewport = Ui.Rect(root, "Scroll", 24, 136, 672, 1080);
+            var viewport = Ui.Rect(top, "Scroll", 24, 136, 672, 1080);
+            s.ScrollView = viewport;
             viewport.gameObject.AddComponent<RectMask2D>();
             viewport.gameObject.AddComponent<Image>().color = Color.clear;
             var content = Ui.Rect(viewport, "Content", 0, 0, 672, 100);
@@ -385,7 +415,7 @@ namespace ShiftRegister.Game.Hud
 
             s.Focus = Ui.Frame(content, "Focus", 0, 0, tileW, tileH, 8f, 3f, Lcd.Ink);
             s.Focus.enabled = false;
-            s.ChaptersKeys = Ui.Text(root, "Keys", 24, 1232, 672, 20, mono, 13, Lcd.Text3, TextAlignmentOptions.Center);
+            s.ChaptersKeys = Ui.Text(bottom, "Keys", 24, 1232, 672, 20, mono, 13, Lcd.Text3, TextAlignmentOptions.Center);
         }
 
         LevelRow NewRow(int chapter, int level, RectTransform root, float x, float y, float w, float h) => new LevelRow

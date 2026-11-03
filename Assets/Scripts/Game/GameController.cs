@@ -186,8 +186,8 @@ namespace ShiftRegister.Game
             boardView.transform.localScale = Vector3.one * ScreenLayout.BoardScale;
         }
 
-        void OnEnable() => ScreenLayout.OrientationChanged += OnOrientationChanged;
-        void OnDisable() => ScreenLayout.OrientationChanged -= OnOrientationChanged;
+        void OnEnable() => ScreenLayout.LayoutChanged += OnOrientationChanged;
+        void OnDisable() => ScreenLayout.LayoutChanged -= OnOrientationChanged;
 
         /// <summary>Portrait and landscape place the board differently; portrait has no arrow buttons.</summary>
         void OnOrientationChanged()

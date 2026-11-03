@@ -56,6 +56,8 @@ namespace ShiftRegister.Game.Hud
             public HudButton Sound;
             /// <summary>Landscape only: the key caps (desktop) or the swipe hint (mobile).</summary>
             public GameObject Keys, SwipeHint;
+            /// <summary>Outer groups that move out into the extra length: landscape left/right rails, portrait top/bottom blocks.</summary>
+            public RectTransform A, B;
         }
 
         Layout landscape, portrait;
@@ -69,7 +71,11 @@ namespace ShiftRegister.Game.Hud
         int shownLost;
         bool solvedShown, brokenShown;
 
-        void Awake() => Build();
+        void Awake()
+        {
+            Ui.RenderWithMainCamera(GetComponent<Canvas>(), 10);
+            Build();
+        }
 
         void OnEnable()
         {
@@ -77,7 +83,7 @@ namespace ShiftRegister.Game.Hud
             if (Keyboard.current != null) Keyboard.current.onTextInput += OnTextInput;
             game.Changed += OnChanged;
             game.SettingsChanged += RefreshSound;
-            ScreenLayout.OrientationChanged += ApplyOrientation;
+            ScreenLayout.LayoutChanged += ApplyOrientation;
             ApplyOrientation();
             RefreshSound();
             if (game.BoardView != null) game.BoardView.Settled += OnSettled;
@@ -97,7 +103,7 @@ namespace ShiftRegister.Game.Hud
             if (Keyboard.current != null) Keyboard.current.onTextInput -= OnTextInput;
             game.Changed -= OnChanged;
             game.SettingsChanged -= RefreshSound;
-            ScreenLayout.OrientationChanged -= ApplyOrientation;
+            ScreenLayout.LayoutChanged -= ApplyOrientation;
             if (game.BoardView != null) game.BoardView.Settled -= OnSettled;
         }
 
@@ -139,7 +145,14 @@ namespace ShiftRegister.Game.Hud
             landscape.Keys.SetActive(!mobile);
             landscape.SwipeHint.SetActive(mobile);
 
-            bannerFrame.sizeDelta = new Vector2(ScreenLayout.FrameWidthPx, ScreenLayout.FrameHeightPx);
+            // The extra length of 20:9 phones and wide windows goes between the board and the outer groups.
+            float shift = ScreenLayout.OuterShiftPx;
+            landscape.A.anchoredPosition = new Vector2(-shift, 0f);
+            landscape.B.anchoredPosition = new Vector2(shift, 0f);
+            portrait.A.anchoredPosition = new Vector2(0f, shift);
+            portrait.B.anchoredPosition = new Vector2(0f, -shift);
+
+            bannerFrame.sizeDelta = new Vector2(ScreenLayout.BaseWidthPx, ScreenLayout.BaseHeightPx);
             Vector2 centre = ScreenLayout.BoardCenterPx;
             foreach (var banner in new[] { solvedBanner, brokenBanner })
                 banner.anchoredPosition = new Vector2(centre.x, -centre.y);
@@ -162,6 +175,9 @@ namespace ShiftRegister.Game.Hud
             BuildHelp(canvas);
         }
 
+        /// <summary>A frame-sized child holding one outer group; moving it moves the whole group.</summary>
+        static RectTransform Group(Transform frame, string name, float w, float h) => Ui.Rect(frame, name, 0, 0, w, h);
+
         static RectTransform Frame(RectTransform canvas, string name, float w, float h)
         {
             var frame = Ui.Rect(canvas, name, 0, 0, w, h);
@@ -174,39 +190,41 @@ namespace ShiftRegister.Game.Hud
         void BuildLandscape(Layout l)
         {
             var f = l.Root;
+            var left = l.A = Group(f, "Left Rail", 1280, 720);
+            var right = l.B = Group(f, "Right Rail", 1280, 720);
             const float x = 48f, w = 232f;
-            l.ChapterLabel = Ui.Text(f, "Chapter", x, 56, w, 18, mono, 13, Lcd.Text3);
+            l.ChapterLabel = Ui.Text(left, "Chapter", x, 56, w, 18, mono, 13, Lcd.Text3);
             l.ChapterLabel.characterSpacing = 10;
-            l.Rule = Ui.Text(f, "Chapter Rule", x, 78, w, 54, mono, 12, Lcd.Text2, TextAlignmentOptions.TopLeft);
+            l.Rule = Ui.Text(left, "Chapter Rule", x, 78, w, 54, mono, 12, Lcd.Text2, TextAlignmentOptions.TopLeft);
             l.Rule.textWrappingMode = TextWrappingModes.Normal;
             l.Rule.lineSpacing = 4;
-            l.LevelName = LevelName(f, x, 134, w, 46, 44);
-            l.LevelId = Ui.Text(f, "Level Id", x, 182, w, 18, mono, 14, Lcd.Text2);
+            l.LevelName = LevelName(left, x, 134, w, 46, 44);
+            l.LevelId = Ui.Text(left, "Level Id", x, 182, w, 18, mono, 14, Lcd.Text2);
 
-            TargetCard(l, f, x, 212, w, 237, 20f, 23f);
+            TargetCard(l, left, x, 212, w, 237, 20f, 23f);
 
             const float tileY = 465f, tileW = 110f, tileH = 50f, parX = x + tileW + 12f;
-            Ui.Box(f, "Moves Tile", x, tileY, tileW, tileH, 10f, Lcd.Cell);
-            Ui.Text(f, "Moves Label", x + 14, tileY, 60, tileH, mono, 12, Lcd.Text3, text: "MOVES").characterSpacing = 10;
-            l.Moves = Ui.Text(f, "Moves", x + 14, tileY, tileW - 28, tileH, display, 30, Lcd.Ink, TextAlignmentOptions.MidlineRight);
-            Ui.Frame(f, "Par Tile", parX, tileY, tileW, tileH, 10f, 2f, Lcd.Ink);
-            Ui.Text(f, "Par Label", parX + 14, tileY, 60, tileH, mono, 12, Lcd.Text3, text: "PAR").characterSpacing = 10;
-            l.Par = Ui.Text(f, "Par", parX + 14, tileY, tileW - 28, tileH, display, 30, Lcd.Ink, TextAlignmentOptions.MidlineRight);
+            Ui.Box(left, "Moves Tile", x, tileY, tileW, tileH, 10f, Lcd.Cell);
+            Ui.Text(left, "Moves Label", x + 14, tileY, 60, tileH, mono, 12, Lcd.Text3, text: "MOVES").characterSpacing = 10;
+            l.Moves = Ui.Text(left, "Moves", x + 14, tileY, tileW - 28, tileH, display, 30, Lcd.Ink, TextAlignmentOptions.MidlineRight);
+            Ui.Frame(left, "Par Tile", parX, tileY, tileW, tileH, 10f, 2f, Lcd.Ink);
+            Ui.Text(left, "Par Label", parX + 14, tileY, 60, tileH, mono, 12, Lcd.Text3, text: "PAR").characterSpacing = 10;
+            l.Par = Ui.Text(left, "Par", parX + 14, tileY, tileW - 28, tileH, display, 30, Lcd.Ink, TextAlignmentOptions.MidlineRight);
 
-            Outlook(l, f, x, 531, 20f);
+            Outlook(l, left, x, 531, 20f);
 
             // Bottom edge level with the board's down-arrow row (mockup y 644).
-            HudButton.CreateSolid(f, "UNDO", x, 592, tileW, 52, display, 15, () => game.Undo());
-            HudButton.Create(f, "RESET", parX, 592, tileW, 52, display, 15, () => game.ResetLevel());
+            HudButton.CreateSolid(left, "UNDO", x, 592, tileW, 52, display, 15, () => game.Undo());
+            HudButton.Create(left, "RESET", parX, 592, tileW, 52, display, 15, () => game.ResetLevel());
 
             RowTags(l, f, 892f, ScreenLayout.LandscapeBoardCenterPx.y, ScreenLayout.LandscapeBoardScale);
 
             const float rx = 1048f, rw = 192f;
-            Bucket(l, f, rx, 124, rw, 150);
-            MoveLog(l, f, rx, 294, rw);
+            Bucket(l, right, rx, 124, rw, 150);
+            MoveLog(l, right, rx, 294, rw);
 
             // Key caps, like the title screen's (desktop); a swipe hint on phones and tablets.
-            var keys = Ui.Rect(f, "Keys", 0, 0, 1280, 720);
+            var keys = Ui.Rect(right, "Keys", 0, 0, 1280, 720);
             l.Keys = keys.gameObject;
             const float k1 = 504f, k2 = 536f, k3 = 568f;
             float kx = KeyCap(keys, "⇧", rx, k1, 26f);
@@ -221,16 +239,16 @@ namespace ShiftRegister.Game.Hud
             kx = KeyLabel(keys, "help", kx + 6f, k3, 40f);
             kx = KeyCap(keys, "M", kx + 8f, k3, 26f);
             KeyLabel(keys, "mute", kx + 6f, k3, 50f);
-            var swipe = Ui.Text(f, "Swipe Hint", rx, 504, rw, 90, mono, 13, Lcd.Text3, TextAlignmentOptions.TopLeft,
+            var swipe = Ui.Text(right, "Swipe Hint", rx, 504, rw, 90, mono, 13, Lcd.Text3, TextAlignmentOptions.TopLeft,
                 "Swipe a row or column to shift it. Tap a cell to select it.");
             swipe.textWrappingMode = TextWrappingModes.Normal;
             swipe.lineSpacing = 6;
             l.SwipeHint = swipe.gameObject;
 
             const float menuY = 604f;
-            HudButton.Create(f, "MENU", rx, menuY, 56, 40, display, 12, () => flow.Show(GameScreen.Chapters));
-            HudButton.Create(f, "HELP", rx + 60, menuY, 56, 40, display, 12, ToggleHelp);
-            l.Sound = HudButton.Create(f, "SOUND", rx + 120, menuY, 72, 40, display, 12, ToggleMute);
+            HudButton.Create(right, "MENU", rx, menuY, 56, 40, display, 12, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(right, "HELP", rx + 60, menuY, 56, 40, display, 12, ToggleHelp);
+            l.Sound = HudButton.Create(right, "SOUND", rx + 120, menuY, 72, 40, display, 12, ToggleMute);
         }
 
         /// <summary>
@@ -240,36 +258,38 @@ namespace ShiftRegister.Game.Hud
         void BuildPortrait(Layout l)
         {
             var f = l.Root;
+            var top = l.A = Group(f, "Top", 720, 1280);
+            var bottom = l.B = Group(f, "Bottom", 720, 1280);
             const float x = 24f;
-            l.ChapterLabel = Ui.Text(f, "Chapter", x, 36, 440, 18, mono, 13, Lcd.Text3);
+            l.ChapterLabel = Ui.Text(top, "Chapter", x, 36, 440, 18, mono, 13, Lcd.Text3);
             l.ChapterLabel.characterSpacing = 10;
-            l.LevelName = LevelName(f, x, 58, 440, 44, 40);
-            l.LevelId = Ui.Text(f, "Level Id", x, 104, 440, 18, mono, 14, Lcd.Text2);
-            l.Rule = Ui.Text(f, "Chapter Rule", x, 136, 440, 36, mono, 13, Lcd.Text2, TextAlignmentOptions.TopLeft);
+            l.LevelName = LevelName(top, x, 58, 440, 44, 40);
+            l.LevelId = Ui.Text(top, "Level Id", x, 104, 440, 18, mono, 14, Lcd.Text2);
+            l.Rule = Ui.Text(top, "Chapter Rule", x, 136, 440, 36, mono, 13, Lcd.Text2, TextAlignmentOptions.TopLeft);
             l.Rule.textWrappingMode = TextWrappingModes.Normal;
 
-            Ui.Box(f, "Moves Tile", 476, 36, 104, 72, 10f, Lcd.Cell);
-            Ui.Text(f, "Moves Label", 490, 46, 80, 16, mono, 12, Lcd.Text3, text: "MOVES").characterSpacing = 10;
-            l.Moves = Ui.Text(f, "Moves", 490, 64, 80, 36, display, 30, Lcd.Ink);
-            Ui.Frame(f, "Par Tile", 592, 36, 104, 72, 10f, 2f, Lcd.Ink);
-            Ui.Text(f, "Par Label", 606, 46, 80, 16, mono, 12, Lcd.Text3, text: "PAR").characterSpacing = 10;
-            l.Par = Ui.Text(f, "Par", 606, 64, 80, 36, display, 30, Lcd.Ink);
-            Outlook(l, f, 476, 130, 18f);
+            Ui.Box(top, "Moves Tile", 476, 36, 104, 72, 10f, Lcd.Cell);
+            Ui.Text(top, "Moves Label", 490, 46, 80, 16, mono, 12, Lcd.Text3, text: "MOVES").characterSpacing = 10;
+            l.Moves = Ui.Text(top, "Moves", 490, 64, 80, 36, display, 30, Lcd.Ink);
+            Ui.Frame(top, "Par Tile", 592, 36, 104, 72, 10f, 2f, Lcd.Ink);
+            Ui.Text(top, "Par Label", 606, 46, 80, 16, mono, 12, Lcd.Text3, text: "PAR").characterSpacing = 10;
+            l.Par = Ui.Text(top, "Par", 606, 64, 80, 36, display, 30, Lcd.Ink);
+            Outlook(l, top, 476, 130, 18f);
 
-            TargetCard(l, f, x, 176, 216, 229, 19f, 22f);
-            Bucket(l, f, 256, 176, 208, 229);
-            MoveLog(l, f, 480, 176, 216);
+            TargetCard(l, top, x, 176, 216, 229, 19f, 22f);
+            Bucket(l, top, 256, 176, 208, 229);
+            MoveLog(l, top, 480, 176, 216);
 
             RowTags(l, f, 560f, ScreenLayout.PortraitBoardCenterPx.y, ScreenLayout.PortraitBoardScale);
 
-            Ui.Text(f, "Swipe Hint", x, 990, 672, 20, mono, 13, Lcd.Text3, TextAlignmentOptions.Center,
+            Ui.Text(bottom, "Swipe Hint", x, 990, 672, 20, mono, 13, Lcd.Text3, TextAlignmentOptions.Center,
                 "Swipe a row or column to shift it · tap a cell to select");
 
-            HudButton.CreateSolid(f, "UNDO", x, 1056, 330, 76, display, 20, () => game.Undo());
-            HudButton.Create(f, "RESET", 366, 1056, 330, 76, display, 20, () => game.ResetLevel());
-            HudButton.Create(f, "MENU", x, 1156, 216, 56, display, 14, () => flow.Show(GameScreen.Chapters));
-            HudButton.Create(f, "HELP", 252, 1156, 216, 56, display, 14, ToggleHelp);
-            l.Sound = HudButton.Create(f, "SOUND", 480, 1156, 216, 56, display, 14, ToggleMute);
+            HudButton.CreateSolid(bottom, "UNDO", x, 1056, 330, 76, display, 20, () => game.Undo());
+            HudButton.Create(bottom, "RESET", 366, 1056, 330, 76, display, 20, () => game.ResetLevel());
+            HudButton.Create(bottom, "MENU", x, 1156, 216, 56, display, 14, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(bottom, "HELP", 252, 1156, 216, 56, display, 14, ToggleHelp);
+            l.Sound = HudButton.Create(bottom, "SOUND", 480, 1156, 216, 56, display, 14, ToggleMute);
         }
 
         void ToggleMute() => game.ChangeSettings(s => s.muted = !s.muted);
