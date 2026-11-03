@@ -106,3 +106,6 @@ Desktop.ini
 /Tools/LevelGenerator/bin/
 /Tools/LevelGenerator/obj/
 /Tools/LevelGenerator/picked*.txt
+
+# Itch.io page material, kept out of the repo
+/Marketing/

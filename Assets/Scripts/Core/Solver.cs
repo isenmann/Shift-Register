@@ -61,57 +61,141 @@ namespace ShiftRegister.Core
 
         public static SolveResult Solve(LevelRules rules, int maxStates = DefaultMaxStates, int maxDepth = DefaultMaxDepth)
         {
-            if (rules.IsSolved(rules.Start, 0))
-                return new SolveResult(SolveStatus.Solved, Array.Empty<Move>(), 1);
+            var job = Begin(rules, maxStates, maxDepth);
+            while (!job.Step(int.MaxValue)) { }
+            return job.Result;
+        }
 
-            bool trackLost = rules.LossRule != LossRule.Any;
-            int targetCount = BoardBits.PopCount(rules.Target);
-            var moves = rules.Moves;
+        /// <summary>
+        /// Starts a search that runs in slices, for places that cannot block (the web build has no threads).
+        /// Call <see cref="SolveJob.Step"/> until it returns true; to cancel, just drop the job.
+        /// </summary>
+        public static SolveJob Begin(LevelRules rules, int maxStates = DefaultMaxStates, int maxDepth = DefaultMaxDepth) =>
+            new SolveJob(rules, maxStates, maxDepth);
+
+        /// <summary>
+        /// One breadth-first search. <see cref="Solve(LevelRules, int, int)"/> runs it in a single slice, so
+        /// a sliced search cannot give a different answer.
+        /// </summary>
+        public sealed class SolveJob
+        {
+            readonly LevelRules rules;
+            readonly int maxStates, maxDepth;
+            readonly bool trackLost;
+            readonly int targetCount;
 
             // Node storage in BFS order; the queue is just an index into these lists.
-            var bits = new List<ulong> { rules.Start };
-            var lost = new List<int> { 0 };
-            var parent = new List<int> { -1 };
-            var via = new List<int> { -1 };
-            var depth = new List<int> { 0 };
-            var seen = new HashSet<Key> { new Key(rules.Start, 0) };
-            bool cut = false;
+            List<ulong> bits;
+            List<int> lost, parent, via, depth;
+            HashSet<Key> seen;
+            int head;
+            bool cut;
 
-            for (int head = 0; head < bits.Count; head++)
+            /// <summary>The answer, or null until <see cref="Step"/> has returned true.</summary>
+            public SolveResult Result { get; private set; }
+            public bool IsDone => Result != null;
+            public int MaxStates => maxStates;
+            /// <summary>States found so far.</summary>
+            public int StatesVisited => Result != null ? Result.StatesVisited : bits.Count;
+
+            internal SolveJob(LevelRules rules, int maxStates, int maxDepth)
             {
-                if (depth[head] >= maxDepth)
-                {
-                    cut = true;
-                    continue;
-                }
+                this.rules = rules;
+                this.maxStates = maxStates;
+                this.maxDepth = maxDepth;
+                trackLost = rules.LossRule != LossRule.Any;
+                targetCount = BoardBits.PopCount(rules.Target);
+                bits = new List<ulong> { rules.Start };
+                lost = new List<int> { 0 };
+                parent = new List<int> { -1 };
+                via = new List<int> { -1 };
+                depth = new List<int> { 0 };
+                seen = new HashSet<Key> { new Key(rules.Start, 0) };
 
-                ulong board = bits[head];
-                int lostSoFar = lost[head];
-                for (int i = 0; i < moves.Count; i++)
-                {
-                    if (!rules.TryApply(board, moves[i], out var o)) continue;
-                    int newLost = lostSoFar + o.LostCount;
-                    if (rules.IsBroken(newLost)) continue;
-                    if (CannotReachTarget(rules, o.After, newLost, targetCount)) continue;
-
-                    var key = new Key(o.After, trackLost ? newLost : 0);
-                    if (!seen.Add(key)) continue;
-
-                    bits.Add(o.After);
-                    lost.Add(newLost);
-                    parent.Add(head);
-                    via.Add(i);
-                    depth.Add(depth[head] + 1);
-
-                    if (rules.IsSolved(o.After, newLost))
-                        return new SolveResult(SolveStatus.Solved, BuildPath(bits.Count - 1, parent, via, moves), bits.Count);
-
-                    if (bits.Count >= maxStates)
-                        return new SolveResult(SolveStatus.LimitReached, null, bits.Count);
-                }
+                if (rules.IsSolved(rules.Start, 0))
+                    Finish(SolveStatus.Solved, Array.Empty<Move>());
             }
 
-            return new SolveResult(cut ? SolveStatus.LimitReached : SolveStatus.Unsolvable, null, bits.Count);
+            /// <summary>Expands up to <paramref name="maxNodes"/> states. Returns true once <see cref="Result"/> is set.</summary>
+            public bool Step(int maxNodes)
+            {
+                if (Result != null) return true;
+                var moves = rules.Moves;
+                for (int n = 0; n < maxNodes; n++)
+                {
+                    if (head >= bits.Count)
+                    {
+                        Finish(cut ? SolveStatus.LimitReached : SolveStatus.Unsolvable, null);
+                        return true;
+                    }
+
+                    int node = head++;
+                    if (depth[node] >= maxDepth)
+                    {
+                        cut = true;
+                        continue;
+                    }
+
+                    ulong board = bits[node];
+                    int lostSoFar = lost[node];
+                    for (int i = 0; i < moves.Count; i++)
+                    {
+                        if (!rules.TryApply(board, moves[i], out var o)) continue;
+                        int newLost = lostSoFar + o.LostCount;
+                        if (rules.IsBroken(newLost)) continue;
+                        if (CannotReachTarget(rules, o.After, newLost, targetCount)) continue;
+
+                        var key = new Key(o.After, trackLost ? newLost : 0);
+                        if (!seen.Add(key)) continue;
+
+                        bits.Add(o.After);
+                        lost.Add(newLost);
+                        parent.Add(node);
+                        via.Add(i);
+                        depth.Add(depth[node] + 1);
+
+                        if (rules.IsSolved(o.After, newLost))
+                        {
+                            Finish(SolveStatus.Solved, BuildPath(bits.Count - 1, parent, via, moves));
+                            return true;
+                        }
+
+                        if (bits.Count >= maxStates)
+                        {
+                            Finish(SolveStatus.LimitReached, null);
+                            return true;
+                        }
+                    }
+                }
+
+                // The last node of this slice may have been the last one of the search.
+                if (head < bits.Count) return false;
+                Finish(cut ? SolveStatus.LimitReached : SolveStatus.Unsolvable, null);
+                return true;
+            }
+
+            void Finish(SolveStatus status, IReadOnlyList<Move> solution)
+            {
+                Result = new SolveResult(status, solution, bits.Count);
+                // A search can hold hundreds of megabytes; the result needs none of it.
+                bits = null;
+                lost = parent = via = depth = null;
+                seen = null;
+            }
+        }
+
+        /// <summary>
+        /// True if playing exactly these moves solves the level, under the same rules as
+        /// <see cref="Board"/>: every move legal, no move after a broken loss rule or after the solve.
+        /// This proves a level solvable without searching it. An empty list never counts.
+        /// </summary>
+        public static bool Replays(LevelRules rules, IReadOnlyList<Move> solution)
+        {
+            if (solution == null || solution.Count == 0) return false;
+            var board = new Board(rules);
+            foreach (var move in solution)
+                if (!board.TryMove(move, out _)) return false;
+            return board.IsSolved;
         }
 
         /// <summary>Prunes states that provably cannot reach the target.</summary>

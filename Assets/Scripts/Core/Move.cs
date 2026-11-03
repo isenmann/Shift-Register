@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace ShiftRegister.Core
 {
@@ -44,6 +45,56 @@ namespace ShiftRegister.Core
 
         /// <summary>Left and Up move bits toward index 0 of the line.</summary>
         public bool TowardStart => Direction == Direction.Left || Direction == Direction.Up;
+
+        /// <summary>Packs the move into one byte: direction (2 bits), line (3 bits), part (3 bits).</summary>
+        public byte ToByte() => (byte)(((int)Direction << 6) | (Line << 3) | Segment);
+
+        public static Move FromByte(byte value) =>
+            new Move((Direction)(value >> 6), (value >> 3) & 7, value & 7);
+
+        /// <summary>Reads a space-separated list in the notation of <see cref="ToString"/>, e.g. "R5← C4↑ R2.2→".</summary>
+        public static bool TryParseList(string text, out List<Move> moves)
+        {
+            moves = new List<Move>();
+            if (string.IsNullOrWhiteSpace(text)) return true;
+            foreach (string token in text.Split((char[])null, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (!TryParse(token, out var move)) return false;
+                moves.Add(move);
+            }
+            return true;
+        }
+
+        static bool TryParse(string s, out Move move)
+        {
+            move = default;
+            if (s.Length < 3) return false;
+            bool isRow = s[0] == 'R';
+            if (!isRow && s[0] != 'C') return false;
+
+            Direction direction;
+            switch (s[s.Length - 1])
+            {
+                case '←': direction = Direction.Left; break;
+                case '→': direction = Direction.Right; break;
+                case '↑': direction = Direction.Up; break;
+                case '↓': direction = Direction.Down; break;
+                default: return false;
+            }
+            bool rowDirection = direction == Direction.Left || direction == Direction.Right;
+            if (rowDirection != isRow) return false;
+
+            int line = s[1] - '1';
+            if (line < 0 || line >= BoardBits.Size) return false;
+
+            int segment = 0;
+            if (s.Length == 5 && s[2] == '.') segment = s[3] - '1';
+            else if (s.Length != 3) return false;
+            if (segment < 0 || segment >= BoardBits.Size) return false;
+
+            move = new Move(direction, line, segment);
+            return true;
+        }
 
         public bool Equals(Move other) => Direction == other.Direction && Line == other.Line && Segment == other.Segment;
         public override bool Equals(object obj) => obj is Move m && Equals(m);
