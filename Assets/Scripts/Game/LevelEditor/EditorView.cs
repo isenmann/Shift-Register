@@ -15,7 +15,9 @@ namespace ShiftRegister.Game.LevelEditor
     /// <summary>
     /// The level editor screen (layout A of the editor canvas), desktop only, on its own canvas. The board
     /// stays where the game draws it and is painted directly: click or drag, or arrows and Space. Tab swaps
-    /// start and target, 1–4 pick a tool, Z / Y undo and redo, Enter solves, Esc cancels a search or leaves.
+    /// start and target, 1–5 pick a tool, 6 changes the gate tool's operator, Z / Y undo and redo, Enter
+    /// solves, Esc cancels a search or leaves. Each row's options sit beside it: 1-IN toggles in the arrow
+    /// button slots, then wrap, gate operator and the link to the next row.
     /// </summary>
     public sealed class EditorView : MonoBehaviour
     {
@@ -32,8 +34,10 @@ namespace ShiftRegister.Game.LevelEditor
         const float AutosaveDelay = 2f;
         const string DefaultName = "MY LEVEL";
         const float CaretBlink = 0.53f;
-        static readonly PaintTool[] ToolOrder = { PaintTool.Bit, PaintTool.Wall, PaintTool.Pin, PaintTool.Erase };
-        static readonly string[] ToolLabels = { "BIT  1", "WALL  2", "PIN  3", "ERASE  4" };
+        static readonly PaintTool[] ToolOrder = { PaintTool.Bit, PaintTool.Wall, PaintTool.Pin, PaintTool.Gate, PaintTool.Erase };
+        static readonly string[] ToolLabels = { "BIT  1", "WALL  2", "PIN  3", "GATE  4", "ERASE  5" };
+        static readonly LossRule[] LossOrder = { LossRule.Any, LossRule.AtMost, LossRule.Exactly };
+        static readonly string[] LossLabels = { "ANY", "MAX", "EXACT" };
 
         EditorSession session;
         CustomLevelLibrary library;
@@ -50,6 +54,12 @@ namespace ShiftRegister.Game.LevelEditor
         float caretMovedTime;
         HudButton startTab, targetTab, solveButton, undoButton, redoButton;
         readonly HudButton[] toolButtons = new HudButton[ToolOrder.Length];
+        HudButton opButton, lossDown, lossUp;
+        readonly HudButton[] fillLeft = new HudButton[N], fillRight = new HudButton[N], wrap = new HudButton[N], gate = new HudButton[N];
+        readonly HudButton[] link = new HudButton[N - 1];
+        readonly HudButton[] lossTabs = new HudButton[LossOrder.Length];
+        TextMeshProUGUI lossCount;
+        Image columnsTick;
         readonly Image[] mini = new Image[N * N];
         TextMeshProUGUI otherName, paintLabel, ghostLabel, statusText, proofTitle, proofText;
         Image statusDot;
@@ -236,6 +246,7 @@ namespace ShiftRegister.Game.LevelEditor
             if (kb.tabKey.wasPressedThisFrame) SwapLayer();
             for (int i = 0; i < ToolOrder.Length; i++)
                 if (kb[Key.Digit1 + i].wasPressedThisFrame) PickTool(ToolOrder[i]);
+            if (kb.digit6Key.wasPressedThisFrame) CycleOp();
 
             if (kb.yKey.wasPressedThisFrame || (kb.zKey.wasPressedThisFrame && kb.shiftKey.isPressed)) Redo();
             else if (kb.zKey.wasPressedThisFrame) Undo();
@@ -269,6 +280,29 @@ namespace ShiftRegister.Game.LevelEditor
         {
             session.Tool = tool;
             Refresh();
+        }
+
+        void CycleOp()
+        {
+            if (session.Tool != PaintTool.Gate)
+            {
+                Sfx.Play(Sound.Blocked);
+                return;
+            }
+            session.Op = EditorSession.NextOp(session.Op);
+            Refresh();
+        }
+
+        void CycleRowGate(int r)
+        {
+            var g = session.Edit.GateOn(r);
+            if (g != null) session.Edit.SetGateOp(r, EditorSession.NextOp(g.op));
+        }
+
+        void StepLoss(int delta)
+        {
+            var level = session.Edit.Level;
+            session.Edit.SetLoss(level.lossRule, level.lossCount + delta);
         }
 
         void Undo()
@@ -327,6 +361,10 @@ namespace ShiftRegister.Game.LevelEditor
                 mini[r * N + c].color = session.Edit.GetBit(other, r, c) ? Lcd.Ink : Lcd.Background;
             for (int i = 0; i < ToolOrder.Length; i++)
                 toolButtons[i].Selected = session.Tool == ToolOrder[i];
+            opButton.Text = "OP " + BoardView.GateSymbol(session.Op);
+            opButton.Disabled = session.Tool != PaintTool.Gate;
+            RefreshRows();
+            RefreshSettings();
             undoButton.Disabled = !session.Edit.CanUndo;
             redoButton.Disabled = !session.Edit.CanRedo;
 
@@ -336,6 +374,33 @@ namespace ShiftRegister.Game.LevelEditor
             solveButton.Text = session.IsSolving ? "CANCEL" : "SOLVE";
             solveButton.Disabled = !session.IsSolving && !session.CanSolve;
             RefreshProof();
+        }
+
+        void RefreshRows()
+        {
+            var edit = session.Edit;
+            for (int r = 0; r < N; r++)
+            {
+                fillLeft[r].Selected = edit.HasFill(r, true);
+                fillRight[r].Selected = edit.HasFill(r, false);
+                wrap[r].Selected = edit.IsRotating(r);
+                var g = edit.GateOn(r);
+                gate[r].Text = g != null ? BoardView.GateSymbol(g.op) : "·";
+                gate[r].Disabled = g == null;
+                gate[r].Selected = g != null;
+                if (r < N - 1) link[r].Selected = edit.ChainTopOf(r) == r;
+            }
+        }
+
+        void RefreshSettings()
+        {
+            var level = session.Edit.Level;
+            for (int i = 0; i < LossOrder.Length; i++) lossTabs[i].Selected = level.lossRule == LossOrder[i];
+            bool counts = level.lossRule != LossRule.Any;
+            lossCount.text = counts ? level.lossCount.ToString() : "-";
+            lossDown.Disabled = !counts || level.lossCount <= 0;
+            lossUp.Disabled = !counts || level.lossCount >= LevelEdit.MaxLossCount;
+            columnsTick.enabled = level.gatesOnColumnMoves;
         }
 
         void RefreshProof()
@@ -355,7 +420,7 @@ namespace ShiftRegister.Game.LevelEditor
             {
                 var rules = LevelRules.Compile(d);
                 game.BoardView.Build(rules);
-                game.Controls.Build(rules, withArrows: false);
+                game.Controls.Build(rules, withArrows: false, tightBelts: true);
             }
             game.BoardView.Show(BoardBits.FromRows(d.start));
             shownBoard = d;
@@ -383,6 +448,7 @@ namespace ShiftRegister.Game.LevelEditor
             right = Ui.Rect(frame, "Right", 0, 0, 1280, 720);
             BuildLeft(left);
             BuildCentre(frame);
+            BuildRows(frame);
             BuildRight(right);
         }
 
@@ -417,6 +483,8 @@ namespace ShiftRegister.Game.LevelEditor
                     toolW, toolH, display, 14, () => PickTool(tool));
             }
 
+            opButton = HudButton.Create(root, "OP &", x + toolW + toolGap, toolY + 2 * (toolH + toolGap), toolW, toolH, display, 14, CycleOp);
+
             undoButton = HudButton.Create(root, "UNDO", x, 600, 110, 44, display, 14, Undo);
             redoButton = HudButton.Create(root, "REDO", x + 122, 600, 110, 44, display, 14, Redo);
         }
@@ -430,16 +498,79 @@ namespace ShiftRegister.Game.LevelEditor
             statusText = Ui.Text(root, "Status", x + 18, 610, w - 18, 34, mono, 13, Lcd.Text2);
         }
 
+        /// <summary>The options beside each row, in line with the game's arrow buttons and row tags.</summary>
+        void BuildRows(Transform root)
+        {
+            const float top = 124f, pitch = 60f, cellH = 52f;
+            const float wrapX = 892f, gateX = 938f, linkX = 984f, chip = 40f, linkSize = 32f;
+            Ui.Text(root, "Wrap Header", wrapX - 6, 100, chip + 12, 16, mono, 11, Lcd.Text3, TextAlignmentOptions.Center, "WRAP");
+            Ui.Text(root, "Gate Header", gateX - 6, 100, chip + 12, 16, mono, 11, Lcd.Text3, TextAlignmentOptions.Center, "GATE");
+            Ui.Text(root, "Link Header", linkX - 6, 100, linkSize + 12, 16, mono, 11, Lcd.Text3, TextAlignmentOptions.Center, "LINK");
+
+            for (int i = 0; i < N; i++)
+            {
+                int r = i;
+                float y = top + r * pitch;
+                fillLeft[r] = HudButton.Create(root, $"1-IN left {r + 1}", 312, y, 40, cellH, mono, 14,
+                    () => session.Edit.SetFill(r, true, !session.Edit.HasFill(r, true)));
+                fillLeft[r].Text = "1›";
+                fillRight[r] = HudButton.Create(root, $"1-IN right {r + 1}", 840, y, 40, cellH, mono, 14,
+                    () => session.Edit.SetFill(r, false, !session.Edit.HasFill(r, false)));
+                fillRight[r].Text = "‹1";
+
+                float chipY = y + (cellH - chip) / 2f;
+                wrap[r] = HudButton.Create(root, $"Wrap {r + 1}", wrapX, chipY, chip, chip, mono, 14,
+                    () => session.Edit.SetRotate(r, !session.Edit.IsRotating(r)));
+                wrap[r].Text = "";
+                // A dashed loop, like the belt around a wrapping row.
+                wrap[r].AddIcon(Ui.Frame(wrap[r].transform, "Icon", 10, 13, 20, 14, 5f, 2f, Lcd.Ink, 3f));
+
+                gate[r] = HudButton.Create(root, $"Gate {r + 1}", gateX, chipY, chip, chip, mono, 15, () => CycleRowGate(r));
+
+                if (r == N - 1) continue;
+                link[r] = HudButton.Create(root, $"Link {r + 1}", linkX, y + cellH + 4f - linkSize / 2f, linkSize, linkSize, mono, 14,
+                    () => session.Edit.SetChain(r, session.Edit.ChainTopOf(r) != r));
+                link[r].Text = "";
+                // Two links of a chain, one row over the next.
+                link[r].AddIcon(Ui.Frame(link[r].transform, "Icon Top", 10, 6, 12, 12, 4f, 2f, Lcd.Ink));
+                link[r].AddIcon(Ui.Frame(link[r].transform, "Icon Bottom", 10, 14, 12, 12, 4f, 2f, Lcd.Ink));
+            }
+        }
+
         void BuildRight(Transform root)
         {
             const float x = 1048f, w = 192f;
-            var proof = Ui.Text(root, "Proof Label", x, 124, w, 16, mono, 12, Lcd.Text3, text: "PROOF");
+            Ui.Text(root, "Loss Title", x, 40, w, 18, display, 14, Lcd.Ink, text: "BITS MAY FALL");
+            for (int i = 0; i < LossOrder.Length; i++)
+            {
+                var rule = LossOrder[i];
+                lossTabs[i] = HudButton.Create(root, LossLabels[i], x + i * 64f, 62, 64, 36, display, 11, () =>
+                    session.Edit.SetLoss(rule, session.Edit.Level.lossCount));
+            }
+            Ui.Text(root, "Loss Count Label", x, 106, 60, 32, mono, 13, Lcd.Text2, text: "Bits");
+            lossDown = HudButton.Create(root, "Fewer", x + w - 96, 106, 32, 32, mono, 15, () => StepLoss(-1));
+            lossDown.Text = "-";
+            lossCount = Ui.Text(root, "Loss Count", x + w - 64, 106, 32, 32, display, 18, Lcd.Ink, TextAlignmentOptions.Center);
+            lossUp = HudButton.Create(root, "More", x + w - 32, 106, 32, 32, mono, 15, () => StepLoss(1));
+            lossUp.Text = "+";
+
+            Ui.Frame(root, "Columns Box", x, 150, 18, 18, 4f, 2f, Lcd.Ink);
+            columnsTick = Ui.Box(root, "Columns Tick", x + 4, 154, 10, 10, 2f, Lcd.Ink);
+            var columnsText = Ui.Text(root, "Columns Text", x + 26, 144, w - 26, 34, mono, 12, Lcd.Text2, text: "Gates also act on column moves");
+            columnsText.textWrappingMode = TextWrappingModes.Normal;
+            UiHotspot.Create(root, "Columns Hotspot", x, 144, w, 34).Click = () =>
+            {
+                Sfx.Play(Sound.Click);
+                session.Edit.SetGatesOnColumnMoves(!session.Edit.Level.gatesOnColumnMoves);
+            };
+
+            var proof = Ui.Text(root, "Proof Label", x, 196, w, 16, mono, 12, Lcd.Text3, text: "PROOF");
             proof.characterSpacing = 8;
-            proofTitle = Ui.Text(root, "Proof Title", x, 146, w, 24, display, 18, Lcd.Ink);
-            proofText = Ui.Text(root, "Proof Text", x, 174, w, 72, mono, 12, Lcd.Text2, TextAlignmentOptions.TopLeft);
+            proofTitle = Ui.Text(root, "Proof Title", x, 218, w, 24, display, 18, Lcd.Ink);
+            proofText = Ui.Text(root, "Proof Text", x, 246, w, 72, mono, 12, Lcd.Text2, TextAlignmentOptions.TopLeft);
             proofText.textWrappingMode = TextWrappingModes.Normal;
 
-            progressBox = Ui.Rect(root, "Progress", x, 250, w, 12);
+            progressBox = Ui.Rect(root, "Progress", x, 322, w, 12);
             Ui.Frame(progressBox, "Progress Frame", 0, 0, w, 12, 4f, 2f, Lcd.Ink);
             progressFill = Ui.Rect(progressBox, "Progress Fill", 2, 2, 0, 8);
             progressFill.gameObject.AddComponent<Image>().color = Lcd.Ink;

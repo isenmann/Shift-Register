@@ -41,7 +41,8 @@ namespace ShiftRegister.Game.View
         public IReadOnlyList<ArrowButton> Buttons => buttons;
 
         /// <param name="withArrows">False for the level editor, where the board is painted and nothing shifts.</param>
-        public void Build(LevelRules levelRules, bool withArrows = true)
+        /// <param name="tightBelts">Belts hug the cells, leaving the arrow button slots free for the editor's own buttons.</param>
+        public void Build(LevelRules levelRules, bool withArrows = true, bool tightBelts = false)
         {
             rules = levelRules;
             buttons.Clear();
@@ -69,7 +70,7 @@ namespace ShiftRegister.Game.View
                 }
             }
 
-            BuildBelts(arrows ? offset + ButtonShort / 2f / Px : ScreenLayout.BoardSize / 2f + ButtonGap / Px);
+            BuildBelts(arrows ? offset + ButtonShort / 2f / Px : ScreenLayout.BoardSize / 2f + (tightBelts ? 0f : ButtonGap / Px));
             rowOutline = Renderer(root, "Row outline", null, Lcd.Ink, (int)Layer.Outline);
             columnOutline = Renderer(root, "Column outline", null, Lcd.Ink, (int)Layer.Outline);
             crossPieces.Clear();

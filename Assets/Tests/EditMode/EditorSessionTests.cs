@@ -84,6 +84,70 @@ namespace ShiftRegister.Tests
         }
 
         [Test]
+        public void GateTool_PaintsWithTheChosenOp_AndClearsOnASecondStroke()
+        {
+            var s = Blank();
+            s.Tool = PaintTool.Gate;
+            s.Op = GateOp.Xor;
+            s.BeginPaint(3, 1);
+            s.PaintTo(3, 4);
+            s.EndPaint();
+            Assert.That(s.Edit.GateOn(3).op, Is.EqualTo(GateOp.Xor));
+            Assert.That(s.Edit.GateOn(3).mask, Is.EqualTo(TestLevels.Bits("01111000")));
+
+            s.BeginPaint(3, 1);
+            s.PaintTo(3, 4);
+            s.EndPaint();
+            Assert.That(s.Edit.GateOn(3), Is.Null, "the first cell was on, so this stroke clears");
+        }
+
+        [Test]
+        public void GateTool_DraggingAcrossRows_GivesEachRowItsOwnGate()
+        {
+            var s = Blank();
+            s.Tool = PaintTool.Gate;
+            s.BeginPaint(1, 2);
+            s.PaintTo(2, 2);
+            s.EndPaint();
+            Assert.That(s.Edit.Level.gates.Length, Is.EqualTo(2));
+            Assert.That(LevelEdit.AuthoredErrors(s.Edit.Level), Is.Empty);
+        }
+
+        [Test]
+        public void NextOp_GoesRoundAllFour()
+        {
+            var op = GateOp.And;
+            for (int i = 0; i < 4; i++) op = EditorSession.NextOp(op);
+            Assert.That(op, Is.EqualTo(GateOp.And));
+            Assert.That(EditorSession.NextOp(GateOp.And), Is.Not.EqualTo(GateOp.And));
+        }
+
+        [Test]
+        public void AFullyDressedLevel_SolvesAndSharesThroughTheSession()
+        {
+            var s = OneMove(); // row 1: one shift right
+            s.Edit.SetRotate(2, true);
+            s.Edit.SetChain(4, true);
+            s.Edit.SetFill(7, true, true);
+            s.Edit.SetGateCell(6, 3, GateOp.Xor);
+            s.Edit.SetGatesOnColumnMoves(true);
+            s.Edit.SetLoss(LossRule.AtMost, 2);
+            foreach (var layer in new[] { EditLayer.Start, EditLayer.Target })
+            {
+                s.Layer = layer;
+                Assert.DoesNotThrow(() => LevelRules.Compile(s.DisplayLevel()), layer.ToString());
+            }
+
+            s.StartSolve();
+            RunToEnd(s);
+            Assert.That(s.Edit.Proof, Is.EqualTo(LevelProof.Searched), s.ProofText);
+
+            string code = ShareCode.Encode(s.Edit.Level);
+            Assert.That(ShareCode.TryDecode(code, out var back), Is.EqualTo(ShareCodeError.None));
+            Assert.That(LevelEdit.SameLevel(back, s.Edit.Level), Is.True);
+        }
+
+        [Test]
         public void DisplayLevel_ShowsThePaintedPictureAsBits_AndAlwaysCompiles()
         {
             var s = OneMove();

@@ -16,6 +16,7 @@ namespace ShiftRegister.Game.Hud
         Color32 ink, paper;
         bool solid, selected, disabled;
         Image frame;
+        readonly System.Collections.Generic.List<Image> icons = new System.Collections.Generic.List<Image>();
 
         /// <summary>Ink-on-background button (top bar).</summary>
         public static HudButton Create(Transform parent, string text, float x, float y, float w, float h,
@@ -59,6 +60,13 @@ namespace ShiftRegister.Game.Hud
             set => label.text = value;
         }
 
+        /// <summary>Adds a picture to the button that changes colour with its label.</summary>
+        public void AddIcon(Image icon)
+        {
+            icons.Add(icon);
+            SetHot(false);
+        }
+
         /// <summary>Stays filled, for a tool or tab that is on.</summary>
         public bool Selected
         {
@@ -99,6 +107,12 @@ namespace ShiftRegister.Game.Hud
         void SetHot(bool hot)
         {
             if (fill == null) return;
+            Paint(hot);
+            foreach (var icon in icons) icon.color = label.color;
+        }
+
+        void Paint(bool hot)
+        {
             if (disabled)
             {
                 fill.enabled = false;

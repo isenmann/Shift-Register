@@ -4,7 +4,7 @@ using ShiftRegister.Core;
 
 namespace ShiftRegister.Game.LevelEditor
 {
-    public enum PaintTool { Bit, Wall, Pin, Erase }
+    public enum PaintTool { Bit, Wall, Pin, Gate, Erase }
 
     /// <summary>What the last search found out, when that gave no proof.</summary>
     public enum SolveOutcome { None, TooBig, NoSolution }
@@ -25,6 +25,9 @@ namespace ShiftRegister.Game.LevelEditor
         public EditLayer Layer { get; set; } = EditLayer.Start;
         public PaintTool Tool { get; set; } = PaintTool.Bit;
 
+        /// <summary>The operator the gate tool paints with.</summary>
+        public GateOp Op { get; set; } = GateOp.And;
+
         /// <summary>The search in progress, or null.</summary>
         public Solver.SolveJob Job { get; private set; }
         public SolveOutcome Outcome { get; private set; }
@@ -41,6 +44,8 @@ namespace ShiftRegister.Game.LevelEditor
             Job = null;
             Outcome = SolveOutcome.None;
         }
+
+        public static GateOp NextOp(GateOp op) => (GateOp)(((int)op + 1) % 4);
 
         public void SwapLayer() => Layer = Layer == EditLayer.Start ? EditLayer.Target : EditLayer.Start;
 
@@ -103,6 +108,9 @@ namespace ShiftRegister.Game.LevelEditor
                 case PaintTool.Bit: return Edit.GetBit(Layer, row, column);
                 case PaintTool.Wall: return Edit.IsWall(row, column);
                 case PaintTool.Pin: return Edit.IsPin(row, column);
+                case PaintTool.Gate:
+                    var gate = Edit.GateOn(row);
+                    return gate != null && (gate.mask & (0x80 >> column)) != 0;
                 default: return false;
             }
         }
@@ -114,6 +122,10 @@ namespace ShiftRegister.Game.LevelEditor
                 case PaintTool.Bit: Edit.SetBit(Layer, row, column, strokeValue); break;
                 case PaintTool.Wall: Edit.SetWall(row, column, strokeValue); break;
                 case PaintTool.Pin: Edit.SetPin(row, column, strokeValue); break;
+                case PaintTool.Gate:
+                    if (strokeValue) Edit.SetGateCell(row, column, Op);
+                    else Edit.ClearGateCell(row, column);
+                    break;
                 default: Edit.Erase(row, column); break;
             }
         }
