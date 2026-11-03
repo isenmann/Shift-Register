@@ -69,6 +69,24 @@ namespace ShiftRegister.Game
             Show(GameScreen.Playing);
         }
 
+        /// <summary>
+        /// True where the game can close its own window: desktop builds and the editor. A browser tab
+        /// or a phone app is left by the browser or the system instead.
+        /// </summary>
+        public static bool CanQuit =>
+            Application.platform != RuntimePlatform.WebGLPlayer && !Application.isMobilePlatform && !DeviceMode.IsMobile;
+
+        /// <summary>QUIT on the title screen. Progress is already saved after every solved level.</summary>
+        public void Quit()
+        {
+            if (!CanQuit) return;
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
+
         public void Show(GameScreen screen)
         {
             Current = screen;
