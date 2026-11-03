@@ -1,0 +1,12 @@
+{
+  "id": "5-4",
+  "name": "Snake",
+  "start":  [1, 191, 129, 254, 129, 254, 0, 64],
+  "target": [0, 255, 1, 255, 128, 255, 0, 0],
+  "rotateRows": [1, 2],
+  "chainTopRows": [1, 4],
+  "lossRule": 2,
+  "lossCount": 1,
+  "par": 6,
+  "solution": "R1→ R2← C8↓ R2→ C2↑ C2↑"
+}

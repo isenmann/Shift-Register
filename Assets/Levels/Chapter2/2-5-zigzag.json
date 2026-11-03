@@ -1,0 +1,10 @@
+{
+  "id": "2-5",
+  "name": "Zigzag",
+  "start":  [32, 96, 112, 24, 26, 6, 4, 0],
+  "target": [192, 96, 48, 24, 12, 6, 3, 0],
+  "lossRule": 1,
+  "lossCount": 0,
+  "par": 5,
+  "solution": "C2↑ R1← C7↓ R5→ R7→"
+}

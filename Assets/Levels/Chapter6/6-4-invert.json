@@ -1,0 +1,13 @@
+{
+  "id": "6-4",
+  "name": "Invert",
+  "start":  [0, 6, 0, 96, 0, 12, 0, 0],
+  "target": [0, 244, 8, 55, 8, 195, 0, 0],
+  "fillLeftRows": [5],
+  "gates": [
+    { "row": 1, "op": 3, "mask": 1 },
+    { "row": 3, "op": 3, "mask": 128 }
+  ],
+  "par": 5,
+  "solution": "R2→ R4← R6→ R6→ C5↓"
+}
