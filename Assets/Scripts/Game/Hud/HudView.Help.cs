@@ -1,5 +1,7 @@
 using ShiftRegister.Game.Audio;
+using ShiftRegister.Game.Input;
 using ShiftRegister.Game.Progress;
+using ShiftRegister.Game.View;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -8,16 +10,22 @@ using UnityEngine.UI;
 namespace ShiftRegister.Game.Hud
 {
     /// <summary>
-    /// The help panel over the level: the controls on the left, the goal and the mechanics on this
-    /// board on the right. HELP, H or ? toggles it; Esc, Enter or a click outside closes it. It opens
-    /// by itself the first time each chapter's first level is played.
+    /// The help panel over the level: the controls (keys, or swipes and taps on phones and tablets),
+    /// then the goal and the mechanics on this board. Landscape shows them side by side, portrait one
+    /// under the other. HELP, H or ? toggles it; Esc, Enter or a click outside closes it. It opens by
+    /// itself the first time each chapter's first level is played.
     /// </summary>
     public sealed partial class HudView
     {
-        const float HelpX = 190f, HelpY = 96f, HelpW = 900f, HelpH = 528f;
-        const float HelpPad = 32f, HelpRightX = 456f, HelpListTop = 116f;
+        sealed class HelpPanel
+        {
+            public RectTransform Frame, Controls, Board;
+            public TextMeshProUGUI CloseHint;
+        }
 
-        RectTransform helpRoot, helpBoard;
+        RectTransform helpRoot;
+        HelpPanel helpWide, helpTall;
+        HelpPanel HelpCur => ScreenLayout.Portrait ? helpTall : helpWide;
         string helpCheckedLevel;
         bool questionTyped;
 
@@ -34,82 +42,109 @@ namespace ShiftRegister.Game.Hud
             dim.color = new Color32(bg.r, bg.g, bg.b, 0xE6);
             backdrop.gameObject.AddComponent<UiHotspot>().Click = CloseHelp;
 
-            // The panel is the backdrop's sibling, so clicks on it do not reach the backdrop's handler.
-            var frame = Ui.Rect(helpRoot, "Frame", 0, 0, 1280, 720);
-            frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(0.5f, 0.5f);
-            frame.anchoredPosition = Vector2.zero;
-            var panel = Ui.Rect(frame, "Panel", HelpX, HelpY, HelpW, HelpH);
-            panel.gameObject.AddComponent<Image>().color = Color.clear;
-            Ui.Box(panel, "Card", 0, 0, HelpW, HelpH, 12f, Lcd.Card);
-            Ui.Frame(panel, "Border", 0, 0, HelpW, HelpH, 12f, 3f, Lcd.Ink);
+            // Panels are the backdrop's siblings, so clicks on them do not reach the backdrop's handler.
+            helpWide = HelpPanelFrame("Landscape", 1280, 720, 190, 96, 900, 528);
+            Header(helpWide.Frame, "Controls Header", 32, 82, "CONTROLS");
+            Header(helpWide.Frame, "Board Header", 456, 82, "ON THIS BOARD");
+            helpWide.Controls = Column(helpWide.Frame, "Controls", 32, 116, 380, 360);
+            helpWide.Board = Column(helpWide.Frame, "Board Entries", 456, 116, 412, 356);
+            helpWide.CloseHint = Ui.Text(helpWide.Frame, "Close Hint", 32, 528 - 44, 836, 20, mono, 13, Lcd.Text3);
 
-            Ui.Text(panel, "Title", HelpPad, 24, 300, 40, displayBold, 28, Lcd.Ink, text: "HELP");
-            HudButton.Create(panel, "CLOSE", HelpW - HelpPad - 110f, 24, 110, 40, display, 14, CloseHelp);
-
-            Header(panel, "Controls Header", HelpPad, "CONTROLS");
-            Header(panel, "Board Header", HelpRightX, "ON THIS BOARD");
-
-            for (int i = 0; i < HelpText.Controls.Length; i++)
-            {
-                var e = HelpText.Controls[i];
-                float y = HelpListTop + i * 52f;
-                Ui.Text(panel, e.Title, HelpPad, y, 380, 22, mono, 15, Lcd.Ink, text: $"<b>{e.Title}</b>");
-                Ui.Text(panel, e.Title + " Text", HelpPad, y + 22, 380, 20, mono, 13, Lcd.Text2, text: e.Text);
-            }
-
-            helpBoard = Ui.Rect(panel, "Board Entries", HelpRightX, HelpListTop, HelpW - HelpRightX - HelpPad, HelpH - HelpListTop - 56f);
-            var layout = helpBoard.gameObject.AddComponent<VerticalLayoutGroup>();
-            layout.childControlWidth = layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
-            Ui.Text(panel, "Close Hint", HelpPad, HelpH - 44f, HelpW - 2 * HelpPad, 20, mono, 13, Lcd.Text3,
-                text: "H, Esc, Enter or a click outside closes this panel");
+            helpTall = HelpPanelFrame("Portrait", 720, 1280, 24, 96, 672, 1088);
+            Header(helpTall.Frame, "Controls Header", 32, 82, "CONTROLS");
+            helpTall.Controls = Column(helpTall.Frame, "Controls", 32, 112, 608, 300);
+            Header(helpTall.Frame, "Board Header", 32, 432, "ON THIS BOARD");
+            helpTall.Board = Column(helpTall.Frame, "Board Entries", 32, 462, 608, 560);
+            helpTall.CloseHint = Ui.Text(helpTall.Frame, "Close Hint", 32, 1088 - 44, 608, 20, mono, 13, Lcd.Text3);
 
             helpRoot.gameObject.SetActive(false);
         }
 
-        void Header(Transform panel, string name, float x, string text)
+        /// <summary>A centred reference frame holding a card panel with title and CLOSE; returns the panel.</summary>
+        HelpPanel HelpPanelFrame(string name, float frameW, float frameH, float x, float y, float w, float h)
         {
-            var t = Ui.Text(panel, name, x, 82, 380, 18, mono, 12, Lcd.Text3, text: text);
+            var frame = Ui.Rect(helpRoot, name, 0, 0, frameW, frameH);
+            frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(0.5f, 0.5f);
+            frame.anchoredPosition = Vector2.zero;
+            var panel = Ui.Rect(frame, "Panel", x, y, w, h);
+            panel.gameObject.AddComponent<Image>().color = Color.clear;
+            Ui.Box(panel, "Card", 0, 0, w, h, 12f, Lcd.Card);
+            Ui.Frame(panel, "Border", 0, 0, w, h, 12f, 3f, Lcd.Ink);
+            Ui.Text(panel, "Title", 32, 24, 300, 40, displayBold, 28, Lcd.Ink, text: "HELP");
+            HudButton.Create(panel, "CLOSE", w - 32f - 110f, 24, 110, 40, display, 14, CloseHelp);
+            return new HelpPanel { Frame = panel };
+        }
+
+        void Header(Transform panel, string name, float x, float y, string text)
+        {
+            var t = Ui.Text(panel, name, x, y, 380, 18, mono, 12, Lcd.Text3, text: text);
             t.characterSpacing = 8;
         }
 
-        /// <summary>Fills the right column for the current level: chapter, goal, mechanics.</summary>
-        void FillHelp()
+        /// <summary>A column whose layout group stacks and sizes the wrapped texts put into it.</summary>
+        static RectTransform Column(Transform panel, string name, float x, float y, float w, float h)
         {
-            for (int i = helpBoard.childCount - 1; i >= 0; i--) Destroy(helpBoard.GetChild(i).gameObject);
-
-            var ch = game.Chapter;
-            Column("Chapter", mono, 13, Lcd.Ink, $"<b>Chapter {game.ChapterIndex + 1} · {ch.name}</b>\n{ch.description}");
-            foreach (var e in HelpText.Mechanics(game.Level))
-            {
-                Gap(12f);
-                Column(e.Title, display, 13, Lcd.Ink, e.Title);
-                Gap(2f);
-                Column(e.Title + " Text", mono, 13, Lcd.Text2, e.Text);
-            }
+            var column = Ui.Rect(panel, name, x, y, w, h);
+            var layout = column.gameObject.AddComponent<VerticalLayoutGroup>();
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+            return column;
         }
 
-        /// <summary>A wrapped text in the right column; the column's layout group sizes it.</summary>
-        void Column(string name, TMP_FontAsset font, float size, Color32 color, string text)
+        /// <summary>Fills the visible panel for the current level and device: controls, chapter, goal, mechanics.</summary>
+        void FillHelp()
         {
-            var t = Ui.Text(helpBoard, name, 0, 0, helpBoard.sizeDelta.x, 20, font, size, color, TextAlignmentOptions.TopLeft, text);
+            bool tall = ScreenLayout.Portrait, mobile = DeviceMode.IsMobile;
+            helpWide.Frame.parent.gameObject.SetActive(!tall);
+            helpTall.Frame.parent.gameObject.SetActive(tall);
+            var p = HelpCur;
+            Clear(p.Controls);
+            Clear(p.Board);
+
+            var controls = mobile ? HelpText.TouchControls : HelpText.Controls;
+            for (int i = 0; i < controls.Length; i++)
+            {
+                if (i > 0) Gap(p.Controls, 8f);
+                Wrapped(p.Controls, controls[i].Title, mono, 15, Lcd.Ink, $"<b>{controls[i].Title}</b>");
+                Wrapped(p.Controls, controls[i].Title + " Text", mono, 13, Lcd.Text2, controls[i].Text);
+            }
+
+            var ch = game.Chapter;
+            Wrapped(p.Board, "Chapter", mono, 13, Lcd.Ink, $"<b>Chapter {game.ChapterIndex + 1} · {ch.name}</b>\n{ch.description}");
+            foreach (var e in HelpText.Mechanics(game.Level))
+            {
+                Gap(p.Board, 12f);
+                Wrapped(p.Board, e.Title, display, 13, Lcd.Ink, e.Title);
+                Gap(p.Board, 2f);
+                Wrapped(p.Board, e.Title + " Text", mono, 13, Lcd.Text2, e.Text);
+            }
+            p.CloseHint.text = mobile ? "Tap CLOSE or outside the panel to go back" : "H, Esc, Enter or a click outside closes this panel";
+        }
+
+        static void Clear(Transform column)
+        {
+            for (int i = column.childCount - 1; i >= 0; i--) Destroy(column.GetChild(i).gameObject);
+        }
+
+        /// <summary>A wrapped text in a column; the column's layout group sizes it.</summary>
+        static void Wrapped(RectTransform column, string name, TMP_FontAsset font, float size, Color32 color, string text)
+        {
+            var t = Ui.Text(column, name, 0, 0, column.sizeDelta.x, 20, font, size, color, TextAlignmentOptions.TopLeft, text);
             t.textWrappingMode = TextWrappingModes.Normal;
         }
 
-        void Gap(float height)
+        static void Gap(Transform column, float height)
         {
             var gap = new GameObject("Gap", typeof(RectTransform), typeof(LayoutElement));
-            gap.transform.SetParent(helpBoard, false);
+            gap.transform.SetParent(column, false);
             gap.GetComponent<LayoutElement>().minHeight = height;
         }
 
-        /// <summary>Portrait screens are narrower than the panel: shrink it to fit (until it gets its own layout).</summary>
-        void ScaleHelp(float scale)
+        /// <summary>After a rotation an open panel switches to the other arrangement.</summary>
+        void RefreshHelpOrientation()
         {
-            if (helpRoot == null) return;
-            var panelFrame = helpRoot.Find("Frame");
-            if (panelFrame != null) panelFrame.localScale = Vector3.one * scale;
+            if (HelpOpen) FillHelp();
         }
 
         void ToggleHelp()
@@ -121,8 +156,8 @@ namespace ShiftRegister.Game.Hud
         void OpenHelp()
         {
             if (helpRoot == null || game.Level == null) return;
-            FillHelp();
             helpRoot.gameObject.SetActive(true);
+            FillHelp();
             if (input != null) input.enabled = false;
         }
 

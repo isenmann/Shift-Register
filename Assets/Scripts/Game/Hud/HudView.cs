@@ -143,7 +143,7 @@ namespace ShiftRegister.Game.Hud
             Vector2 centre = ScreenLayout.BoardCenterPx;
             foreach (var banner in new[] { solvedBanner, brokenBanner })
                 banner.anchoredPosition = new Vector2(centre.x, -centre.y);
-            ScaleHelp(tall ? 0.76f : 1f);
+            RefreshHelpOrientation();
         }
 
         // ------------------------------------------------------------------ build

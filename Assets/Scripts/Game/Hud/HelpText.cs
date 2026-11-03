@@ -29,6 +29,16 @@ namespace ShiftRegister.Game.Hud
             new Entry("M · Esc · H", "mute · menu · this help")
         };
 
+        /// <summary>Phones and tablets: swiping instead of keys.</summary>
+        public static readonly Entry[] TouchControls =
+        {
+            new Entry("Swipe a row or column", "shift it, one cell per cell dragged"),
+            new Entry("Tap a cell", "select its row and column"),
+            new Entry("UNDO · RESET", "take a move back · start the level over"),
+            new Entry("NEXT", "on the banner, once solved"),
+            new Entry("MENU · HELP · SOUND", "chapters · this help · mute")
+        };
+
         /// <summary>The goal, then one entry per mechanic on this board, in the order the chapters introduce them.</summary>
         public static List<Entry> Mechanics(LevelData level)
         {
