@@ -3,6 +3,7 @@ using ShiftRegister.Core;
 using ShiftRegister.Game.Audio;
 using ShiftRegister.Game.CustomLevels;
 using ShiftRegister.Game.Hud;
+using ShiftRegister.Game.Input;
 using ShiftRegister.Game.View;
 using TMPro;
 using UnityEngine;
@@ -13,8 +14,9 @@ using UnityEngine.UI;
 namespace ShiftRegister.Game.LevelEditor
 {
     /// <summary>
-    /// The level editor screen (layout A of the editor canvas), desktop only, on its own canvas. The board
-    /// stays where the game draws it and is painted directly: click or drag, or arrows and Space. Tab swaps
+    /// The level editor screen (layout A of the editor canvas) on its own canvas: the desktop arrangement,
+    /// or on phones and tablets a landscape one (B3 proportions). An upright phone gets a message to rotate
+    /// instead; a running search goes on behind it. The board stays where the game draws it and is painted directly: click or drag, or arrows and Space. Tab swaps
     /// start and target, 1–5 pick a tool, 6 changes the gate tool's operator, Z / Y undo and redo, Enter
     /// solves, T test plays, X exports a share code, Esc cancels a search or leaves. Each row's options sit beside it: 1-IN toggles in the arrow
     /// button slots, then wrap, gate operator and the link to the next row.
@@ -46,7 +48,8 @@ namespace ShiftRegister.Game.LevelEditor
         bool painting, dirty;
         float saveAt;
 
-        RectTransform left, right;
+        RectTransform frame, rotateMessage, left, right;
+        float progressWidth = 188f;
         TMP_InputField nameField;
         TextMeshProUGUI nameText;
         Image nameCaret;
@@ -118,6 +121,16 @@ namespace ShiftRegister.Game.LevelEditor
         {
             var scaler = GetComponent<CanvasScaler>();
             if (scaler != null) scaler.referenceResolution = new Vector2(ScreenLayout.FrameWidthPx, ScreenLayout.FrameHeightPx);
+            bool upright = ScreenLayout.Portrait;
+            frame.gameObject.SetActive(!upright);
+            rotateMessage.gameObject.SetActive(upright);
+            game.BoardView.gameObject.SetActive(!upright);
+            if (upright)
+            {
+                painting = false;
+                session?.EndPaint();
+                return;
+            }
             left.anchoredPosition = new Vector2(-ScreenLayout.OuterShiftPx, 0f);
             right.anchoredPosition = new Vector2(ScreenLayout.OuterShiftPx, 0f);
             game.PlaceBoard();
@@ -191,6 +204,12 @@ namespace ShiftRegister.Game.LevelEditor
 
             if (session.IsSolving && session.Tick(SolveBudgetMs)) OnSolveFinished();
             else if (session.IsSolving) RefreshProof();
+
+            if (ScreenLayout.Portrait)
+            {
+                if (dirty && Time.unscaledTime >= saveAt) Save();
+                return;
+            }
 
             HandlePointer();
             HandleKeyboard();
@@ -454,7 +473,7 @@ namespace ShiftRegister.Game.LevelEditor
             proofTitle.color = session.Outcome == SolveOutcome.NoSolution ? Lcd.LossText : Lcd.Ink;
             proofText.text = session.ProofText;
             progressBox.gameObject.SetActive(session.IsSolving);
-            progressFill.sizeDelta = new Vector2(Mathf.Clamp01(session.SolveProgress) * 188f, progressFill.sizeDelta.y);
+            progressFill.sizeDelta = new Vector2(Mathf.Clamp01(session.SolveProgress) * progressWidth, progressFill.sizeDelta.y);
         }
 
         /// <summary>Painted bits only need a redraw; anything else changes the board's objects, which are rebuilt.</summary>
@@ -485,17 +504,144 @@ namespace ShiftRegister.Game.LevelEditor
         void Build()
         {
             var canvas = (RectTransform)transform;
-            var frame = Ui.Rect(canvas, "Editor", 0, 0, 1280, 720);
-            frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(0.5f, 0.5f);
-            frame.anchoredPosition = Vector2.zero;
+            bool phone = DeviceMode.IsMobile;
+            float w = phone ? 915f : 1280f, h = phone ? 412f : 720f;
+            frame = Centred(canvas, "Editor", w, h);
+            left = Ui.Rect(frame, "Left", 0, 0, w, h);
+            right = Ui.Rect(frame, "Right", 0, 0, w, h);
+            if (phone)
+            {
+                BuildLeftPhone(left);
+                BuildCentrePhone(frame);
+                BuildRows(frame, new RowLayout
+                {
+                    Top = 20f, Pitch = 47.15f, CellH = 41f, LeftX = 198f, RightX = 611f, FillW = 34f,
+                    WrapX = 649f, GateX = 689f, LinkX = 729f, Chip = 36f, LinkSize = 30f, HeaderY = 2f, HeaderSize = 10f, Font = 13f
+                });
+                BuildRightPhone(right);
+            }
+            else
+            {
+                BuildLeft(left);
+                BuildCentre(frame);
+                BuildRows(frame, new RowLayout
+                {
+                    Top = 124f, Pitch = 60f, CellH = 52f, LeftX = 312f, RightX = 840f, FillW = 40f,
+                    WrapX = 892f, GateX = 938f, LinkX = 984f, Chip = 40f, LinkSize = 32f, HeaderY = 100f, HeaderSize = 11f, Font = 14f
+                });
+                BuildRight(right);
+            }
+            share = ShareDialog.Create(frame, w, h, display, mono); // last, so it covers the screen
+            BuildRotateMessage(canvas);
+        }
 
-            left = Ui.Rect(frame, "Left", 0, 0, 1280, 720);
-            right = Ui.Rect(frame, "Right", 0, 0, 1280, 720);
-            BuildLeft(left);
-            BuildCentre(frame);
-            BuildRows(frame);
-            BuildRight(right);
-            share = ShareDialog.Create(frame, 1280f, 720f, display, mono); // last, so it covers the screen
+        static RectTransform Centred(RectTransform canvas, string name, float w, float h)
+        {
+            var rect = Ui.Rect(canvas, name, 0, 0, w, h);
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
+            return rect;
+        }
+
+        /// <summary>What an upright phone shows: the editor only fits sideways.</summary>
+        void BuildRotateMessage(RectTransform canvas)
+        {
+            const float w = 412f, x = 24f, inner = w - 2f * x;
+            rotateMessage = Centred(canvas, "Rotate Message", w, 915f);
+            Ui.Frame(rotateMessage, "Phone Upright", 96, 300, 60, 100, 8f, 3f, Lcd.Text3);
+            Ui.Text(rotateMessage, "Arrow", 156, 300, 60, 100, mono, 24, Lcd.Ink, TextAlignmentOptions.Center, "→");
+            Ui.Frame(rotateMessage, "Phone Sideways", 216, 320, 100, 60, 8f, 3f, Lcd.Ink);
+            Ui.Text(rotateMessage, "Heading", x, 424, inner, 34, display, 22, Lcd.Ink, TextAlignmentOptions.Center, "TURN IT SIDEWAYS");
+            var text = Ui.Text(rotateMessage, "Text", x, 464, inner, 48, mono, 15, Lcd.Text2, TextAlignmentOptions.Top,
+                "The editor needs the wide view. Your level is safe.");
+            text.textWrappingMode = TextWrappingModes.Normal;
+            HudButton.Create(rotateMessage, "BACK", x, 528, inner, 54, display, 16, () => flow.Show(GameScreen.MyLevels));
+        }
+
+        void BuildLeftPhone(Transform root)
+        {
+            const float x = 12f, w = 178f;
+            nameField = NameField(root, x, 8, w, 32, 14, 16);
+
+            float half = w / 2f;
+            startTab = HudButton.Create(root, "START", x, 46, half, 38, display, 13, () => SetLayer(EditLayer.Start));
+            targetTab = HudButton.Create(root, "TARGET", x + half, 46, half, 38, display, 13, () => SetLayer(EditLayer.Target));
+
+            const float cardY = 90f, cardH = 84f, cell = 8f, gap = 1f;
+            Ui.Box(root, "Other Picture", x, cardY, w, cardH, 8f, Lcd.Cell);
+            for (int r = 0; r < N; r++)
+            for (int c = 0; c < N; c++)
+                mini[r * N + c] = Ui.Box(root, $"Mini {r + 1},{c + 1}", x + 8 + c * (cell + gap), cardY + 6 + r * (cell + gap), cell, cell, 1f, Lcd.Background);
+            otherName = Ui.Text(root, "Other Name", x + 88, cardY + 20, 88, 20, display, 12, Lcd.Ink);
+            Ui.Text(root, "Other Hint", x + 88, cardY + 42, 88, 18, mono, 12, Lcd.Text2, text: "tap to swap");
+            UiHotspot.Create(root, "Other Picture Hotspot", x, cardY, w, cardH).Click = SwapLayer;
+
+            const float toolGap = 4f, toolH = 38f, toolY = 180f;
+            float toolW = (w - toolGap) / 2f;
+            string[] labels = { "BIT", "WALL", "PIN", "GATE", "ERASE" };
+            for (int i = 0; i < ToolOrder.Length; i++)
+            {
+                var tool = ToolOrder[i];
+                toolButtons[i] = HudButton.Create(root, labels[i], x + (i % 2) * (toolW + toolGap), toolY + (i / 2) * (toolH + toolGap),
+                    toolW, toolH, display, 12, () => PickTool(tool));
+            }
+            opButton = HudButton.Create(root, "OP &", x + toolW + toolGap, toolY + 2 * (toolH + toolGap), toolW, toolH, display, 12, CycleOp);
+
+            undoButton = HudButton.Create(root, "UNDO", x, 312, toolW, 44, display, 12, Undo);
+            redoButton = HudButton.Create(root, "REDO", x + toolW + toolGap, 312, toolW, 44, display, 12, Redo);
+        }
+
+        void BuildCentrePhone(Transform root)
+        {
+            const float x = 236f, w = 371f;
+            paintLabel = Ui.Text(root, "Painting", x, 1, 190, 18, display, 11, Lcd.Ink);
+            ghostLabel = Ui.Text(root, "Ghosts", x + 190, 1, w - 190, 18, mono, 11, Lcd.Text3, TextAlignmentOptions.MidlineRight);
+            statusDot = Ui.Box(root, "Status Dot", x, 396, 8, 8, 2f, Lcd.Text2);
+            statusText = Ui.Text(root, "Status", x + 12, 391, w + 20, 18, mono, 11, Lcd.Text2);
+        }
+
+        void BuildRightPhone(Transform root)
+        {
+            const float x = 768f, w = 135f;
+            Ui.Text(root, "Loss Title", x, 4, w, 14, display, 10, Lcd.Ink, text: "BITS MAY FALL");
+            for (int i = 0; i < LossOrder.Length; i++)
+            {
+                var rule = LossOrder[i];
+                lossTabs[i] = HudButton.Create(root, LossLabels[i], x + i * 45f, 20, 45, 32, display, 9, () =>
+                    session.Edit.SetLoss(rule, session.Edit.Level.lossCount));
+            }
+            Ui.Text(root, "Loss Count Label", x, 56, 40, 32, mono, 11, Lcd.Text2, text: "Bits");
+            lossDown = HudButton.Create(root, "Fewer", x + w - 92, 56, 32, 32, mono, 15, () => StepLoss(-1));
+            lossDown.Text = "-";
+            lossCount = Ui.Text(root, "Loss Count", x + w - 60, 56, 28, 32, display, 14, Lcd.Ink, TextAlignmentOptions.Center);
+            lossUp = HudButton.Create(root, "More", x + w - 32, 56, 32, 32, mono, 15, () => StepLoss(1));
+            lossUp.Text = "+";
+
+            Ui.Frame(root, "Columns Box", x, 98, 16, 16, 4f, 2f, Lcd.Ink);
+            columnsTick = Ui.Box(root, "Columns Tick", x + 4, 102, 8, 8, 2f, Lcd.Ink);
+            var columnsText = Ui.Text(root, "Columns Text", x + 22, 92, w - 22, 28, mono, 10, Lcd.Text2, text: "Gates also on column moves");
+            columnsText.textWrappingMode = TextWrappingModes.Normal;
+            UiHotspot.Create(root, "Columns Hotspot", x, 90, w, 32).Click = () =>
+            {
+                Sfx.Play(Sound.Click);
+                session.Edit.SetGatesOnColumnMoves(!session.Edit.Level.gatesOnColumnMoves);
+            };
+
+            proofTitle = Ui.Text(root, "Proof Title", x, 124, w, 18, display, 13, Lcd.Ink);
+            proofText = Ui.Text(root, "Proof Text", x, 143, w, 68, mono, 10, Lcd.Text2, TextAlignmentOptions.TopLeft);
+            proofText.textWrappingMode = TextWrappingModes.Normal;
+
+            progressWidth = w - 4f;
+            progressBox = Ui.Rect(root, "Progress", x, 212, w, 10);
+            Ui.Frame(progressBox, "Progress Frame", 0, 0, w, 10, 3f, 2f, Lcd.Ink);
+            progressFill = Ui.Rect(progressBox, "Progress Fill", 2, 2, 0, 6);
+            progressFill.gameObject.AddComponent<Image>().color = Lcd.Ink;
+            progressFill.GetComponent<Image>().raycastTarget = false;
+
+            solveButton = HudButton.CreateSolid(root, "SOLVE", x, 226, w, 44, display, 13, ToggleSolve);
+            testPlayButton = HudButton.Create(root, "TEST PLAY", x, 274, w, 40, display, 12, TestPlay);
+            exportButton = HudButton.Create(root, "EXPORT", x, 318, w, 40, display, 12, Export);
+            HudButton.Create(root, "BACK", x, 362, w, 40, display, 12, Lcd.Text2, Lcd.Light, () => flow.Show(GameScreen.MyLevels));
         }
 
         void BuildLeft(Transform root)
@@ -505,7 +651,7 @@ namespace ShiftRegister.Game.LevelEditor
             heading.characterSpacing = 8;
             var nameLabel = Ui.Text(root, "Name Label", x, 68, w, 16, mono, 12, Lcd.Text3, text: "NAME");
             nameLabel.characterSpacing = 8;
-            nameField = NameField(root, x, 88, w, 40);
+            nameField = NameField(root, x, 88, w, 40, 18, 20);
 
             startTab = HudButton.Create(root, "START", x, 142, 116, 48, display, 15, () => SetLayer(EditLayer.Start));
             targetTab = HudButton.Create(root, "TARGET", x + 116, 142, 116, 48, display, 15, () => SetLayer(EditLayer.Target));
@@ -544,42 +690,48 @@ namespace ShiftRegister.Game.LevelEditor
             statusText = Ui.Text(root, "Status", x + 18, 610, w - 18, 34, mono, 13, Lcd.Text2);
         }
 
-        /// <summary>The options beside each row, in line with the game's arrow buttons and row tags.</summary>
-        void BuildRows(Transform root)
+        /// <summary>Where the options beside each row go, in line with the board's rows.</summary>
+        struct RowLayout
         {
-            const float top = 124f, pitch = 60f, cellH = 52f;
-            const float wrapX = 892f, gateX = 938f, linkX = 984f, chip = 40f, linkSize = 32f;
-            Ui.Text(root, "Wrap Header", wrapX - 6, 100, chip + 12, 16, mono, 11, Lcd.Text3, TextAlignmentOptions.Center, "WRAP");
-            Ui.Text(root, "Gate Header", gateX - 6, 100, chip + 12, 16, mono, 11, Lcd.Text3, TextAlignmentOptions.Center, "GATE");
-            Ui.Text(root, "Link Header", linkX - 6, 100, linkSize + 12, 16, mono, 11, Lcd.Text3, TextAlignmentOptions.Center, "LINK");
+            public float Top, Pitch, CellH, LeftX, RightX, FillW, WrapX, GateX, LinkX, Chip, LinkSize, HeaderY, HeaderSize, Font;
+        }
+
+        void BuildRows(Transform root, RowLayout k)
+        {
+            float headerW = k.Chip + 12f;
+            Ui.Text(root, "Wrap Header", k.WrapX - 6, k.HeaderY, headerW, 16, mono, k.HeaderSize, Lcd.Text3, TextAlignmentOptions.Center, "WRAP");
+            Ui.Text(root, "Gate Header", k.GateX - 6, k.HeaderY, headerW, 16, mono, k.HeaderSize, Lcd.Text3, TextAlignmentOptions.Center, "GATE");
+            Ui.Text(root, "Link Header", k.LinkX - 6, k.HeaderY, k.LinkSize + 12, 16, mono, k.HeaderSize, Lcd.Text3, TextAlignmentOptions.Center, "LINK");
 
             for (int i = 0; i < N; i++)
             {
                 int r = i;
-                float y = top + r * pitch;
-                fillLeft[r] = HudButton.Create(root, $"1-IN left {r + 1}", 312, y, 40, cellH, mono, 14,
+                float y = k.Top + r * k.Pitch;
+                fillLeft[r] = HudButton.Create(root, $"1-IN left {r + 1}", k.LeftX, y, k.FillW, k.CellH, mono, k.Font,
                     () => session.Edit.SetFill(r, true, !session.Edit.HasFill(r, true)));
                 fillLeft[r].Text = "1›";
-                fillRight[r] = HudButton.Create(root, $"1-IN right {r + 1}", 840, y, 40, cellH, mono, 14,
+                fillRight[r] = HudButton.Create(root, $"1-IN right {r + 1}", k.RightX, y, k.FillW, k.CellH, mono, k.Font,
                     () => session.Edit.SetFill(r, false, !session.Edit.HasFill(r, false)));
                 fillRight[r].Text = "‹1";
 
-                float chipY = y + (cellH - chip) / 2f;
-                wrap[r] = HudButton.Create(root, $"Wrap {r + 1}", wrapX, chipY, chip, chip, mono, 14,
+                float chipY = y + (k.CellH - k.Chip) / 2f;
+                wrap[r] = HudButton.Create(root, $"Wrap {r + 1}", k.WrapX, chipY, k.Chip, k.Chip, mono, k.Font,
                     () => session.Edit.SetRotate(r, !session.Edit.IsRotating(r)));
                 wrap[r].Text = "";
                 // A dashed loop, like the belt around a wrapping row.
-                wrap[r].AddIcon(Ui.Frame(wrap[r].transform, "Icon", 10, 13, 20, 14, 5f, 2f, Lcd.Ink, 3f));
+                wrap[r].AddIcon(Ui.Frame(wrap[r].transform, "Icon", (k.Chip - 20f) / 2f, (k.Chip - 14f) / 2f, 20, 14, 5f, 2f, Lcd.Ink, 3f));
 
-                gate[r] = HudButton.Create(root, $"Gate {r + 1}", gateX, chipY, chip, chip, mono, 15, () => CycleRowGate(r));
+                gate[r] = HudButton.Create(root, $"Gate {r + 1}", k.GateX, chipY, k.Chip, k.Chip, mono, k.Font + 1f, () => CycleRowGate(r));
 
                 if (r == N - 1) continue;
-                link[r] = HudButton.Create(root, $"Link {r + 1}", linkX, y + cellH + 4f - linkSize / 2f, linkSize, linkSize, mono, 14,
+                float gap = k.Pitch - k.CellH;
+                link[r] = HudButton.Create(root, $"Link {r + 1}", k.LinkX, y + k.CellH + gap / 2f - k.LinkSize / 2f, k.LinkSize, k.LinkSize, mono, k.Font,
                     () => session.Edit.SetChain(r, session.Edit.ChainTopOf(r) != r));
                 link[r].Text = "";
                 // Two links of a chain, one row over the next.
-                link[r].AddIcon(Ui.Frame(link[r].transform, "Icon Top", 10, 6, 12, 12, 4f, 2f, Lcd.Ink));
-                link[r].AddIcon(Ui.Frame(link[r].transform, "Icon Bottom", 10, 14, 12, 12, 4f, 2f, Lcd.Ink));
+                float ringX = (k.LinkSize - 12f) / 2f, ringY = (k.LinkSize - 20f) / 2f;
+                link[r].AddIcon(Ui.Frame(link[r].transform, "Icon Top", ringX, ringY, 12, 12, 4f, 2f, Lcd.Ink));
+                link[r].AddIcon(Ui.Frame(link[r].transform, "Icon Bottom", ringX, ringY + 8f, 12, 12, 4f, 2f, Lcd.Ink));
             }
         }
 
@@ -655,7 +807,7 @@ namespace ShiftRegister.Game.LevelEditor
         }
 
         /// <summary>The name box. Only allowed characters get in, as capitals; the name is stored when typing ends.</summary>
-        TMP_InputField NameField(Transform root, float x, float y, float w, float h)
+        TMP_InputField NameField(Transform root, float x, float y, float w, float h, float fontSize, float caretH)
         {
             var rt = Ui.Rect(root, "Name Field", x, y, w, h);
             rt.gameObject.AddComponent<Image>().color = Color.clear;
@@ -663,10 +815,9 @@ namespace ShiftRegister.Game.LevelEditor
             Ui.Frame(rt, "Frame", 0, 0, w, h, 6f, 2f, Lcd.Ink);
             var area = Ui.Rect(rt, "Text Area", 10, 0, w - 20, h);
             area.gameObject.AddComponent<RectMask2D>();
-            var text = Ui.Text(area, "Text", 0, 0, w - 20, h, display, 18, Lcd.Ink);
+            var text = Ui.Text(area, "Text", 0, 0, w - 20, h, display, fontSize, Lcd.Ink);
             text.richText = false;
             nameText = text;
-            const float caretH = 20f;
             nameCaret = Ui.Rect(text.transform, "Caret", 0, (h - caretH) / 2f, 2, caretH).gameObject.AddComponent<Image>();
             nameCaret.color = Lcd.Ink;
             nameCaret.raycastTarget = false;
@@ -676,7 +827,7 @@ namespace ShiftRegister.Game.LevelEditor
             field.textViewport = area;
             field.textComponent = text;
             field.fontAsset = display;
-            field.pointSize = 18;
+            field.pointSize = fontSize;
             field.richText = false;
             field.lineType = TMP_InputField.LineType.SingleLine;
             field.characterLimit = LevelEdit.MaxNameLength;

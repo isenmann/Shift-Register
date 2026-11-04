@@ -33,6 +33,10 @@ namespace ShiftRegister.Editor
             // project settings, so set it here for every machine.
             if (target == BuildTarget.WebGL)
                 UnityEditor.WebGL.UserBuildSettings.codeOptimization = UnityEditor.WebGL.WasmCodeOptimization.DiskSizeLTO;
+            // Web-only engine types (WebGLInput) are missing from the scripts' references while another
+            // target is active, so a web build right after an Android build would not compile.
+            if (target == BuildTarget.WebGL && EditorUserBuildSettings.activeBuildTarget != BuildTarget.WebGL)
+                EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.WebGL, BuildTarget.WebGL);
             // An APK installs directly; an app bundle (.aab) only goes through the Play Store.
             if (target == BuildTarget.Android)
                 EditorUserBuildSettings.buildAppBundle = false;

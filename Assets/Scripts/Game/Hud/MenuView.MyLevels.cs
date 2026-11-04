@@ -135,7 +135,7 @@ namespace ShiftRegister.Game.Hud
                 ui.Rows[i] = row;
             }
             ui.Empty = Ui.Text(left, "Empty", k.ListX, k.ListY, k.ListW, 60, mono, 15, Lcd.Text2, TextAlignmentOptions.TopLeft,
-                ScreenFlow.CanEdit ? "No levels yet. NEW starts one on an empty board." : "No levels yet. IMPORT takes a level someone shared.");
+                "No levels yet. NEW starts one on an empty board.");
             ui.Empty.textWrappingMode = TextWrappingModes.Normal;
 
             ui.Name = Ui.Text(right, "Name", k.PanelX, k.NameY, k.PanelW, k.NameH, display, k.NameSize, Lcd.Ink);
@@ -300,11 +300,6 @@ namespace ShiftRegister.Game.Hud
 
         void NewLevel()
         {
-            if (!ScreenFlow.CanEdit)
-            {
-                Sfx.Play(Sound.Blocked);
-                return;
-            }
             var entry = Library.Add(new LevelData { name = NewLevelName }, LevelProof.None, DateTime.UtcNow.Ticks);
             if (entry == null)
             {
@@ -333,7 +328,7 @@ namespace ShiftRegister.Game.Hud
         void EditMyLevel()
         {
             var entry = MySelected;
-            if (entry == null || !ScreenFlow.CanEdit) Sfx.Play(Sound.Blocked);
+            if (entry == null) Sfx.Play(Sound.Blocked);
             else flow.EditLevel(entry.level.id);
         }
 
@@ -404,12 +399,11 @@ namespace ShiftRegister.Game.Hud
 
             var entry = MySelected;
             bool any = entry != null;
-            bool canEdit = ScreenFlow.CanEdit;
             ui.Play.Disabled = !any || !IsPlayable(entry);
-            ui.Edit.Disabled = !any || !canEdit;
+            ui.Edit.Disabled = !any;
             ui.Delete.Disabled = !any;
             ui.Duplicate.Disabled = !any || Library.IsFull;
-            ui.New.Disabled = Library.IsFull || !canEdit;
+            ui.New.Disabled = Library.IsFull;
             ui.Import.Disabled = Library.IsFull;
             ui.Export.Disabled = !any || entry.proof == LevelProof.None;
 

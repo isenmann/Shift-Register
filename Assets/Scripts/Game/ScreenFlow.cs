@@ -105,9 +105,6 @@ namespace ShiftRegister.Game
         public static bool CanQuit =>
             Application.platform != RuntimePlatform.WebGLPlayer && !Application.isMobilePlatform && !DeviceMode.IsMobile;
 
-        /// <summary>The level editor needs a mouse and keyboard until its phone layouts exist.</summary>
-        public static bool CanEdit => !DeviceMode.IsMobile;
-
         /// <summary>QUIT on the title screen. Progress is already saved after every solved level.</summary>
         public void Quit()
         {
