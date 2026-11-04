@@ -1,0 +1,104 @@
+/* The game's MY LEVELS screen for the web, in its LCD palette (Assets/Scripts/Game/Lcd.cs). */
+@font-face { font-family: "Silkscreen"; src: url("fonts/Silkscreen-Regular.ttf"); font-display: swap; }
+@font-face { font-family: "Silkscreen"; font-weight: 700; src: url("fonts/Silkscreen-Bold.ttf"); font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("fonts/JetBrainsMono-Regular.ttf"); font-display: swap; }
+
+:root {
+  --bg: #C3CD9C; --cell: #B2BD88; --cell-hover: #A8B37E; --card: #D3DBB2; --ink: #232C15; --light: #DCE4BC;
+  --text2: #2F3A1D; --text3: #46522D; --loss: #7A2E1F; --off-selected: #39442A;
+  --display: "Silkscreen", "Courier New", monospace;
+  --mono: "JetBrains Mono", ui-monospace, "DejaVu Sans Mono", monospace;
+  --row: 52px; --pitch: 58px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font: 400 14px/1.45 var(--mono);
+  padding-block: calc(28px + env(safe-area-inset-top, 0px)) calc(32px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.page { max-width: 1168px; margin: 0 auto; display: grid; gap: 20px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--loss); outline-offset: 2px; }
+
+header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px 20px; }
+h1 { font: 700 34px/1.1 var(--display); margin: 0 0 4px; letter-spacing: .02em; }
+.count { color: var(--text2); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 22px;
+  border: 2px solid var(--ink); border-radius: 6px; background: none; color: var(--ink);
+  font: 400 14px var(--display); letter-spacing: .08em; text-decoration: none;
+}
+.btn:hover { background: var(--cell); }
+.btn.solid { background: var(--ink); color: var(--light); }
+.btn.solid:hover { background: var(--text3); border-color: var(--text3); }
+.btn:disabled { opacity: .6; cursor: default; }
+
+.upload { background: var(--card); border-radius: 10px; padding: 14px 16px 12px; display: grid; gap: 8px; }
+.upload label { font: 400 13px var(--display); letter-spacing: .06em; }
+.line { display: flex; gap: 8px; flex-wrap: wrap; }
+.field {
+  flex: 1 1 260px; min-width: 0; height: 44px; padding: 0 10px; background: var(--light); color: var(--ink);
+  border: 2px solid var(--ink); border-radius: 6px; font: 400 14px var(--mono);
+}
+.field::placeholder { color: var(--text3); opacity: 1; }
+.message { min-height: 20px; font-size: 13px; color: var(--text2); }
+.message.bad { color: var(--loss); }
+
+.main { display: grid; grid-template-columns: minmax(0, 640fr) minmax(0, 492fr); gap: 36px; align-items: start; }
+.list {
+  display: grid; gap: calc(var(--pitch) - var(--row)); overflow-y: auto; scrollbar-color: var(--text3) transparent;
+  max-height: calc(9 * var(--pitch) - (var(--pitch) - var(--row)));
+}
+.row {
+  --on: var(--ink); --off: var(--bg); --wall: var(--text2); --fg: var(--ink); --sub: var(--text2);
+  display: flex; align-items: center; gap: 12px; width: 100%; height: var(--row); padding: 0 14px 0 8px;
+  background: var(--cell); border: 0; border-radius: 8px; text-align: left;
+}
+.row:hover { background: var(--cell-hover); }
+.row[aria-current="true"] {
+  --on: var(--light); --off: var(--off-selected); --wall: var(--light); --fg: var(--light); --sub: var(--light);
+  background: var(--ink);
+}
+.row:focus-visible { outline-offset: -3px; }
+.row svg { flex: none; width: 39px; height: 39px; }
+.row .on { fill: var(--on); }
+.row .off { fill: var(--off); }
+.row .wall { fill: var(--wall); }
+.row .title {
+  flex: 1 1 auto; min-width: 0; font: 400 16px var(--display); letter-spacing: .05em; color: var(--fg);
+  overflow-wrap: anywhere;
+}
+.row .status { color: var(--sub); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.detail { display: grid; gap: 12px; min-width: 0; }
+.detail h2 { font: 400 26px/1.2 var(--display); margin: 0; letter-spacing: .05em; overflow-wrap: anywhere; }
+.proof { color: var(--text2); font-size: 13px; margin-top: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
+.chip { padding: 2px 7px; border: 1px solid var(--ink); border-radius: 4px; font: 400 12px var(--display); letter-spacing: .05em; }
+.boards { display: grid; grid-template-columns: repeat(2, minmax(0, 181px)); gap: 40px; }
+.boards h3 { font: 400 13px var(--display); margin: 0 0 8px; letter-spacing: .06em; }
+.thumb { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
+.thumb i { display: block; aspect-ratio: 1; background: var(--cell); border-radius: 4px; }
+.thumb i.on { background: var(--ink); }
+.thumb i.wall { background: var(--text3); }
+.code {
+  display: block; padding: 8px 10px; background: var(--light); border: 2px solid var(--ink); border-radius: 6px;
+  font: 400 13px/1.4 var(--mono); color: var(--ink); word-break: break-all; user-select: all;
+}
+.copy { width: 100%; height: 52px; font-size: 18px; }
+.hint { margin: 0; color: var(--text3); font-size: 13px; }
+footer { color: var(--text3); font-size: 13px; }
+
+@media (max-width: 820px) {
+  body { padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)); }
+  h1 { font-size: 26px; }
+  .main { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .list { max-height: calc(6 * var(--pitch) - (var(--pitch) - var(--row))); }
+  .row .title { font-size: 14px; }
+  .row .status { font-size: 12px; }
+  .boards { gap: 16px; }
+  .upload .btn { flex: 1 1 100%; }
+}

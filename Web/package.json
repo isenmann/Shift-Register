@@ -3,6 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test \"test/*.test.js\"",
+    "dev": "npx wrangler@4 d1 execute shift-register-levels --local --file=schema.sql && npx wrangler@4 dev",
+    "deploy": "npx wrangler@4 deploy"
   }
 }

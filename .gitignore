@@ -108,6 +108,7 @@ Desktop.ini
 /Tools/LevelGenerator/obj/
 /Tools/ShareCodeVectors/bin/
 /Tools/ShareCodeVectors/obj/
+/Web/.wrangler/
 /Tools/LevelGenerator/picked*.txt
 
 # Itch.io page material, kept out of the repo

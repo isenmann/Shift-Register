@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Puzzles for Shift Register made by its players. Copy a code into the game, or share your own level.">
+  <meta name="theme-color" content="#C3CD9C">
+  <title>Shift Register Levels</title>
+  <link rel="icon" href="favicon.png">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="page.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <h1>SHARED LEVELS</h1>
+        <div class="count" id="count" role="status">Loading levels...</div>
+      </div>
+      <a class="btn" href="https://devplayrepeat.itch.io/shift-register">GET THE GAME</a>
+    </header>
+
+    <form class="upload" id="form" novalidate>
+      <label for="input">ADD YOUR LEVEL</label>
+      <div class="line">
+        <input class="field" id="input" maxlength="2048" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste a share code: SR1-...">
+        <button class="btn solid" type="submit" id="send">UPLOAD</button>
+      </div>
+      <div class="message" id="message" role="status">In the game: MY LEVELS, EXPORT, COPY.</div>
+    </form>
+
+    <div class="main">
+      <div class="list" id="list"></div>
+      <section class="detail" id="detail" hidden>
+        <div>
+          <h2 id="name"></h2>
+          <div class="proof" id="proof"></div>
+        </div>
+        <div class="chips" id="chips"></div>
+        <div class="boards">
+          <div><h3>START</h3><div class="thumb" id="start"></div></div>
+          <div><h3>TARGET</h3><div class="thumb" id="target"></div></div>
+        </div>
+        <code class="code" id="code"></code>
+        <button class="btn solid copy" type="button" id="copy">COPY CODE</button>
+        <p class="hint">To play: open Shift Register, go to MY LEVELS, choose IMPORT and paste the code.</p>
+      </section>
+    </div>
+
+    <footer>Shift Register · Game Off 2026 · Only the share code is stored. Everything else here is worked out from it.</footer>
+  </div>
+</body>
+</html>
