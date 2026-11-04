@@ -5,6 +5,10 @@ namespace ShiftRegister.Core
     public static class Scoring
     {
         public const int MaxStars = 3;
+        /// <summary>What a solve earns once a hint showed a move, however few moves it took.</summary>
+        public const int HintStars = 1;
+
+        public static int Stars(int moves, int par, bool usedHint) => usedHint ? HintStars : Stars(moves, par);
 
         /// <summary>
         /// 3 stars at or under par, 2 within par + max(2, ⌈par/2⌉), otherwise 1 for solving.

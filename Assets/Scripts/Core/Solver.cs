@@ -63,7 +63,19 @@ namespace ShiftRegister.Core
         /// </summary>
         public static SolveJob Begin(LevelRules rules, int maxStates = DefaultMaxStates,
             int maxDepth = DefaultMaxDepth) =>
-            new SolveJob(rules, maxStates, maxDepth);
+            new SolveJob(rules, rules.Start, 0, null, maxStates, maxDepth);
+
+        /// <summary>
+        /// <see cref="Begin"/> from a position in the middle of a level instead of its start. The search also
+        /// knows the <paramref name="waypoints"/>, positions that lead to the solve in the given number of moves.
+        /// The answer then is the way to the waypoint with the fewest moves overall, and the search goes on while
+        /// a shorter way is possible, so a good move out of order is not taken back. Running out of states ends
+        /// it on the best waypoint so far, which counts as solved.
+        /// </summary>
+        public static SolveJob BeginFrom(LevelRules rules, ulong board, int lostSoFar,
+            IEnumerable<(ulong bits, int lost, int movesLeft)> waypoints = null, int maxStates = DefaultMaxStates,
+            int maxDepth = DefaultMaxDepth) =>
+            new SolveJob(rules, board, lostSoFar, waypoints, maxStates, maxDepth);
 
         /// <summary>
         /// True if playing exactly these moves solves the level, under the same rules as
@@ -152,6 +164,9 @@ namespace ShiftRegister.Core
             List<ulong> bits;
             List<int> lost, parent, moveIndex, depth;
             HashSet<Key> seen;
+            Dictionary<Key, int> waypoints;
+            /// <summary>The best waypoint reached so far, or -1.</summary>
+            int bestNode = -1, bestTotal;
             int head;
             bool depthLimitHit;
 
@@ -162,23 +177,40 @@ namespace ShiftRegister.Core
             /// <summary>States found so far.</summary>
             public int StatesVisited => Result != null ? Result.StatesVisited : bits.Count;
 
-            internal SolveJob(LevelRules rules, int maxStates, int maxDepth)
+            internal SolveJob(LevelRules rules, ulong board, int lostSoFar,
+                IEnumerable<(ulong bits, int lost, int movesLeft)> waypoints, int maxStates, int maxDepth)
             {
                 this.rules = rules;
                 this.maxStates = maxStates;
                 this.maxDepth = maxDepth;
                 trackLost = rules.LossRule != LossRule.Any;
                 targetCount = BoardBits.PopCount(rules.Target);
-                bits = new List<ulong> { rules.Start };
-                lost = new List<int> { 0 };
+                bits = new List<ulong> { board };
+                lost = new List<int> { lostSoFar };
                 parent = new List<int> { -1 };
                 moveIndex = new List<int> { -1 };
                 depth = new List<int> { 0 };
-                seen = new HashSet<Key> { new Key(rules.Start, 0) };
+                seen = new HashSet<Key> { new Key(board, trackLost ? lostSoFar : 0) };
+                if (waypoints != null)
+                {
+                    this.waypoints = new Dictionary<Key, int>();
+                    foreach (var (waypointBits, waypointLost, movesLeft) in waypoints)
+                    {
+                        var key = new Key(waypointBits, trackLost ? waypointLost : 0);
+                        if (!this.waypoints.TryGetValue(key, out int known) || movesLeft < known)
+                        {
+                            this.waypoints[key] = movesLeft;
+                        }
+                    }
+                }
 
-                if (rules.IsSolved(rules.Start, 0))
+                if (rules.IsSolved(board, lostSoFar))
                 {
                     Finish(SolveStatus.Solved, Array.Empty<Move>());
+                }
+                else if (rules.IsBroken(lostSoFar) || CannotReachTarget(rules, board, lostSoFar, targetCount))
+                {
+                    Finish(SolveStatus.Unsolvable, null);
                 }
             }
 
@@ -197,7 +229,14 @@ namespace ShiftRegister.Core
                 {
                     if (head >= bits.Count)
                     {
-                        Finish(depthLimitHit ? SolveStatus.LimitReached : SolveStatus.Unsolvable, null);
+                        FinishWithoutSolve(depthLimitHit ? SolveStatus.LimitReached : SolveStatus.Unsolvable);
+                        return true;
+                    }
+
+                    // From here on even a solve would be no shorter than the best waypoint's way.
+                    if (bestNode >= 0 && depth[head] + 1 >= bestTotal)
+                    {
+                        FinishWithoutSolve(SolveStatus.LimitReached);
                         return true;
                     }
 
@@ -246,9 +285,16 @@ namespace ShiftRegister.Core
                             return true;
                         }
 
+                        if (waypoints != null && waypoints.TryGetValue(key, out int movesLeft)
+                            && (bestNode < 0 || depth[node] + 1 + movesLeft < bestTotal))
+                        {
+                            bestNode = bits.Count - 1;
+                            bestTotal = depth[node] + 1 + movesLeft;
+                        }
+
                         if (bits.Count >= maxStates)
                         {
-                            Finish(SolveStatus.LimitReached, null);
+                            FinishWithoutSolve(SolveStatus.LimitReached);
                             return true;
                         }
                     }
@@ -260,8 +306,21 @@ namespace ShiftRegister.Core
                     return false;
                 }
 
-                Finish(depthLimitHit ? SolveStatus.LimitReached : SolveStatus.Unsolvable, null);
+                FinishWithoutSolve(depthLimitHit ? SolveStatus.LimitReached : SolveStatus.Unsolvable);
                 return true;
+            }
+
+            /// <summary>Ends on the best waypoint if one was reached, which counts as solved, else on this status.</summary>
+            void FinishWithoutSolve(SolveStatus status)
+            {
+                if (bestNode >= 0)
+                {
+                    Finish(SolveStatus.Solved, BuildPath(bestNode, parent, moveIndex, rules.Moves));
+                }
+                else
+                {
+                    Finish(status, null);
+                }
             }
 
             void Finish(SolveStatus status, IReadOnlyList<Move> solution)
@@ -271,6 +330,7 @@ namespace ShiftRegister.Core
                 bits = null;
                 lost = parent = moveIndex = depth = null;
                 seen = null;
+                waypoints = null;
             }
         }
     }

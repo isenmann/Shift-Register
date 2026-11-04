@@ -11,7 +11,7 @@ namespace ShiftRegister.Game.Progress
         public readonly int Par;
         public readonly int Stars;
         public readonly bool IsNewBest;
-        /// <summary>Best moves before this solve, or 0 if the level was never solved.</summary>
+        /// <summary>Best moves before this solve, or 0 if the level was never solved without hints.</summary>
         public readonly int PreviousBest;
 
         public LevelResult(int moves, int par, int stars, bool isNewBest, int previousBest)
@@ -37,6 +37,8 @@ namespace ShiftRegister.Game.Progress
             public string id = "";
             public int bestMoves;
             public int stars;
+            /// <summary>True while <see cref="bestMoves"/> comes from a solve with hints: any own solve replaces it.</summary>
+            public bool bestUsedHint;
         }
 
         public int version = 1;
@@ -79,14 +81,30 @@ namespace ShiftRegister.Game.Progress
             return total;
         }
 
-        /// <summary>Records a solve; keeps the fewest moves and the most stars.</summary>
-        public LevelResult Record(string id, int moves, int par)
+        /// <summary>
+        /// Records a solve; keeps the fewest moves and the most stars. A solve with hints still solves the level,
+        /// but its moves never count against one the player found alone.
+        /// </summary>
+        public LevelResult Record(string id, int moves, int par, bool usedHint = false)
         {
-            int stars = Scoring.Stars(moves, par);
+            int stars = Scoring.Stars(moves, par, usedHint);
             var record = Get(id);
             if (record == null)
             {
-                levels.Add(new LevelRecord { id = id, bestMoves = moves, stars = stars });
+                levels.Add(new LevelRecord { id = id, bestMoves = moves, stars = stars, bestUsedHint = usedHint });
+                return new LevelResult(moves, par, stars, true, 0);
+            }
+
+            if (usedHint && !record.bestUsedHint)
+            {
+                return new LevelResult(moves, par, stars, false, record.bestMoves);
+            }
+
+            if (!usedHint && record.bestUsedHint)
+            {
+                record.bestMoves = moves;
+                record.bestUsedHint = false;
+                record.stars = Math.Max(record.stars, stars);
                 return new LevelResult(moves, par, stars, true, 0);
             }
 

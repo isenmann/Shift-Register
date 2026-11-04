@@ -64,6 +64,9 @@ namespace ShiftRegister.Game
         /// <summary>The result of the latest solve of the current level, if it is solved.</summary>
         public LevelResult? LastResult { get; private set; }
 
+        /// <summary>True once a hint showed a move in this attempt. Undo keeps it, a reset starts a new attempt.</summary>
+        public bool HintUsed { get; private set; }
+
         /// <summary>
         /// A custom level's "next" is leaving it (see <see cref="LeaveCustom"/>); a random level's is another one.
         /// </summary>
@@ -294,6 +297,7 @@ namespace ShiftRegister.Game
             Board = new Board(Level);
             moveLog.Clear();
             LastResult = null;
+            HintUsed = false;
 
             PlaceBoard();
             boardView.SquintAtHome = true;
@@ -398,13 +402,19 @@ namespace ShiftRegister.Game
                 else
                 {
                     result = Progress != null && !previewing
-                        ? Progress.Record(Level.id, Board.MoveCount, Level.par)
-                        : new LevelResult(Board.MoveCount, Level.par, Scoring.Stars(Board.MoveCount, Level.par), true,
-                        0);
+                        ? Progress.Record(Level.id, Board.MoveCount, Level.par, HintUsed)
+                        : new LevelResult(Board.MoveCount, Level.par,
+                            Scoring.Stars(Board.MoveCount, Level.par, HintUsed), true, 0);
                     if (Progress != null && !previewing)
                     {
                         ProgressStore.Save(Progress);
                     }
+                }
+
+                if (HintUsed && IsCustom)
+                {
+                    result = new LevelResult(result.Moves, result.Par, Scoring.HintStars, result.IsNewBest,
+                        result.PreviousBest);
                 }
 
                 LastResult = result;
@@ -474,10 +484,24 @@ namespace ShiftRegister.Game
             bool moved = Board.MoveCount > 0;
             Board.Reset();
             moveLog.Clear();
+            HintUsed = false;
             Refresh();
             if (moved)
             {
                 Restarted?.Invoke();
+            }
+        }
+
+        /// <summary>Starts looking for the next move on the current board; null if no level is loaded.</summary>
+        public HintSearch BeginHint() => Board == null ? null : new HintSearch(Board, Level.solution);
+
+        /// <summary>Call when a hint's move is shown to the player: from here on this attempt earns the hint's stars.</summary>
+        public void MarkHintUsed()
+        {
+            if (!HintUsed)
+            {
+                HintUsed = true;
+                Changed?.Invoke();
             }
         }
 
