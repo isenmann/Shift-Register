@@ -104,17 +104,17 @@ namespace ShiftRegister.Game.Hud
             }
         };
 
-        void BuildOptions(Screens s, OptionsMode mode)
+        void BuildOptions(Screens screens, OptionsMode mode)
         {
-            var root = s.Options;
+            var root = screens.Options;
             var spec = Spec(mode);
-            var o = s.Opt = new OptionsUi { X = spec.X, Top = spec.Top, W = spec.W, H = spec.H, Pitch = spec.Pitch };
+            var options = screens.Opt = new OptionsUi { X = spec.X, Top = spec.Top, W = spec.W, H = spec.H, Pitch = spec.Pitch };
             bool portrait = mode == OptionsMode.PhonePortrait;
 
             // Portrait: header and rows hang from the top; landscape: header ends move out, rows stay centred.
-            var top = portrait ? Outer(s, root, "Top", 0f, 1f) : null;
-            var left = portrait ? null : Outer(s, root, "Left", -1f, 0f);
-            var right = portrait ? null : Outer(s, root, "Right", 1f, 0f);
+            var top = portrait ? Outer(screens, root, "Top", 0f, 1f) : null;
+            var left = portrait ? null : Outer(screens, root, "Left", -1f, 0f);
+            var right = portrait ? null : Outer(screens, root, "Right", 1f, 0f);
             var rows = portrait ? top : root;
             switch (mode)
             {
@@ -133,33 +133,33 @@ namespace ShiftRegister.Game.Hud
             }
 
             // Volume: − [10 cells] +; on an upright phone on its own line under the label.
-            var volume = OptionRowRoot(rows, o, spec, OptionRow.Volume, "VOLUME", out o.VolumeText);
+            var volume = OptionRowRoot(rows, options, spec, OptionRow.Volume, "VOLUME", out options.VolumeText);
             HudButton.Create(volume, "-", spec.MinusX, spec.ControlsY, spec.Button, 44, display, 18, () => StepVolume(-1));
             float cellsX = spec.MinusX + spec.Button + spec.CellsGap;
-            for (int i = 0; i < o.VolumeCells.Length; i++)
+            for (int i = 0; i < options.VolumeCells.Length; i++)
             {
-                float cx = cellsX + i * (spec.CellW + spec.CellGap);
-                o.VolumeCells[i] = Ui.Box(volume, $"Volume {i + 1}", cx, spec.ControlsY + 6, spec.CellW, 32, 4f, Lcd.Cell);
+                float cellX = cellsX + i * (spec.CellW + spec.CellGap);
+                options.VolumeCells[i] = Ui.Box(volume, $"Volume {i + 1}", cellX, spec.ControlsY + 6, spec.CellW, 32, 4f, Lcd.Cell);
                 int step = i + 1;
-                UiHotspot.Create(volume, $"Volume {i + 1} Hotspot", cx - spec.CellGap / 2f, spec.ControlsY, spec.CellW + spec.CellGap, 44).Click =
+                UiHotspot.Create(volume, $"Volume {i + 1} Hotspot", cellX - spec.CellGap / 2f, spec.ControlsY, spec.CellW + spec.CellGap, 44).Click =
                     () => SetVolume(game.Settings.volume == step && step == 1 ? 0 : step);
             }
 
-            float plusX = cellsX + o.VolumeCells.Length * (spec.CellW + spec.CellGap) - spec.CellGap + spec.CellsGap;
+            float plusX = cellsX + options.VolumeCells.Length * (spec.CellW + spec.CellGap) - spec.CellGap + spec.CellsGap;
             HudButton.Create(volume, "+", plusX, spec.ControlsY, spec.Button, 44, display, 18, () => StepVolume(1));
 
             // Switches sit at the row's right edge, vertically centred.
-            float toggleX = o.W - spec.ToggleW - 16f, toggleY = (o.H - spec.ToggleH) / 2f;
-            var sound = OptionRowRoot(rows, o, spec, OptionRow.Sound, "SOUND", out s.SoundText);
-            o.Sound = HudButton.Create(sound, "ON", toggleX, toggleY, spec.ToggleW, spec.ToggleH, display, 16, () => Toggle(OptionRow.Sound));
-            var motion = OptionRowRoot(rows, o, spec, OptionRow.Motion, "REDUCED MOTION", out var motionText);
+            float toggleX = options.W - spec.ToggleW - 16f, toggleY = (options.H - spec.ToggleH) / 2f;
+            var sound = OptionRowRoot(rows, options, spec, OptionRow.Sound, "SOUND", out screens.SoundText);
+            options.Sound = HudButton.Create(sound, "ON", toggleX, toggleY, spec.ToggleW, spec.ToggleH, display, 16, () => Toggle(OptionRow.Sound));
+            var motion = OptionRowRoot(rows, options, spec, OptionRow.Motion, "REDUCED MOTION", out var motionText);
             motionText.text = "Moves snap into place: no sliding, flying or hopping.";
-            o.Motion = HudButton.Create(motion, "OFF", toggleX, toggleY, spec.ToggleW, spec.ToggleH, display, 16, () => Toggle(OptionRow.Motion));
+            options.Motion = HudButton.Create(motion, "OFF", toggleX, toggleY, spec.ToggleW, spec.ToggleH, display, 16, () => Toggle(OptionRow.Motion));
 
-            o.Focus = Ui.Frame(rows, "Focus", o.X, o.Top, o.W, o.H, 10f, 3f, Lcd.Ink);
+            options.Focus = Ui.Frame(rows, "Focus", options.X, options.Top, options.W, options.H, 10f, 3f, Lcd.Ink);
             if (mode == OptionsMode.Desktop)
             {
-                s.OptionsKeys = Ui.Text(left, "Keys", 56, 690, 1168, 20, mono, 13, Lcd.Text3, text: "Arrows choose and change · Enter switch · M mute · Esc back");
+                screens.OptionsKeys = Ui.Text(left, "Keys", 56, 690, 1168, 20, mono, 13, Lcd.Text3, text: "Arrows choose and change · Enter switch · M mute · Esc back");
             }
         }
 
@@ -172,39 +172,39 @@ namespace ShiftRegister.Game.Hud
         }
 
         /// <summary>A card row that focuses on hover; its controls are children so hovering them keeps the focus.</summary>
-        RectTransform OptionRowRoot(Transform root, OptionsUi o, OptionsSpec spec, OptionRow row, string label, out TextMeshProUGUI text)
+        RectTransform OptionRowRoot(Transform root, OptionsUi options, OptionsSpec spec, OptionRow row, string label, out TextMeshProUGUI text)
         {
-            float y = o.Top + (int)row * o.Pitch;
-            var hot = UiHotspot.Create(root, label, o.X, y, o.W, o.H);
+            float y = options.Top + (int)row * options.Pitch;
+            var hot = UiHotspot.Create(root, label, options.X, y, options.W, options.H);
             hot.Enter = () => SetOptionFocus(row);
-            var rt = (RectTransform)hot.transform;
-            Ui.Box(rt, "Card", 0, 0, o.W, o.H, 10f, Lcd.Card);
+            var rectTransform = (RectTransform)hot.transform;
+            Ui.Box(rectTransform, "Card", 0, 0, options.W, options.H, 10f, Lcd.Card);
             float pad = spec.H > 80 ? 16f : 24f;
-            Ui.Text(rt, "Label", pad, 12, 300, 24, display, spec.LabelSize, Lcd.Ink, text: label);
-            text = Ui.Text(rt, "Text", pad, 40, spec.TextW, spec.TextH, mono, spec.TextSize, Lcd.Text2, TextAlignmentOptions.TopLeft);
+            Ui.Text(rectTransform, "Label", pad, 12, 300, 24, display, spec.LabelSize, Lcd.Ink, text: label);
+            text = Ui.Text(rectTransform, "Text", pad, 40, spec.TextW, spec.TextH, mono, spec.TextSize, Lcd.Text2, TextAlignmentOptions.TopLeft);
             text.textWrappingMode = TextWrappingModes.Normal;
-            return rt;
+            return rectTransform;
         }
 
-        void UpdateOptions(Keyboard kb)
+        void UpdateOptions(Keyboard keyboard)
         {
-            if (kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame)
+            if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
             {
                 SetOptionFocus((OptionRow)Mathf.Max(0, (int)optionFocus - 1));
             }
-            else if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame)
+            else if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
             {
                 SetOptionFocus((OptionRow)Mathf.Min((int)OptionRow.Motion, (int)optionFocus + 1));
             }
-            else if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame)
+            else if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
             {
                 Change(-1);
             }
-            else if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame)
+            else if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame)
             {
                 Change(1);
             }
-            else if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
+            else if (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame)
             {
                 if (optionFocus != OptionRow.Volume)
                 {
@@ -241,11 +241,11 @@ namespace ShiftRegister.Game.Hud
             SetOptionFocus(row);
             if (row == OptionRow.Sound)
             {
-                game.ChangeSettings(s => s.muted = !s.muted);
+                game.ChangeSettings(settings => settings.muted = !settings.muted);
             }
             else if (row == OptionRow.Motion)
             {
-                game.ChangeSettings(s => s.reducedMotion = !s.reducedMotion);
+                game.ChangeSettings(settings => settings.reducedMotion = !settings.reducedMotion);
             }
         }
 
@@ -261,10 +261,10 @@ namespace ShiftRegister.Game.Hud
                 return;
             }
             // Changing the volume also unmutes, so the change is heard.
-            game.ChangeSettings(s =>
+            game.ChangeSettings(settings =>
             {
-                s.volume = volume;
-                s.muted = false;
+                settings.volume = volume;
+                settings.muted = false;
             });
             Sfx.Play(Sound.Click);
         }
@@ -280,20 +280,20 @@ namespace ShiftRegister.Game.Hud
         void RefreshOptions(bool resetFocus)
         {
             var settings = game.Settings;
-            foreach (var s in Both)
+            foreach (var screens in Both)
             {
-                var o = s.Opt;
-                for (int i = 0; i < o.VolumeCells.Length; i++)
+                var options = screens.Opt;
+                for (int i = 0; i < options.VolumeCells.Length; i++)
                 {
-                    o.VolumeCells[i].color = i < settings.volume ? (settings.muted ? Lcd.Text3 : Lcd.Ink) : Lcd.Cell;
+                    options.VolumeCells[i].color = i < settings.volume ? (settings.muted ? Lcd.Text3 : Lcd.Ink) : Lcd.Cell;
                 }
 
-                o.VolumeText.text = settings.muted ? $"{settings.volume * 10}% · muted" : $"{settings.volume * 10}%";
-                o.Sound.Text = settings.muted ? "OFF" : "ON";
-                o.Motion.Text = settings.reducedMotion ? "ON" : "OFF";
+                options.VolumeText.text = settings.muted ? $"{settings.volume * 10}% · muted" : $"{settings.volume * 10}%";
+                options.Sound.Text = settings.muted ? "OFF" : "ON";
+                options.Motion.Text = settings.reducedMotion ? "ON" : "OFF";
                 if (resetFocus)
                 {
-                    o.Focus.enabled = false; // no focus tick when the screen opens
+                    options.Focus.enabled = false; // no focus tick when the screen opens
                 }
             }
 
@@ -311,11 +311,11 @@ namespace ShiftRegister.Game.Hud
             }
 
             optionFocus = row;
-            foreach (var s in Both)
+            foreach (var screens in Both)
             {
-                var o = s.Opt;
-                o.Focus.rectTransform.anchoredPosition = new Vector2(o.X + o.W / 2f, -(o.Top + (int)row * o.Pitch + o.H / 2f));
-                o.Focus.enabled = true;
+                var options = screens.Opt;
+                options.Focus.rectTransform.anchoredPosition = new Vector2(options.X + options.W / 2f, -(options.Top + (int)row * options.Pitch + options.H / 2f));
+                options.Focus.enabled = true;
             }
         }
     }

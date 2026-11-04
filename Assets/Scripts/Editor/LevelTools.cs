@@ -32,8 +32,8 @@ namespace ShiftRegister.Editor
         public static void ValidateAndSolveAll()
         {
             var catalogs = AssetDatabase.FindAssets("t:" + nameof(LevelCatalog))
-                .Select(g => AssetDatabase.LoadAssetAtPath<LevelCatalog>(AssetDatabase.GUIDToAssetPath(g)))
-                .Where(c => c != null)
+                .Select(guid => AssetDatabase.LoadAssetAtPath<LevelCatalog>(AssetDatabase.GUIDToAssetPath(guid)))
+                .Where(catalog => catalog != null)
                 .ToList();
             if (catalogs.Count == 0)
             {
@@ -45,7 +45,7 @@ namespace ShiftRegister.Editor
             int ok = 0, updated = 0, failed = 0;
             var seenIds = new Dictionary<string, string>();
             var referenced = new HashSet<string>();
-            var entries = catalogs.SelectMany(c => c.AllLevels().Select(e => (catalog: c, e.chapter, e.level, e.file))).ToList();
+            var entries = catalogs.SelectMany(catalog => catalog.AllLevels().Select(entry => (catalog: catalog, entry.chapter, entry.level, entry.file))).ToList();
 
             try
             {
@@ -67,36 +67,36 @@ namespace ShiftRegister.Editor
                         break;
                     }
 
-                    var r = Check(file);
-                    if (r.Data != null && !string.IsNullOrEmpty(r.Data.id))
+                    var result = Check(file);
+                    if (result.Data != null && !string.IsNullOrEmpty(result.Data.id))
                     {
-                        if (seenIds.TryGetValue(r.Data.id, out var other))
+                        if (seenIds.TryGetValue(result.Data.id, out var other))
                         {
-                            Debug.LogError($"Level id '{r.Data.id}' is used by both {other} and {path}.", file);
+                            Debug.LogError($"Level id '{result.Data.id}' is used by both {other} and {path}.", file);
                             failed++;
                         }
                         else
                         {
-                            seenIds[r.Data.id] = path;
+                            seenIds[result.Data.id] = path;
                         }
                     }
 
-                    if (!r.Ok)
+                    if (!result.Ok)
                     {
-                        Debug.LogError($"{path}: {r.Message}", file);
+                        Debug.LogError($"{path}: {result.Message}", file);
                         failed++;
                         continue;
                     }
 
-                    if (r.NewJson != null)
+                    if (result.NewJson != null)
                     {
-                        File.WriteAllText(path, r.NewJson, new UTF8Encoding(false));
+                        File.WriteAllText(path, result.NewJson, new UTF8Encoding(false));
                         AssetDatabase.ImportAsset(path);
                         updated++;
                     }
 
                     ok++;
-                    summary.AppendLine($"{r.Data.id,-6} {r.Data.name,-14} {r.Message}");
+                    summary.AppendLine($"{result.Data.id,-6} {result.Data.name,-14} {result.Message}");
                 }
             }
             finally
@@ -140,9 +140,9 @@ namespace ShiftRegister.Editor
             {
                 data = LevelJson.Parse(file);
             }
-            catch (System.Exception e)
+            catch (System.Exception exception)
             {
-                return new CheckResult { Message = "cannot parse JSON: " + e.Message };
+                return new CheckResult { Message = "cannot parse JSON: " + exception.Message };
             }
 
             var errors = LevelRules.Validate(data);
@@ -151,9 +151,9 @@ namespace ShiftRegister.Editor
                 return new CheckResult { Data = data, Message = "invalid:\n- " + string.Join("\n- ", errors) };
             }
 
-            var sw = Stopwatch.StartNew();
+            var stopwatch = Stopwatch.StartNew();
             var result = Solver.Solve(data, MaxStates);
-            string stats = $"({result.StatesVisited:N0} states, {sw.ElapsedMilliseconds} ms)";
+            string stats = $"({result.StatesVisited:N0} states, {stopwatch.ElapsedMilliseconds} ms)";
             if (result.Status != SolveStatus.Solved)
             {
                 return new CheckResult { Data = data, Message = $"{result.Status} {stats}" };
@@ -180,10 +180,10 @@ namespace ShiftRegister.Editor
         /// <summary>Sets a top-level number or string field in JSON text, keeping the rest of the text as written.</summary>
         public static string SetField(string json, string key, string valueLiteral)
         {
-            var rx = new Regex("(\"" + Regex.Escape(key) + "\"\\s*:\\s*)(\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d+)");
-            if (rx.IsMatch(json))
+            var regex = new Regex("(\"" + Regex.Escape(key) + "\"\\s*:\\s*)(\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d+)");
+            if (regex.IsMatch(json))
             {
-                return rx.Replace(json, m => m.Groups[1].Value + valueLiteral, 1);
+                return regex.Replace(json, match => match.Groups[1].Value + valueLiteral, 1);
             }
 
             int end = json.LastIndexOf('}');
@@ -197,6 +197,6 @@ namespace ShiftRegister.Editor
             return before + comma + "\n  \"" + key + "\": " + valueLiteral + "\n" + json.Substring(end);
         }
 
-        static string JsonString(string s) => "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+        static string JsonString(string text) => "\"" + text.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
     }
 }

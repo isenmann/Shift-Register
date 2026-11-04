@@ -9,8 +9,8 @@ namespace ShiftRegister.Tests
         public void Domino_ObviousMove_BreaksRule_UndoRecovers()
         {
             var board = new Board(TestLevels.Domino());
-            Assert.That(board.TryMove(Move.Column(3, Direction.Up), out var o), Is.True);
-            Assert.That(o.LostCount, Is.EqualTo(1));
+            Assert.That(board.TryMove(Move.Column(3, Direction.Up), out var outcome), Is.True);
+            Assert.That(outcome.LostCount, Is.EqualTo(1));
             Assert.That(board.IsRuleBroken, Is.True);
             Assert.That(board.TryMove(Move.Row(7, Direction.Left), out _), Is.False, "no moves while a rule is broken");
 
@@ -33,9 +33,9 @@ namespace ShiftRegister.Tests
                 Move.Row(0, Direction.Right),
                 Move.Column(3, Direction.Up)
             };
-            foreach (var m in solution)
+            foreach (var move in solution)
             {
-                Assert.That(board.TryMove(m, out _), Is.True, $"{m}\n{BoardBits.ToPicture(board.Bits)}");
+                Assert.That(board.TryMove(move, out _), Is.True, $"{move}\n{BoardBits.ToPicture(board.Bits)}");
             }
 
             Assert.That(board.IsSolved, Is.True, BoardBits.ToPicture(board.Bits));
@@ -59,11 +59,11 @@ namespace ShiftRegister.Tests
         [Test]
         public void ExactlyRule_RequiresExactBucketCount()
         {
-            var d = TestLevels.OneRow("11110000");
-            d.target[3] = TestLevels.Bits("11000000");
-            d.lossRule = LossRule.Exactly;
-            d.lossCount = 2;
-            var board = new Board(d);
+            var level = TestLevels.OneRow("11110000");
+            level.target[3] = TestLevels.Bits("11000000");
+            level.lossRule = LossRule.Exactly;
+            level.lossCount = 2;
+            var board = new Board(level);
             board.TryMove(Move.Row(3, Direction.Left), out _);
             board.TryMove(Move.Row(3, Direction.Left), out _);
             Assert.That(board.IsSolved, Is.True);

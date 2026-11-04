@@ -95,7 +95,7 @@ namespace ShiftRegister.Game.Hud
             }
 
             var parts = new List<string>();
-            var ops = level.gates.Select(g => g.op).Distinct().OrderBy(op => (int)op);
+            var ops = level.gates.Select(gate => gate.op).Distinct().OrderBy(op => (int)op);
             foreach (var op in ops)
             {
                 parts.Add(op switch
@@ -128,6 +128,6 @@ namespace ShiftRegister.Game.Hud
             }
         }
 
-        static bool Any(int[] rows) => rows != null && rows.Any(r => r != 0);
+        static bool Any(int[] rows) => rows != null && rows.Any(row => row != 0);
     }
 }

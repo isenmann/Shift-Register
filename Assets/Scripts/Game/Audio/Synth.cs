@@ -19,8 +19,8 @@ namespace ShiftRegister.Game.Audio
         public float Vibrato;
         public float VibratoHz;
 
-        public static Note Of(Wave wave, float hz, float start, float duration, float volume = 1f, float duty = 0.5f) =>
-            new Note { Wave = wave, FromHz = hz, ToHz = hz, Start = start, Duration = duration, Volume = volume, Duty = duty };
+        public static Note Of(Wave wave, float frequency, float start, float duration, float volume = 1f, float duty = 0.5f) =>
+            new Note { Wave = wave, FromHz = frequency, ToHz = frequency, Start = start, Duration = duration, Volume = volume, Duty = duty };
 
         public static Note Glide(Wave wave, float fromHz, float toHz, float start, float duration, float volume = 1f, float duty = 0.5f) =>
             new Note { Wave = wave, FromHz = fromHz, ToHz = toHz, Start = start, Duration = duration, Volume = volume, Duty = duty };
@@ -43,43 +43,43 @@ namespace ShiftRegister.Game.Audio
         public static float[] Render(params Note[] notes)
         {
             float length = 0f;
-            foreach (var n in notes)
+            foreach (var note in notes)
             {
-                length = Math.Max(length, n.Start + n.Duration);
+                length = Math.Max(length, note.Start + note.Duration);
             }
 
             var samples = new float[Math.Max(1, (int)Math.Ceiling(length * SampleRate))];
 
             uint noise = 0x9E3779B9u;
-            foreach (var n in notes)
+            foreach (var note in notes)
             {
-                int first = (int)(n.Start * SampleRate);
-                int count = (int)(n.Duration * SampleRate);
+                int first = (int)(note.Start * SampleRate);
+                int count = (int)(note.Duration * SampleRate);
                 double phase = 0.0;
                 float noiseValue = 0f;
                 for (int i = 0; i < count && first + i < samples.Length; i++)
                 {
-                    float t = (float)i / SampleRate;
-                    float u = t / n.Duration;
+                    float time = (float)i / SampleRate;
+                    float progress = time / note.Duration;
                     // Exponential glide sounds even across octaves.
-                    float hz = n.FromHz * (float)Math.Pow(n.ToHz / n.FromHz, u);
-                    if (n.Vibrato > 0f)
+                    float frequency = note.FromHz * (float)Math.Pow(note.ToHz / note.FromHz, progress);
+                    if (note.Vibrato > 0f)
                     {
-                        hz *= 1f + n.Vibrato * (float)Math.Sin(2.0 * Math.PI * n.VibratoHz * t);
+                        frequency *= 1f + note.Vibrato * (float)Math.Sin(2.0 * Math.PI * note.VibratoHz * time);
                     }
 
                     double before = phase;
-                    phase += hz / SampleRate;
+                    phase += frequency / SampleRate;
                     phase -= Math.Floor(phase);
 
-                    float v;
-                    switch (n.Wave)
+                    float value;
+                    switch (note.Wave)
                     {
                         case Wave.Square:
-                            v = phase < n.Duty ? 1f : -1f;
+                            value = phase < note.Duty ? 1f : -1f;
                             break;
                         case Wave.Triangle:
-                            v = (float)(phase < 0.5 ? 4.0 * phase - 1.0 : 3.0 - 4.0 * phase);
+                            value = (float)(phase < 0.5 ? 4.0 * phase - 1.0 : 3.0 - 4.0 * phase);
                             break;
                         default:
                             // Sample-and-hold noise: a new random value every cycle, so the pitch colours it.
@@ -91,11 +91,11 @@ namespace ShiftRegister.Game.Audio
                                 noiseValue = (noise & 0xFFFF) / 32767.5f - 1f;
                             }
 
-                            v = noiseValue;
+                            value = noiseValue;
                             break;
                     }
 
-                    samples[first + i] += v * n.Volume * Envelope(t, n.Duration);
+                    samples[first + i] += value * note.Volume * Envelope(time, note.Duration);
                 }
             }
 
@@ -105,27 +105,27 @@ namespace ShiftRegister.Game.Audio
         }
 
         /// <summary>Quick attack, exponential decay, and a short fade so every note ends at zero.</summary>
-        public static float Envelope(float t, float duration)
+        public static float Envelope(float time, float duration)
         {
-            if (t < 0f || t >= duration)
+            if (time < 0f || time >= duration)
             {
                 return 0f;
             }
 
-            float attack = Math.Min(1f, t / Attack);
-            float decay = (float)Math.Exp(-3.0 * t / duration);
-            float release = Math.Min(1f, (duration - t) / 0.01f);
+            float attack = Math.Min(1f, time / Attack);
+            float decay = (float)Math.Exp(-3.0 * time / duration);
+            float release = Math.Min(1f, (duration - time) / 0.01f);
             return attack * decay * release;
         }
 
         /// <summary>A gentle one-pole low-pass that takes the edge off the square waves.</summary>
         static void Smooth(float[] samples)
         {
-            const float a = 0.35f;
+            const float smoothing = 0.35f;
             float y = 0f;
             for (int i = 0; i < samples.Length; i++)
             {
-                y += a * (samples[i] - y);
+                y += smoothing * (samples[i] - y);
                 samples[i] = y;
             }
         }
@@ -133,9 +133,9 @@ namespace ShiftRegister.Game.Audio
         static void Normalize(float[] samples)
         {
             float max = 0f;
-            foreach (float s in samples)
+            foreach (float sample in samples)
             {
-                max = Math.Max(max, Math.Abs(s));
+                max = Math.Max(max, Math.Abs(sample));
             }
 
             if (max <= 0f)
@@ -143,10 +143,10 @@ namespace ShiftRegister.Game.Audio
                 return;
             }
 
-            float k = Peak / max;
+            float gain = Peak / max;
             for (int i = 0; i < samples.Length; i++)
             {
-                samples[i] *= k;
+                samples[i] *= gain;
             }
         }
     }

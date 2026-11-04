@@ -66,10 +66,10 @@ namespace ShiftRegister.Core
                 return false;
             }
 
-            var s = history[history.Count - 1];
+            var snapshot = history[history.Count - 1];
             history.RemoveAt(history.Count - 1);
-            Bits = s.Bits;
-            Lost = s.Lost;
+            Bits = snapshot.Bits;
+            Lost = snapshot.Lost;
             return true;
         }
 

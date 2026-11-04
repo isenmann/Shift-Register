@@ -12,9 +12,9 @@ namespace ShiftRegister.Tests
         static List<LevelData> BuiltIns()
         {
             var catalog = AssetDatabase.FindAssets("t:" + nameof(LevelCatalog))
-                .Select(g => AssetDatabase.LoadAssetAtPath<LevelCatalog>(AssetDatabase.GUIDToAssetPath(g)))
+                .Select(guid => AssetDatabase.LoadAssetAtPath<LevelCatalog>(AssetDatabase.GUIDToAssetPath(guid)))
                 .Single();
-            return catalog.AllLevels().Select(l => LevelJson.Parse(l.file)).ToList();
+            return catalog.AllLevels().Select(entry => LevelJson.Parse(entry.file)).ToList();
         }
 
         static LevelData Simple() => new LevelData
@@ -29,31 +29,31 @@ namespace ShiftRegister.Tests
         [Test]
         public void EveryBuiltInSolution_Replays()
         {
-            foreach (var d in BuiltIns())
+            foreach (var level in BuiltIns())
             {
-                Assert.That(Move.TryParseList(d.solution, out var moves), Is.True, d.id);
-                Assert.That(moves.Count, Is.EqualTo(d.par), d.id);
-                Assert.That(Solver.Replays(LevelRules.Compile(d), moves), Is.True, d.id);
+                Assert.That(Move.TryParseList(level.solution, out var moves), Is.True, level.id);
+                Assert.That(moves.Count, Is.EqualTo(level.par), level.id);
+                Assert.That(Solver.Replays(LevelRules.Compile(level), moves), Is.True, level.id);
             }
         }
 
         [Test]
         public void EveryBuiltIn_RoundTrips()
         {
-            foreach (var d in BuiltIns())
+            foreach (var level in BuiltIns())
             {
-                string code = ShareCode.Encode(d);
-                Assert.That(ShareCode.TryDecode(code, out var back), Is.EqualTo(ShareCodeError.None), d.id);
-                Assert.That(LevelEdit.SameLevel(d, back), Is.True, d.id);
-                Assert.That(back.solution, Is.EqualTo(d.solution), d.id);
-                Assert.That(back.par, Is.EqualTo(d.par), d.id);
+                string code = ShareCode.Encode(level);
+                Assert.That(ShareCode.TryDecode(code, out var back), Is.EqualTo(ShareCodeError.None), level.id);
+                Assert.That(LevelEdit.SameLevel(level, back), Is.True, level.id);
+                Assert.That(back.solution, Is.EqualTo(level.solution), level.id);
+                Assert.That(back.par, Is.EqualTo(level.par), level.id);
             }
         }
 
         [Test]
         public void BuiltInCodes_StayShort()
         {
-            int longest = BuiltIns().Max(d => ShareCode.Encode(d).Length);
+            int longest = BuiltIns().Max(level => ShareCode.Encode(level).Length);
             TestContext.WriteLine($"longest built-in code: {longest} characters");
             Assert.That(longest, Is.LessThanOrEqualTo(80));
         }
@@ -131,19 +131,19 @@ namespace ShiftRegister.Tests
         [Test]
         public void Encode_RefusesALevelWithoutAWorkingSolution()
         {
-            var d = Simple();
-            d.solution = "R1←";
-            Assert.That(ShareCode.CanEncode(d, out _), Is.False);
-            Assert.Throws<System.ArgumentException>(() => ShareCode.Encode(d));
+            var level = Simple();
+            level.solution = "R1←";
+            Assert.That(ShareCode.CanEncode(level, out _), Is.False);
+            Assert.Throws<System.ArgumentException>(() => ShareCode.Encode(level));
         }
 
         /// <summary>Adds prefix and checksum to raw bytes.</summary>
         static string Wrap(List<byte> payload)
         {
             int crc = 0xFFFF;
-            foreach (byte b in payload)
+            foreach (byte value in payload)
             {
-                crc ^= b << 8;
+                crc ^= value << 8;
                 for (int i = 0; i < 8; i++)
                 {
                     crc = (crc & 0x8000) != 0 ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;

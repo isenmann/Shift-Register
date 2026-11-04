@@ -60,18 +60,18 @@ namespace ShiftRegister.Game.View
             float offset = ScreenLayout.BoardSize / 2f + (ButtonGap + ButtonShort / 2f) / Px;
             if (arrows)
             {
-                for (int c = 0; c < BoardBits.Size; c++)
+                for (int column = 0; column < BoardBits.Size; column++)
                 {
-                    float x = BoardView.CellCenter(0, c).x;
-                    AddButton(Direction.Up, c, new Vector2(x, offset));
-                    AddButton(Direction.Down, c, new Vector2(x, -offset));
+                    float x = BoardView.CellCenter(0, column).x;
+                    AddButton(Direction.Up, column, new Vector2(x, offset));
+                    AddButton(Direction.Down, column, new Vector2(x, -offset));
                 }
 
-                for (int r = 0; r < BoardBits.Size; r++)
+                for (int row = 0; row < BoardBits.Size; row++)
                 {
-                    float y = BoardView.CellCenter(r, 0).y;
-                    AddButton(Direction.Left, r, new Vector2(-offset, y));
-                    AddButton(Direction.Right, r, new Vector2(offset, y));
+                    float y = BoardView.CellCenter(row, 0).y;
+                    AddButton(Direction.Left, row, new Vector2(-offset, y));
+                    AddButton(Direction.Right, row, new Vector2(offset, y));
                 }
             }
 
@@ -105,26 +105,26 @@ namespace ShiftRegister.Game.View
         void BuildBelts(float halfWidth)
         {
             const float margin = 4.5f, thickness = 2f;
-            for (int r = 0; r < BoardBits.Size; r++)
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                int top = rules.ChainTopOf(r);
+                int top = rules.ChainTopOf(row);
                 bool chain = top >= 0;
-                if (chain && top != r)
+                if (chain && top != row)
                 {
                     continue; // a chain is drawn once, from its top row
                 }
 
-                if (!chain && !rules.IsRotating(r))
+                if (!chain && !rules.IsRotating(row))
                 {
                     continue;
                 }
 
                 int count = chain ? 2 : 1;
-                float w = 2f * halfWidth * Px + 2f * margin;
-                float h = count * 46f + (count - 1) * ScreenLayout.GapPx + 2f * margin;
-                var belt = Renderer(root, chain ? $"Chain belt {r + 1}-{r + 2}" : $"Wrap belt {r + 1}",
-                    ProceduralSprites.RoundedOutline(w, h, 14f, thickness, 6f), Lcd.Text3, (int)Layer.Belt);
-                float y = (BoardView.CellCenter(r, 0).y + BoardView.CellCenter(r + count - 1, 0).y) / 2f;
+                float width = 2f * halfWidth * Px + 2f * margin;
+                float height = count * 46f + (count - 1) * ScreenLayout.GapPx + 2f * margin;
+                var belt = Renderer(root, chain ? $"Chain belt {row + 1}-{row + 2}" : $"Wrap belt {row + 1}",
+                    ProceduralSprites.RoundedOutline(width, height, 14f, thickness, 6f), Lcd.Text3, (int)Layer.Belt);
+                float y = (BoardView.CellCenter(row, 0).y + BoardView.CellCenter(row + count - 1, 0).y) / 2f;
                 belt.transform.localPosition = new Vector3(0f, y, 0f);
             }
         }
@@ -165,10 +165,10 @@ namespace ShiftRegister.Game.View
 
             if (hoveredButton >= 0)
             {
-                var b = buttons[hoveredButton];
-                var target = b.Move.Axis == Axis.Row ? rowOutline : columnOutline;
-                var other = b.Move.Axis == Axis.Row ? columnOutline : rowOutline;
-                Place(target, b.Move.Axis, b.Move.Line, b.Enabled ? b.Move.Segment : -1);
+                var button = buttons[hoveredButton];
+                var target = button.Move.Axis == Axis.Row ? rowOutline : columnOutline;
+                var other = button.Move.Axis == Axis.Row ? columnOutline : rowOutline;
+                Place(target, button.Move.Axis, button.Move.Line, button.Enabled ? button.Move.Segment : -1);
                 other.enabled = false;
                 crossRoot.gameObject.SetActive(false);
                 return;
@@ -188,10 +188,10 @@ namespace ShiftRegister.Game.View
             shownHover = index;
             for (int i = 0; i < buttons.Count; i++)
             {
-                var b = buttons[i];
-                bool hot = i == index && b.Enabled;
-                b.Fill.enabled = hot;
-                b.Icon.color = Fade(hot ? Lcd.Light : Lcd.Ink, b.Enabled);
+                var button = buttons[i];
+                bool hot = i == index && button.Enabled;
+                button.Fill.enabled = hot;
+                button.Icon.color = Fade(hot ? Lcd.Light : Lcd.Ink, button.Enabled);
             }
         }
 
@@ -226,14 +226,14 @@ namespace ShiftRegister.Game.View
                 lineTo = lineFrom + 1;
             }
 
-            Vector2 a = axis == Axis.Row ? BoardView.CellCenter(lineFrom, first) : BoardView.CellCenter(first, line);
-            Vector2 b = axis == Axis.Row ? BoardView.CellCenter(lineTo, last) : BoardView.CellCenter(last, line);
+            Vector2 firstCenter = axis == Axis.Row ? BoardView.CellCenter(lineFrom, first) : BoardView.CellCenter(first, line);
+            Vector2 lastCenter = axis == Axis.Row ? BoardView.CellCenter(lineTo, last) : BoardView.CellCenter(last, line);
             float along = Span(last - first + 1), across = Span(lineTo - lineFrom + 1);
-            float w = axis == Axis.Row ? along : across;
-            float h = axis == Axis.Row ? across : along;
+            float width = axis == Axis.Row ? along : across;
+            float height = axis == Axis.Row ? across : along;
 
-            var size = new Vector2(w, h) / Px;
-            rect = new Rect((a + b) / 2f - size / 2f, size);
+            var size = new Vector2(width, height) / Px;
+            rect = new Rect((firstCenter + lastCenter) / 2f - size / 2f, size);
             return true;
         }
 
@@ -246,32 +246,32 @@ namespace ShiftRegister.Game.View
         {
             int used = 0;
             var rects = new List<Rect>(2);
-            if (PartRect(Axis.Row, row, rules.SegmentOf(Axis.Row, row, column), out var r))
+            if (PartRect(Axis.Row, row, rules.SegmentOf(Axis.Row, row, column), out var rowRect))
             {
-                rects.Add(r);
+                rects.Add(rowRect);
             }
 
-            if (PartRect(Axis.Column, column, rules.SegmentOf(Axis.Column, column, row), out var c))
+            if (PartRect(Axis.Column, column, rules.SegmentOf(Axis.Column, column, row), out var columnRect))
             {
-                rects.Add(c);
+                rects.Add(columnRect);
             }
 
             if (rects.Count > 0)
             {
-                // The union on a grid of the rectangles' edges: cell (i, j) spans xs[i]..xs[i+1], ys[j]..ys[j+1].
-                var xs = Edges(rects, true);
-                var ys = Edges(rects, false);
+                // The union on a grid of the rectangles' edges: cell (i, j) spans xEdges[i]..xEdges[i+1], yEdges[j]..yEdges[j+1].
+                var xEdges = Edges(rects, true);
+                var yEdges = Edges(rects, false);
                 bool Occupied(int i, int j)
                 {
-                    if (i < 0 || j < 0 || i >= xs.Count - 1 || j >= ys.Count - 1)
+                    if (i < 0 || j < 0 || i >= xEdges.Count - 1 || j >= yEdges.Count - 1)
                     {
                         return false;
                     }
 
-                    var mid = new Vector2((xs[i] + xs[i + 1]) / 2f, (ys[j] + ys[j + 1]) / 2f);
+                    var center = new Vector2((xEdges[i] + xEdges[i + 1]) / 2f, (yEdges[j] + yEdges[j + 1]) / 2f);
                     foreach (var rect in rects)
                     {
-                        if (rect.Contains(mid))
+                        if (rect.Contains(center))
                         {
                             return true;
                         }
@@ -282,23 +282,23 @@ namespace ShiftRegister.Game.View
 
                 // Corners: one filled quadrant around a grid point is an outer corner, three an inner one.
                 // Both use the same quarter ring; how far the straight lines stop short of each corner is kept.
-                var trim = new float[xs.Count, ys.Count];
+                var trim = new float[xEdges.Count, yEdges.Count];
                 float outer = OutlineRadius / Px, inner = (OutlineRadius - OutlineWidth) / Px;
-                for (int i = 0; i < xs.Count; i++)
+                for (int i = 0; i < xEdges.Count; i++)
                 {
-                    for (int j = 0; j < ys.Count; j++)
+                    for (int j = 0; j < yEdges.Count; j++)
                     {
-                        bool bl = Occupied(i - 1, j - 1), br = Occupied(i, j - 1), tl = Occupied(i - 1, j), tr = Occupied(i, j);
-                        int filled = (bl ? 1 : 0) + (br ? 1 : 0) + (tl ? 1 : 0) + (tr ? 1 : 0);
+                        bool bottomLeft = Occupied(i - 1, j - 1), bottomRight = Occupied(i, j - 1), topLeft = Occupied(i - 1, j), topRight = Occupied(i, j);
+                        int filled = (bottomLeft ? 1 : 0) + (bottomRight ? 1 : 0) + (topLeft ? 1 : 0) + (topRight ? 1 : 0);
                         if (filled != 1 && filled != 3)
                         {
                             continue;
                         }
 
-                        bool odd = filled == 1 ? tr || br : !tr || !br; // the odd quadrant lies to the right
-                        bool up = filled == 1 ? tr || tl : !tr || !tl;
+                        bool odd = filled == 1 ? topRight || bottomRight : !topRight || !bottomRight; // the odd quadrant lies to the right
+                        bool up = filled == 1 ? topRight || topLeft : !topRight || !topLeft;
                         var toward = new Vector2(odd ? 1f : -1f, up ? 1f : -1f);
-                        var corner = new Vector2(xs[i], ys[j]);
+                        var corner = new Vector2(xEdges[i], yEdges[j]);
                         // Outer: ring centre inside the shape, arc facing out. Inner: centre outside, arc facing the corner.
                         float radius = filled == 1 ? outer : inner;
                         var centre = corner + toward * radius;
@@ -316,34 +316,34 @@ namespace ShiftRegister.Game.View
                 for (int pass = 0; pass < 2; pass++)
                 {
                     bool horizontal = pass == 0;
-                    var along = horizontal ? xs : ys;
-                    var across = horizontal ? ys : xs;
-                    for (int k = 0; k < across.Count; k++)
+                    var along = horizontal ? xEdges : yEdges;
+                    var across = horizontal ? yEdges : xEdges;
+                    for (int acrossIndex = 0; acrossIndex < across.Count; acrossIndex++)
                     {
                         int start = 0, startSide = 0;
-                        for (int n = 0; n <= along.Count - 1; n++)
+                        for (int alongIndex = 0; alongIndex <= along.Count - 1; alongIndex++)
                         {
                             int side = 0;
-                            if (n < along.Count - 1)
+                            if (alongIndex < along.Count - 1)
                             {
-                                bool before = horizontal ? Occupied(n, k - 1) : Occupied(k - 1, n);
-                                bool after = horizontal ? Occupied(n, k) : Occupied(k, n);
+                                bool before = horizontal ? Occupied(alongIndex, acrossIndex - 1) : Occupied(acrossIndex - 1, alongIndex);
+                                bool after = horizontal ? Occupied(alongIndex, acrossIndex) : Occupied(acrossIndex, alongIndex);
                                 side = before == after ? 0 : after ? 1 : -1;
                             }
 
-                            if (n > 0 && side == startSide)
+                            if (alongIndex > 0 && side == startSide)
                             {
                                 continue;
                             }
 
                             if (startSide != 0)
                             {
-                                used = AddBar(used, horizontal, across[k], startSide,
-                                along[start] + (horizontal ? trim[start, k] : trim[k, start]),
-                                along[n] - (horizontal ? trim[n, k] : trim[k, n]));
+                                used = AddBar(used, horizontal, across[acrossIndex], startSide,
+                                along[start] + (horizontal ? trim[start, acrossIndex] : trim[acrossIndex, start]),
+                                along[alongIndex] - (horizontal ? trim[alongIndex, acrossIndex] : trim[acrossIndex, alongIndex]));
                             }
 
-                            start = n;
+                            start = alongIndex;
                             startSide = side;
                         }
                     }
@@ -358,8 +358,8 @@ namespace ShiftRegister.Game.View
             crossRoot.gameObject.SetActive(true);
         }
 
-        /// <summary>One straight piece of the cursor outline on the line at 'at', drawn towards 'side' (+1 = up/right).</summary>
-        int AddBar(int used, bool horizontal, float at, int side, float from, float to)
+        /// <summary>One straight piece of the cursor outline on the line at 'position', drawn towards 'side' (+1 = up/right).</summary>
+        int AddBar(int used, bool horizontal, float position, int side, float from, float to)
         {
             // A pixel of overlap with the rings at both ends hides the seams.
             float overlap = 1f / Px, length = to - from + 2f * overlap;
@@ -373,7 +373,7 @@ namespace ShiftRegister.Game.View
                 ? ProceduralSprites.RoundedRect(lengthPx, OutlineWidth, 0f)
                 : ProceduralSprites.RoundedRect(OutlineWidth, lengthPx, 0f));
             bar.flipX = bar.flipY = false;
-            float mid = (from + to) / 2f, offset = at + side * OutlineWidth / Px / 2f;
+            float mid = (from + to) / 2f, offset = position + side * OutlineWidth / Px / 2f;
             bar.transform.localPosition = horizontal ? new Vector2(mid, offset) : new Vector2(offset, mid);
             return used + 1;
         }
@@ -395,13 +395,13 @@ namespace ShiftRegister.Game.View
         static List<float> Edges(List<Rect> rects, bool x)
         {
             var edges = new List<float>();
-            foreach (var r in rects)
+            foreach (var rect in rects)
             {
-                foreach (float e in x ? new[] { r.xMin, r.xMax } : new[] { r.yMin, r.yMax })
+                foreach (float edge in x ? new[] { rect.xMin, rect.xMax } : new[] { rect.yMin, rect.yMax })
                 {
-                    if (!edges.Exists(o => Mathf.Abs(o - e) < 0.001f))
+                    if (!edges.Exists(other => Mathf.Abs(other - edge) < 0.001f))
                     {
-                        edges.Add(e);
+                        edges.Add(edge);
                     }
                 }
             }
@@ -416,37 +416,37 @@ namespace ShiftRegister.Game.View
         void AddButton(Direction direction, int line, Vector2 position)
         {
             bool vertical = direction == Direction.Up || direction == Direction.Down;
-            float w = vertical ? ButtonLong : ButtonShort;
-            float h = vertical ? ButtonShort : ButtonLong;
+            float width = vertical ? ButtonLong : ButtonShort;
+            float height = vertical ? ButtonShort : ButtonLong;
             bool enabled = InputMapping.TryEdgeMove(rules, line, direction, out var move);
 
-            var t = new GameObject($"Arrow {direction} {line + 1}").transform;
-            t.SetParent(root, false);
-            t.localPosition = position;
+            var parent = new GameObject($"Arrow {direction} {line + 1}").transform;
+            parent.SetParent(root, false);
+            parent.localPosition = position;
 
-            var b = new ArrowButton
+            var button = new ArrowButton
             {
                 Move = enabled ? move : new Move(direction, line),
                 Enabled = enabled,
-                Rect = new Rect(position - new Vector2(w, h) / (2f * Px), new Vector2(w, h) / Px),
-                Frame = Renderer(t, "Frame", ProceduralSprites.RoundedOutline(w, h, ButtonRadius, 2f), Fade(Lcd.Ink, enabled), (int)Layer.ButtonFrame),
-                Fill = Renderer(t, "Fill", ProceduralSprites.RoundedRect(w, h, ButtonRadius), Lcd.Ink, (int)Layer.ButtonFill),
-                Icon = Renderer(t, "Icon", ProceduralSprites.Chevron(16f, 2.5f), Fade(Lcd.Ink, enabled), (int)Layer.ButtonIcon)
+                Rect = new Rect(position - new Vector2(width, height) / (2f * Px), new Vector2(width, height) / Px),
+                Frame = Renderer(parent, "Frame", ProceduralSprites.RoundedOutline(width, height, ButtonRadius, 2f), Fade(Lcd.Ink, enabled), (int)Layer.ButtonFrame),
+                Fill = Renderer(parent, "Fill", ProceduralSprites.RoundedRect(width, height, ButtonRadius), Lcd.Ink, (int)Layer.ButtonFill),
+                Icon = Renderer(parent, "Icon", ProceduralSprites.Chevron(16f, 2.5f), Fade(Lcd.Ink, enabled), (int)Layer.ButtonIcon)
             };
-            b.Fill.enabled = false;
-            b.Icon.transform.localRotation = Quaternion.Euler(0, 0, direction switch
+            button.Fill.enabled = false;
+            button.Icon.transform.localRotation = Quaternion.Euler(0, 0, direction switch
             {
                 Direction.Up => 0f,
                 Direction.Down => 180f,
                 Direction.Left => 90f,
                 _ => -90f
             });
-            buttons.Add(b);
+            buttons.Add(button);
         }
 
-        static Color Fade(Color32 c, bool enabled)
+        static Color Fade(Color32 baseColor, bool enabled)
         {
-            Color color = c;
+            Color color = baseColor;
             if (!enabled)
             {
                 color.a = DisabledAlpha;
@@ -457,29 +457,29 @@ namespace ShiftRegister.Game.View
 
         SpriteRenderer Renderer(Transform parent, string name, Sprite sprite, Color color, int order)
         {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = sprite;
-            sr.color = color;
-            sr.sortingOrder = order;
+            var gameObject = new GameObject(name);
+            gameObject.transform.SetParent(parent, false);
+            var spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+            spriteRenderer.sprite = sprite;
+            spriteRenderer.color = color;
+            spriteRenderer.sortingOrder = order;
             if (spriteMaterial != null)
             {
-                sr.sharedMaterial = spriteMaterial;
+                spriteRenderer.sharedMaterial = spriteMaterial;
             }
 
-            return sr;
+            return spriteRenderer;
         }
 
-        static void DestroySafe(GameObject go)
+        static void DestroySafe(GameObject gameObject)
         {
             if (Application.isPlaying)
             {
-                Destroy(go);
+                Destroy(gameObject);
             }
             else
             {
-                DestroyImmediate(go);
+                DestroyImmediate(gameObject);
             }
         }
     }

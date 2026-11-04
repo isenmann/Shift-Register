@@ -47,7 +47,7 @@ namespace ShiftRegister.Editor
                 EditorUserBuildSettings.buildAppBundle = false;
             }
 
-            var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
+            var scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path).ToArray();
             if (scenes.Length == 0)
             {
                 Debug.LogError("No scenes enabled in Build Settings.");
@@ -63,11 +63,11 @@ namespace ShiftRegister.Editor
                 options = BuildOptions.None
             });
 
-            var s = report.summary;
+            var summary = report.summary;
             string where = Path.GetFullPath(target == BuildTarget.WebGL ? path : Path.GetDirectoryName(path));
-            string line = $"{target} build {s.result}: {s.totalSize / (1024f * 1024f):F1} MB in {s.totalTime.TotalSeconds:F0} s, " +
-                          $"{s.totalErrors} errors, {s.totalWarnings} warnings → {where}";
-            if (s.result == BuildResult.Succeeded)
+            string line = $"{target} build {summary.result}: {summary.totalSize / (1024f * 1024f):F1} MB in {summary.totalTime.TotalSeconds:F0} s, " +
+                          $"{summary.totalErrors} errors, {summary.totalWarnings} warnings → {where}";
+            if (summary.result == BuildResult.Succeeded)
             {
                 Debug.Log(line);
             }

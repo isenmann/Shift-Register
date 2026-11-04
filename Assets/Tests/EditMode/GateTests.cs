@@ -7,18 +7,18 @@ namespace ShiftRegister.Tests
     /// <summary>Chapter 6 gates, using the examples from the doc's "Bitwise gates" table.</summary>
     public class GateTests
     {
-        static string ShiftRight(LevelData d)
+        static string ShiftRight(LevelData level)
         {
-            var rules = LevelRules.Compile(d);
-            Assert.That(rules.TryApply(rules.Start, Move.Row(3, Direction.Right), out var o), Is.True);
-            return BoardBits.ToBinary(BoardBits.GetRow(o.After, 3));
+            var rules = LevelRules.Compile(level);
+            Assert.That(rules.TryApply(rules.Start, Move.Row(3, Direction.Right), out var outcome), Is.True);
+            return BoardBits.ToBinary(BoardBits.GetRow(outcome.After, 3));
         }
 
         static LevelData Gated(string row, GateOp op, string mask)
         {
-            var d = OneRow(row);
-            d.gates = new[] { new RowGate(3, op, Bits(mask)) };
-            return d;
+            var level = OneRow(row);
+            level.gates = new[] { new RowGate(3, op, Bits(mask)) };
+            return level;
         }
 
         [Test]
@@ -48,49 +48,49 @@ namespace ShiftRegister.Tests
         [Test]
         public void FillEdge_FeedsBitWhenShiftingAway()
         {
-            var d = OneRow("00000110");
-            d.fillLeftRows = new[] { 3 };
-            Assert.That(ShiftRight(d), Is.EqualTo("10000011"));
+            var level = OneRow("00000110");
+            level.fillLeftRows = new[] { 3 };
+            Assert.That(ShiftRight(level), Is.EqualTo("10000011"));
         }
 
         [Test]
         public void Gates_AreApplied_OnlyToTheMovedRow()
         {
-            var d = FourGates();
-            var rules = LevelRules.Compile(d);
+            var level = FourGates();
+            var rules = LevelRules.Compile(level);
             // Solve the XOR row, then move another row: the XOR row must stay at 0.
-            rules.TryApply(rules.Start, Move.Row(3, Direction.Right), out var a);
-            Assert.That(BoardBits.GetRow(a.After, 3), Is.Zero);
-            rules.TryApply(a.After, Move.Row(5, Direction.Right), out var b);
-            Assert.That(BoardBits.GetRow(b.After, 3), Is.Zero);
-            Assert.That(BoardBits.GetRow(b.After, 5), Is.EqualTo(60));
+            rules.TryApply(rules.Start, Move.Row(3, Direction.Right), out var first);
+            Assert.That(BoardBits.GetRow(first.After, 3), Is.Zero);
+            rules.TryApply(first.After, Move.Row(5, Direction.Right), out var second);
+            Assert.That(BoardBits.GetRow(second.After, 3), Is.Zero);
+            Assert.That(BoardBits.GetRow(second.After, 5), Is.EqualTo(60));
         }
 
         [Test]
         public void Gates_OnColumnMoves_WhenEnabled()
         {
-            var d = new LevelData { gatesOnColumnMoves = true };
-            d.start[2] = Bits("00010000");
-            d.gates = new[] { new RowGate(3, GateOp.Or, Bits("00000001")) };
-            var rules = LevelRules.Compile(d);
+            var level = new LevelData { gatesOnColumnMoves = true };
+            level.start[2] = Bits("00010000");
+            level.gates = new[] { new RowGate(3, GateOp.Or, Bits("00000001")) };
+            var rules = LevelRules.Compile(level);
 
-            rules.TryApply(rules.Start, Move.Column(3, Direction.Down), out var o);
-            Assert.That(BoardBits.GetRow(o.AfterShift, 3), Is.EqualTo(Bits("00010000")));
-            Assert.That(BoardBits.GetRow(o.After, 3), Is.EqualTo(Bits("00010001")));
+            rules.TryApply(rules.Start, Move.Column(3, Direction.Down), out var outcome);
+            Assert.That(BoardBits.GetRow(outcome.AfterShift, 3), Is.EqualTo(Bits("00010000")));
+            Assert.That(BoardBits.GetRow(outcome.After, 3), Is.EqualTo(Bits("00010001")));
 
-            d.gatesOnColumnMoves = false;
-            rules = LevelRules.Compile(d);
-            rules.TryApply(rules.Start, Move.Column(3, Direction.Down), out o);
-            Assert.That(BoardBits.GetRow(o.After, 3), Is.EqualTo(Bits("00010000")));
+            level.gatesOnColumnMoves = false;
+            rules = LevelRules.Compile(level);
+            rules.TryApply(rules.Start, Move.Column(3, Direction.Down), out outcome);
+            Assert.That(BoardBits.GetRow(outcome.After, 3), Is.EqualTo(Bits("00010000")));
         }
 
         [Test]
         public void Gates_DoNotCountAsLostBits()
         {
-            var d = Gated("00110000", GateOp.Xor, "00011000");
-            var rules = LevelRules.Compile(d);
-            rules.TryApply(rules.Start, Move.Row(3, Direction.Right), out var o);
-            Assert.That(o.LostCount, Is.Zero);
+            var level = Gated("00110000", GateOp.Xor, "00011000");
+            var rules = LevelRules.Compile(level);
+            rules.TryApply(rules.Start, Move.Row(3, Direction.Right), out var outcome);
+            Assert.That(outcome.LostCount, Is.Zero);
         }
     }
 }

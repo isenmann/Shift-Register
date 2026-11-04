@@ -32,7 +32,7 @@ namespace ShiftRegister.Game.Audio
         public static readonly int[] ShiftNotes = { 3, 5, 7, 10, 12, 15, 17, 19 };
 
         /// <summary>How loud each sound plays relative to the others (all are rendered to the same peak).</summary>
-        public static float Gain(Sound s) => s switch
+        public static float Gain(Sound sound) => sound switch
         {
             Sound.Shift => 0.45f,
             Sound.Lost => 0.5f,
@@ -55,15 +55,15 @@ namespace ShiftRegister.Game.Audio
         public static float[] Shift(Axis axis, int line, bool bendUp)
         {
             int index = axis == Axis.Row ? BoardBits.Size - 1 - line : line;
-            float hz = Synth.Hz(ShiftNotes[index]);
-            float to = hz * (bendUp ? 1.06f : 0.94f);
+            float frequency = Synth.Hz(ShiftNotes[index]);
+            float to = frequency * (bendUp ? 1.06f : 0.94f);
             var wave = axis == Axis.Row ? Wave.Square : Wave.Triangle;
-            return Synth.Render(Note.Glide(wave, hz, to, 0f, 0.09f, 1f, 0.25f));
+            return Synth.Render(Note.Glide(wave, frequency, to, 0f, 0.09f, 1f, 0.25f));
         }
 
-        public static float[] Render(Sound s)
+        public static float[] Render(Sound sound)
         {
-            switch (s)
+            switch (sound)
             {
                 case Sound.Shift:
                     return Shift(Axis.Row, 4, true);

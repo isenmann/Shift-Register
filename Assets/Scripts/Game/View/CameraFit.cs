@@ -62,9 +62,9 @@ namespace ShiftRegister.Game.View
                 return;
             }
 
-            var go = new GameObject("Backdrop Camera");
-            go.transform.SetParent(transform, false);
-            backdrop = go.AddComponent<Camera>();
+            var gameObject = new GameObject("Backdrop Camera");
+            gameObject.transform.SetParent(transform, false);
+            backdrop = gameObject.AddComponent<Camera>();
             backdrop.depth = cam.depth - 1f;
             backdrop.clearFlags = CameraClearFlags.SolidColor;
             backdrop.backgroundColor = cam.backgroundColor;

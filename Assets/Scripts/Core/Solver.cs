@@ -52,12 +52,12 @@ namespace ShiftRegister.Core
                 this.lost = lost;
             }
 
-            public bool Equals(Key o) => bits == o.bits && lost == o.lost;
-            public override bool Equals(object obj) => obj is Key k && Equals(k);
+            public bool Equals(Key other) => bits == other.bits && lost == other.lost;
+            public override bool Equals(object obj) => obj is Key key && Equals(key);
             public override int GetHashCode()
             {
-                ulong h = bits * 0x9E3779B97F4A7C15UL ^ (ulong)lost * 0xC2B2AE3D27D4EB4FUL;
-                return (int)(h ^ (h >> 32));
+                ulong hash = bits * 0x9E3779B97F4A7C15UL ^ (ulong)lost * 0xC2B2AE3D27D4EB4FUL;
+                return (int)(hash ^ (hash >> 32));
             }
         }
 
@@ -135,7 +135,7 @@ namespace ShiftRegister.Core
                 }
 
                 var moves = rules.Moves;
-                for (int n = 0; n < maxNodes; n++)
+                for (int expanded = 0; expanded < maxNodes; expanded++)
                 {
                     if (head >= bits.Count)
                     {
@@ -154,35 +154,35 @@ namespace ShiftRegister.Core
                     int lostSoFar = lost[node];
                     for (int i = 0; i < moves.Count; i++)
                     {
-                        if (!rules.TryApply(board, moves[i], out var o))
+                        if (!rules.TryApply(board, moves[i], out var outcome))
                         {
                             continue;
                         }
 
-                        int newLost = lostSoFar + o.LostCount;
+                        int newLost = lostSoFar + outcome.LostCount;
                         if (rules.IsBroken(newLost))
                         {
                             continue;
                         }
 
-                        if (CannotReachTarget(rules, o.After, newLost, targetCount))
+                        if (CannotReachTarget(rules, outcome.After, newLost, targetCount))
                         {
                             continue;
                         }
 
-                        var key = new Key(o.After, trackLost ? newLost : 0);
+                        var key = new Key(outcome.After, trackLost ? newLost : 0);
                         if (!seen.Add(key))
                         {
                             continue;
                         }
 
-                        bits.Add(o.After);
+                        bits.Add(outcome.After);
                         lost.Add(newLost);
                         parent.Add(node);
                         via.Add(i);
                         depth.Add(depth[node] + 1);
 
-                        if (rules.IsSolved(o.After, newLost))
+                        if (rules.IsSolved(outcome.After, newLost))
                         {
                             Finish(SolveStatus.Solved, BuildPath(bits.Count - 1, parent, via, moves));
                             return true;
@@ -260,9 +260,9 @@ namespace ShiftRegister.Core
         static IReadOnlyList<Move> BuildPath(int node, List<int> parent, List<int> via, IReadOnlyList<Move> moves)
         {
             var path = new List<Move>();
-            for (int n = node; parent[n] >= 0; n = parent[n])
+            for (int current = node; parent[current] >= 0; current = parent[current])
             {
-                path.Add(moves[via[n]]);
+                path.Add(moves[via[current]]);
             }
 
             path.Reverse();

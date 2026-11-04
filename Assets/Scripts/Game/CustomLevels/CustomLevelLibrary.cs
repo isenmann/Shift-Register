@@ -34,7 +34,7 @@ namespace ShiftRegister.Game.CustomLevels
 
         public bool IsFull => levels.Count >= MaxLevels;
 
-        public CustomLevel Get(string id) => levels.Find(l => l.level.id == id);
+        public CustomLevel Get(string id) => levels.Find(customLevel => customLevel.level.id == id);
 
         /// <summary>Adds a copy under a new id. Returns null if the library is full.</summary>
         public CustomLevel Add(LevelData level, LevelProof proof, long nowTicks)
@@ -92,7 +92,7 @@ namespace ShiftRegister.Game.CustomLevels
             return copy;
         }
 
-        public bool Remove(string id) => levels.RemoveAll(l => l.level.id == id) > 0;
+        public bool Remove(string id) => levels.RemoveAll(customLevel => customLevel.level.id == id) > 0;
 
         /// <summary>Records a solve; true if it is a new best.</summary>
         public bool RecordSolve(string id, int moves)
@@ -162,12 +162,12 @@ namespace ShiftRegister.Game.CustomLevels
         public static LevelResult ApplyWin(CustomLevel entry, IReadOnlyList<Move> moves, out bool justProved)
         {
             justProved = false;
-            var d = entry.level;
-            if (Solver.Replays(LevelRules.Compile(d), moves) && (entry.proof == LevelProof.None || (entry.proof == LevelProof.Replayed && moves.Count < d.par)))
+            var level = entry.level;
+            if (Solver.Replays(LevelRules.Compile(level), moves) && (entry.proof == LevelProof.None || (entry.proof == LevelProof.Replayed && moves.Count < level.par)))
             {
                 justProved = entry.proof == LevelProof.None;
-                d.par = moves.Count;
-                d.solution = string.Join(" ", moves);
+                level.par = moves.Count;
+                level.solution = string.Join(" ", moves);
                 entry.proof = LevelProof.Replayed;
             }
 
@@ -178,7 +178,7 @@ namespace ShiftRegister.Game.CustomLevels
                 entry.bestMoves = moves.Count;
             }
 
-            return new LevelResult(moves.Count, d.par, Scoring.Stars(moves.Count, d.par), better, previous);
+            return new LevelResult(moves.Count, level.par, Scoring.Stars(moves.Count, level.par), better, previous);
         }
 
         /// <summary>Keeps a random level: a copy under a new id, with its best moves. Returns null if the library is full.</summary>
@@ -197,13 +197,13 @@ namespace ShiftRegister.Game.CustomLevels
         /// Drops entries that are not valid, or that claim a proof they cannot back up, so damaged saved
         /// data can never reach the game. Returns how many were dropped.
         /// </summary>
-        public int RemoveInvalid() => levels.RemoveAll(l =>
-            l.level == null
-            || !l.level.id.StartsWith(IdPrefix, StringComparison.Ordinal)
-            || LevelEdit.AuthoredErrors(l.level).Count > 0
-            || (l.proof != LevelProof.None && !HasWorkingSolution(l.level)));
+        public int RemoveInvalid() => levels.RemoveAll(customLevel =>
+            customLevel.level == null
+            || !customLevel.level.id.StartsWith(IdPrefix, StringComparison.Ordinal)
+            || LevelEdit.AuthoredErrors(customLevel.level).Count > 0
+            || (customLevel.proof != LevelProof.None && !HasWorkingSolution(customLevel.level)));
 
-        static bool HasWorkingSolution(LevelData d) =>
-            Move.TryParseList(d.solution, out var moves) && Solver.Replays(LevelRules.Compile(d), moves);
+        static bool HasWorkingSolution(LevelData level) =>
+            Move.TryParseList(level.solution, out var moves) && Solver.Replays(LevelRules.Compile(level), moves);
     }
 }

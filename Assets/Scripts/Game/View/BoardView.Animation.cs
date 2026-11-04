@@ -38,9 +38,9 @@ namespace ShiftRegister.Game.View
             public readonly Vector2 From, To;
             public readonly float AlphaFrom, AlphaTo;
 
-            public Slide(Floater f, Vector2 from, Vector2 to, float alphaFrom = 1f, float alphaTo = 1f)
+            public Slide(Floater floater, Vector2 from, Vector2 to, float alphaFrom = 1f, float alphaTo = 1f)
             {
-                F = f;
+                F = floater;
                 From = from;
                 To = to;
                 AlphaFrom = alphaFrom;
@@ -113,9 +113,9 @@ namespace ShiftRegister.Game.View
             }
 
             StopAllCoroutines();
-            foreach (var f in live)
+            foreach (var floater in live)
             {
-                f.T.gameObject.SetActive(false);
+                floater.T.gameObject.SetActive(false);
             }
 
             pool.AddRange(live);
@@ -154,83 +154,83 @@ namespace ShiftRegister.Game.View
             busy = hopping = false;
         }
 
-        IEnumerator Run(MoveOutcome o, bool solved, bool broken)
+        IEnumerator Run(MoveOutcome outcome, bool solved, bool broken)
         {
-            var m = o.Move;
-            ulong moving = MovingCells(m) & o.Before;
-            Vector2 step = StepVector(m.Direction) * ScreenLayout.Pitch;
+            var move = outcome.Move;
+            ulong moving = MovingCells(move) & outcome.Before;
+            Vector2 step = StepVector(move.Direction) * ScreenLayout.Pitch;
 
             // 1. Shift: everything in the moved part slides one cell.
-            ShowNow(o.Before & ~moving, o.After);
+            ShowNow(outcome.Before & ~moving, outcome.After);
             var slides = new List<Slide>();
             ulong arrived = 0;
-            for (int r = 0; r < BoardBits.Size; r++)
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                for (int c = 0; c < BoardBits.Size; c++)
+                for (int column = 0; column < BoardBits.Size; column++)
                 {
-                    if (!BoardBits.GetCell(moving, r, c))
+                    if (!BoardBits.GetCell(moving, row, column))
                     {
                         continue;
                     }
 
-                    Vector2 p = CellCenter(r, c);
-                    if ((o.LostCells & BoardBits.CellMask(r, c)) != 0)
+                    Vector2 startPosition = CellCenter(row, column);
+                    if ((outcome.LostCells & BoardBits.CellMask(row, column)) != 0)
                     {
-                        StartCoroutine(FlyToBucket(Spawn(p), p, p + step));
+                        StartCoroutine(FlyToBucket(Spawn(startPosition), startPosition, startPosition + step));
                         continue;
                     }
 
-                    var (r2, c2, wrap) = Destination(m, r, c);
-                    arrived |= BoardBits.CellMask(r2, c2);
-                    Vector2 q = CellCenter(r2, c2);
+                    var (targetRow, targetColumn, wrap) = Destination(move, row, column);
+                    arrived |= BoardBits.CellMask(targetRow, targetColumn);
+                    Vector2 endPosition = CellCenter(targetRow, targetColumn);
                     if (!wrap)
                     {
-                        slides.Add(new Slide(Spawn(p), p, q));
+                        slides.Add(new Slide(Spawn(startPosition), startPosition, endPosition));
                     }
                     else
                     {
                         // Wrap (rotate) or carry into the chained row: slide out, slide back in at the destination.
-                        Vector2 outside = q - step * 0.6f;
-                        slides.Add(new Slide(Spawn(p), p, p + step * 0.6f, 1f, 0f));
-                        slides.Add(new Slide(Spawn(outside), outside, q, 0f, 1f));
+                        Vector2 outside = endPosition - step * 0.6f;
+                        slides.Add(new Slide(Spawn(startPosition), startPosition, startPosition + step * 0.6f, 1f, 0f));
+                        slides.Add(new Slide(Spawn(outside), outside, endPosition, 0f, 1f));
                     }
                 }
             }
 
-            yield return Tween(shiftTime, t =>
+            yield return Tween(shiftTime, progress =>
             {
-                float e = EaseOutCubic(t);
-                foreach (var s in slides)
+                float eased = EaseOutCubic(progress);
+                foreach (var slide in slides)
                 {
-                    s.F.T.localPosition = Vector2.Lerp(s.From, s.To, e);
-                    SetAlpha(s.F, Mathf.Lerp(s.AlphaFrom, s.AlphaTo, t));
+                    slide.F.T.localPosition = Vector2.Lerp(slide.From, slide.To, eased);
+                    SetAlpha(slide.F, Mathf.Lerp(slide.AlphaFrom, slide.AlphaTo, progress));
                 }
             });
-            foreach (var s in slides)
+            foreach (var slide in slides)
             {
-                Release(s.F);
+                Release(slide.F);
             }
 
             // Bits that came from nowhere (a 1-IN edge) pop in.
-            ulong kept = o.Before & ~moving;
-            ulong fresh = o.AfterShift & ~kept & ~arrived;
-            ShowNow(o.AfterShift, o.After);
+            ulong kept = outcome.Before & ~moving;
+            ulong fresh = outcome.AfterShift & ~kept & ~arrived;
+            ShowNow(outcome.AfterShift, outcome.After);
             if (fresh != 0)
             {
                 yield return Pop(fresh, 0, gateTime);
             }
 
             // 2. Gates: changed cells pop in or shrink away.
-            ulong appear = o.After & ~o.AfterShift;
-            ulong vanish = o.AfterShift & ~o.After;
+            ulong appear = outcome.After & ~outcome.AfterShift;
+            ulong vanish = outcome.AfterShift & ~outcome.After;
             if ((appear | vanish) != 0)
             {
-                ShowNow(o.AfterShift & ~vanish, o.After);
-                GatesSwitched?.Invoke(o);
+                ShowNow(outcome.AfterShift & ~vanish, outcome.After);
+                GatesSwitched?.Invoke(outcome);
                 yield return Pop(appear, vanish, gateTime);
             }
 
-            ShowNow(o.After, o.After);
+            ShowNow(outcome.After, outcome.After);
 
             // 3. Wait for lost bits to land, then react.
             while (flights > 0)
@@ -238,7 +238,7 @@ namespace ShiftRegister.Game.View
                 yield return null;
             }
 
-            Reacted?.Invoke(o, solved, broken);
+            Reacted?.Invoke(outcome, solved, broken);
             if (broken)
             {
                 yield return Shake(0.3f);
@@ -256,71 +256,71 @@ namespace ShiftRegister.Game.View
         IEnumerator Pop(ulong appear, ulong vanish, float duration)
         {
             var shrinking = new List<Floater>();
-            for (int r = 0; r < BoardBits.Size; r++)
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                for (int c = 0; c < BoardBits.Size; c++)
+                for (int column = 0; column < BoardBits.Size; column++)
                 {
-                    if (BoardBits.GetCell(vanish, r, c))
+                    if (BoardBits.GetCell(vanish, row, column))
                     {
-                        shrinking.Add(Spawn(CellCenter(r, c)));
+                        shrinking.Add(Spawn(CellCenter(row, column)));
                     }
 
-                    if (BoardBits.GetCell(appear, r, c))
+                    if (BoardBits.GetCell(appear, row, column))
                     {
-                        cells[r, c].Bit.transform.localScale = Vector3.zero;
+                        cells[row, column].Bit.transform.localScale = Vector3.zero;
                     }
                 }
             }
 
-            yield return Tween(duration, t =>
+            yield return Tween(duration, progress =>
             {
-                float grow = EaseOutBack(t);
-                for (int r = 0; r < BoardBits.Size; r++)
+                float grow = EaseOutBack(progress);
+                for (int row = 0; row < BoardBits.Size; row++)
                 {
-                    for (int c = 0; c < BoardBits.Size; c++)
+                    for (int column = 0; column < BoardBits.Size; column++)
                     {
-                        if (BoardBits.GetCell(appear, r, c))
+                        if (BoardBits.GetCell(appear, row, column))
                         {
-                            cells[r, c].Bit.transform.localScale = Vector3.one * grow;
+                            cells[row, column].Bit.transform.localScale = Vector3.one * grow;
                         }
                     }
                 }
 
-                foreach (var f in shrinking)
+                foreach (var floater in shrinking)
                 {
-                    f.T.localScale = Vector3.one * (1f - EaseOutCubic(t));
+                    floater.T.localScale = Vector3.one * (1f - EaseOutCubic(progress));
                 }
             });
-            foreach (var f in shrinking)
+            foreach (var floater in shrinking)
             {
-                Release(f);
+                Release(floater);
             }
         }
 
-        IEnumerator FlyToBucket(Floater f, Vector2 from, Vector2 edge)
+        IEnumerator FlyToBucket(Floater floater, Vector2 from, Vector2 edge)
         {
             flights++;
-            yield return Tween(shiftTime, t => f.T.localPosition = Vector2.Lerp(from, edge, EaseOutCubic(t)));
+            yield return Tween(shiftTime, progress => floater.T.localPosition = Vector2.Lerp(from, edge, EaseOutCubic(progress)));
 
-            SetLost(f, true);
+            SetLost(floater, true);
             Vector3 bucketWorld = ScreenLayout.BucketCenter;
             Vector2 target = cellsRoot.InverseTransformPoint(bucketWorld);
             Vector2 control = (edge + target) / 2f + Vector2.up * 2.5f;
-            yield return Tween(flyTime, t =>
+            yield return Tween(flyTime, progress =>
             {
-                float e = EaseInOutQuad(t);
-                f.T.localPosition = Bezier(edge, control, target, e);
-                f.T.localScale = Vector3.one * Mathf.Lerp(1f, 0.55f, e);
-                SetAlpha(f, t < 0.8f ? 1f : 1f - (t - 0.8f) / 0.2f);
+                float eased = EaseInOutQuad(progress);
+                floater.T.localPosition = Bezier(edge, control, target, eased);
+                floater.T.localScale = Vector3.one * Mathf.Lerp(1f, 0.55f, eased);
+                SetAlpha(floater, progress < 0.8f ? 1f : 1f - (progress - 0.8f) / 0.2f);
             });
-            Release(f);
+            Release(floater);
             flights--;
         }
 
         IEnumerator Shake(float duration)
         {
-            yield return Tween(duration, t =>
-                cellsRoot.localPosition = new Vector3(Mathf.Sin(t * 60f) * 0.09f * (1f - t), 0f, 0f));
+            yield return Tween(duration, progress =>
+                cellsRoot.localPosition = new Vector3(Mathf.Sin(progress * 60f) * 0.09f * (1f - progress), 0f, 0f));
             cellsRoot.localPosition = Vector3.zero;
         }
 
@@ -330,24 +330,24 @@ namespace ShiftRegister.Game.View
             hopping = true;
             const float duration = 0.5f, stagger = 0.035f;
             float total = duration + stagger * (BoardBits.Size - 1);
-            yield return Tween(total, t =>
+            yield return Tween(total, progress =>
             {
-                float time = t * total;
-                for (int r = 0; r < BoardBits.Size; r++)
+                float time = progress * total;
+                for (int row = 0; row < BoardBits.Size; row++)
                 {
-                    for (int c = 0; c < BoardBits.Size; c++)
+                    for (int column = 0; column < BoardBits.Size; column++)
                     {
-                        var bit = cells[r, c].Bit;
+                        var bit = cells[row, column].Bit;
                         if (!bit.activeSelf)
                         {
                             continue;
                         }
 
-                        float local = Mathf.Clamp01((time - c * stagger) / duration);
-                        float h = local < 0.5f
+                        float local = Mathf.Clamp01((time - column * stagger) / duration);
+                        float height = local < 0.5f
                             ? Mathf.Sin(Mathf.PI * local / 0.5f) * 8f
                             : Mathf.Sin(Mathf.PI * (local - 0.5f) / 0.5f) * 5f;
-                        bit.transform.localPosition = new Vector3(0f, h / CellPx, 0f);
+                        bit.transform.localPosition = new Vector3(0f, height / CellPx, 0f);
                     }
                 }
             });
@@ -355,45 +355,45 @@ namespace ShiftRegister.Game.View
         }
 
         /// <summary>Cells of the line part a move shifts (both rows for a chain).</summary>
-        ulong MovingCells(Move m)
+        ulong MovingCells(Move move)
         {
             ulong mask = 0;
-            if (m.Axis == Axis.Row)
+            if (move.Axis == Axis.Row)
             {
-                int top = rules.ChainTopOf(m.Line);
+                int top = rules.ChainTopOf(move.Line);
                 if (top >= 0)
                 {
                     return (0xFFUL << (top * 8)) | (0xFFUL << ((top + 1) * 8));
                 }
 
-                var (first, last) = InputMapping.SegmentRange(rules, Axis.Row, m.Line, m.Segment);
-                for (int c = first; c <= last; c++)
+                var (first, last) = InputMapping.SegmentRange(rules, Axis.Row, move.Line, move.Segment);
+                for (int column = first; column <= last; column++)
                 {
-                    mask |= BoardBits.CellMask(m.Line, c);
+                    mask |= BoardBits.CellMask(move.Line, column);
                 }
 
                 return mask;
             }
 
-            var (top2, bottom) = InputMapping.SegmentRange(rules, Axis.Column, m.Line, m.Segment);
-            for (int r = top2; r <= bottom; r++)
+            var (top2, bottom) = InputMapping.SegmentRange(rules, Axis.Column, move.Line, move.Segment);
+            for (int row = top2; row <= bottom; row++)
             {
-                mask |= BoardBits.CellMask(r, m.Line);
+                mask |= BoardBits.CellMask(row, move.Line);
             }
 
             return mask;
         }
 
         /// <summary>Where a (not lost) bit of the moved part ends up; wrap = it leaves one end and enters elsewhere.</summary>
-        (int row, int column, bool wrap) Destination(Move m, int r, int c)
+        (int row, int column, bool wrap) Destination(Move move, int row, int column)
         {
-            int d = m.TowardStart ? -1 : 1;
-            if (m.Axis == Axis.Row)
+            int step = move.TowardStart ? -1 : 1;
+            if (move.Axis == Axis.Row)
             {
-                int top = rules.ChainTopOf(r);
+                int top = rules.ChainTopOf(row);
                 if (top >= 0)
                 {
-                    int i = (r - top) * BoardBits.Size + c + d;
+                    int i = (row - top) * BoardBits.Size + column + step;
                     bool wrapped = false;
                     if (i < 0)
                     {
@@ -406,41 +406,41 @@ namespace ShiftRegister.Game.View
                         wrapped = true;
                     }
 
-                    int nr = top + i / BoardBits.Size, nc = i % BoardBits.Size;
-                    return (nr, nc, wrapped || nr != r);
+                    int newRow = top + i / BoardBits.Size, newColumn = i % BoardBits.Size;
+                    return (newRow, newColumn, wrapped || newRow != row);
                 }
 
-                var (first, last) = InputMapping.SegmentRange(rules, Axis.Row, r, m.Segment);
-                int n = c + d;
-                if (n < first)
+                var (first, last) = InputMapping.SegmentRange(rules, Axis.Row, row, move.Segment);
+                int next = column + step;
+                if (next < first)
                 {
-                    return (r, last, true);
+                    return (row, last, true);
                 }
 
-                if (n > last)
+                if (next > last)
                 {
-                    return (r, first, true);
+                    return (row, first, true);
                 }
 
-                return (r, n, false);
+                return (row, next, false);
             }
 
-            var (top2, bottom) = InputMapping.SegmentRange(rules, Axis.Column, c, m.Segment);
-            int nrow = r + d;
+            var (top2, bottom) = InputMapping.SegmentRange(rules, Axis.Column, column, move.Segment);
+            int nrow = row + step;
             if (nrow < top2)
             {
-                return (bottom, c, true);
+                return (bottom, column, true);
             }
 
             if (nrow > bottom)
             {
-                return (top2, c, true);
+                return (top2, column, true);
             }
 
-            return (nrow, c, false);
+            return (nrow, column, false);
         }
 
-        static Vector2 StepVector(Direction d) => d switch
+        static Vector2 StepVector(Direction direction) => direction switch
         {
             Direction.Left => Vector2.left,
             Direction.Right => Vector2.right,
@@ -450,133 +450,133 @@ namespace ShiftRegister.Game.View
 
         Floater Spawn(Vector2 localPosition)
         {
-            Floater f;
+            Floater floater;
             if (pool.Count > 0)
             {
-                f = pool[pool.Count - 1];
+                floater = pool[pool.Count - 1];
                 pool.RemoveAt(pool.Count - 1);
             }
             else
             {
-                f = CreateFloater();
+                floater = CreateFloater();
             }
 
-            f.T.gameObject.SetActive(true);
-            f.T.localPosition = localPosition;
-            f.T.localScale = Vector3.one;
-            SetLost(f, false);
-            SetAlpha(f, 1f);
-            live.Add(f);
-            return f;
+            floater.T.gameObject.SetActive(true);
+            floater.T.localPosition = localPosition;
+            floater.T.localScale = Vector3.one;
+            SetLost(floater, false);
+            SetAlpha(floater, 1f);
+            live.Add(floater);
+            return floater;
         }
 
-        void Release(Floater f)
+        void Release(Floater floater)
         {
-            if (!live.Remove(f))
+            if (!live.Remove(floater))
             {
                 return;
             }
 
-            f.T.gameObject.SetActive(false);
-            pool.Add(f);
+            floater.T.gameObject.SetActive(false);
+            pool.Add(floater);
         }
 
         Floater CreateFloater()
         {
-            var go = new GameObject("Floating bit");
-            var t = go.transform;
-            t.SetParent(cellsRoot, false);
+            var gameObject = new GameObject("Floating bit");
+            var parent = gameObject.transform;
+            parent.SetParent(cellsRoot, false);
             var body = ProceduralSprites.RoundedRect(CellPx, CellPx, RadiusPx);
             var eye = ProceduralSprites.RoundedRect(EyeW, EyeH, EyeRadius);
             var flat = ProceduralSprites.RoundedRect(8f, 3f, 1f);
-            var f = new Floater
+            var floater = new Floater
             {
-                T = t,
-                Body = Renderer(t, "Body", body, Lcd.Ink, Layer.Bit),
+                T = parent,
+                Body = Renderer(parent, "Body", body, Lcd.Ink, Layer.Bit),
                 Eyes = new[]
                 {
-                    Renderer(t, "Eye L", eye, Lcd.Light, Layer.Eyes),
-                    Renderer(t, "Eye R", eye, Lcd.Light, Layer.Eyes)
+                    Renderer(parent, "Eye L", eye, Lcd.Light, Layer.Eyes),
+                    Renderer(parent, "Eye R", eye, Lcd.Light, Layer.Eyes)
                 },
                 FlatEyes = new[]
                 {
-                    Renderer(t, "Flat Eye L", flat, LostEye, Layer.Eyes),
-                    Renderer(t, "Flat Eye R", flat, LostEye, Layer.Eyes)
+                    Renderer(parent, "Flat Eye L", flat, LostEye, Layer.Eyes),
+                    Renderer(parent, "Flat Eye R", flat, LostEye, Layer.Eyes)
                 }
             };
-            f.Body.sortingOrder = FloatBodyOrder;
-            f.Eyes[0].transform.localPosition = f.FlatEyes[0].transform.localPosition = new Vector2(-EyeX, EyeY) / CellPx;
-            f.Eyes[1].transform.localPosition = f.FlatEyes[1].transform.localPosition = new Vector2(EyeX, EyeY) / CellPx;
-            f.FlatEyes[0].transform.localPosition += new Vector3(0f, -1.5f / CellPx, 0f);
-            f.FlatEyes[1].transform.localPosition += new Vector3(0f, -1.5f / CellPx, 0f);
-            foreach (var e in f.Eyes)
+            floater.Body.sortingOrder = FloatBodyOrder;
+            floater.Eyes[0].transform.localPosition = floater.FlatEyes[0].transform.localPosition = new Vector2(-EyeX, EyeY) / CellPx;
+            floater.Eyes[1].transform.localPosition = floater.FlatEyes[1].transform.localPosition = new Vector2(EyeX, EyeY) / CellPx;
+            floater.FlatEyes[0].transform.localPosition += new Vector3(0f, -1.5f / CellPx, 0f);
+            floater.FlatEyes[1].transform.localPosition += new Vector3(0f, -1.5f / CellPx, 0f);
+            foreach (var eyeRenderer in floater.Eyes)
             {
-                e.sortingOrder = FloatEyesOrder;
+                eyeRenderer.sortingOrder = FloatEyesOrder;
             }
 
-            foreach (var e in f.FlatEyes)
+            foreach (var eyeRenderer in floater.FlatEyes)
             {
-                e.sortingOrder = FloatEyesOrder;
+                eyeRenderer.sortingOrder = FloatEyesOrder;
             }
 
-            return f;
+            return floater;
         }
 
-        static void SetLost(Floater f, bool lost)
+        static void SetLost(Floater floater, bool lost)
         {
-            f.Body.color = WithAlpha(lost ? Lcd.Loss : Lcd.Ink, f.Body.color.a);
-            foreach (var e in f.Eyes)
+            floater.Body.color = WithAlpha(lost ? Lcd.Loss : Lcd.Ink, floater.Body.color.a);
+            foreach (var eyeRenderer in floater.Eyes)
             {
-                e.enabled = !lost;
+                eyeRenderer.enabled = !lost;
             }
 
-            foreach (var e in f.FlatEyes)
+            foreach (var eyeRenderer in floater.FlatEyes)
             {
-                e.enabled = lost;
-            }
-        }
-
-        static void SetAlpha(Floater f, float a)
-        {
-            f.Body.color = WithAlpha(f.Body.color, a);
-            foreach (var e in f.Eyes)
-            {
-                e.color = WithAlpha(e.color, a);
-            }
-
-            foreach (var e in f.FlatEyes)
-            {
-                e.color = WithAlpha(e.color, a);
+                eyeRenderer.enabled = lost;
             }
         }
 
-        static Color WithAlpha(Color c, float a)
+        static void SetAlpha(Floater floater, float alpha)
         {
-            c.a = a;
-            return c;
+            floater.Body.color = WithAlpha(floater.Body.color, alpha);
+            foreach (var eyeRenderer in floater.Eyes)
+            {
+                eyeRenderer.color = WithAlpha(eyeRenderer.color, alpha);
+            }
+
+            foreach (var eyeRenderer in floater.FlatEyes)
+            {
+                eyeRenderer.color = WithAlpha(eyeRenderer.color, alpha);
+            }
+        }
+
+        static Color WithAlpha(Color color, float alpha)
+        {
+            color.a = alpha;
+            return color;
         }
 
         static IEnumerator Tween(float duration, Action<float> apply)
         {
-            for (float t = 0f; t < duration; t += Time.deltaTime)
+            for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
             {
-                apply(t / duration);
+                apply(elapsed / duration);
                 yield return null;
             }
 
             apply(1f);
         }
 
-        static Vector2 Bezier(Vector2 a, Vector2 b, Vector2 c, float t) =>
-            Vector2.Lerp(Vector2.Lerp(a, b, t), Vector2.Lerp(b, c, t), t);
+        static Vector2 Bezier(Vector2 start, Vector2 control, Vector2 end, float progress) =>
+            Vector2.Lerp(Vector2.Lerp(start, control, progress), Vector2.Lerp(control, end, progress), progress);
 
-        static float EaseOutCubic(float t) => 1f - Mathf.Pow(1f - t, 3f);
-        static float EaseInOutQuad(float t) => t < 0.5f ? 2f * t * t : 1f - Mathf.Pow(-2f * t + 2f, 2f) / 2f;
+        static float EaseOutCubic(float progress) => 1f - Mathf.Pow(1f - progress, 3f);
+        static float EaseInOutQuad(float progress) => progress < 0.5f ? 2f * progress * progress : 1f - Mathf.Pow(-2f * progress + 2f, 2f) / 2f;
 
-        static float EaseOutBack(float t)
+        static float EaseOutBack(float progress)
         {
-            const float c1 = 1.70158f, c3 = c1 + 1f;
-            return 1f + c3 * Mathf.Pow(t - 1f, 3f) + c1 * Mathf.Pow(t - 1f, 2f);
+            const float overshoot = 1.70158f, overshootPlusOne = overshoot + 1f;
+            return 1f + overshootPlusOne * Mathf.Pow(progress - 1f, 3f) + overshoot * Mathf.Pow(progress - 1f, 2f);
         }
     }
 }

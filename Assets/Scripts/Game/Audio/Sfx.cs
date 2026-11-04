@@ -48,9 +48,9 @@ namespace ShiftRegister.Game.Audio
             source.playOnAwake = false;
             source.spatialBlend = 0f;
 
-            foreach (Sound s in System.Enum.GetValues(typeof(Sound)))
+            foreach (Sound sound in System.Enum.GetValues(typeof(Sound)))
             {
-                clips[s] = Clip(s.ToString(), SoundBank.Render(s));
+                clips[sound] = Clip(sound.ToString(), SoundBank.Render(sound));
             }
 
             for (int axis = 0; axis < 2; axis++)
@@ -109,22 +109,22 @@ namespace ShiftRegister.Game.Audio
             }
         }
 
-        void OnMoved(MoveOutcome o)
+        void OnMoved(MoveOutcome outcome)
         {
-            var m = o.Move;
-            bool up = m.Direction == Direction.Right || m.Direction == Direction.Up;
-            PlayShift(m.Axis, m.Line, up);
-            if (o.LostCount > 0)
+            var move = outcome.Move;
+            bool up = move.Direction == Direction.Right || move.Direction == Direction.Up;
+            PlayShift(move.Axis, move.Line, up);
+            if (outcome.LostCount > 0)
             {
                 Play(Sound.Lost);
             }
         }
 
-        void OnGates(MoveOutcome o) => Play(Sound.Gate);
+        void OnGates(MoveOutcome outcome) => Play(Sound.Gate);
 
-        void OnReacted(MoveOutcome o, bool solved, bool broken)
+        void OnReacted(MoveOutcome outcome, bool solved, bool broken)
         {
-            if (o.LostCount > 0)
+            if (outcome.LostCount > 0)
             {
                 Play(Sound.Land);
             }

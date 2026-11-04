@@ -11,7 +11,7 @@ namespace ShiftRegister.Tests
     {
         static LevelRules Mixed()
         {
-            var d = new LevelData
+            var level = new LevelData
             {
                 rotateRows = new[] { 1 },
                 chainTopRows = new[] { 2 },
@@ -23,7 +23,7 @@ namespace ShiftRegister.Tests
                     new RowGate(6, GateOp.Not, 0b00000001)
                 }
             };
-            return LevelRules.Compile(d);
+            return LevelRules.Compile(level);
         }
 
         [Test]
@@ -42,10 +42,10 @@ namespace ShiftRegister.Tests
         [Test]
         public void Overlays_MarkGateCellsAndOneInEdges()
         {
-            var go = new GameObject("Board");
+            var gameObject = new GameObject("Board");
             try
             {
-                var view = go.AddComponent<BoardView>();
+                var view = gameObject.AddComponent<BoardView>();
                 view.Build(Mixed());
                 Assert.That(view.HasOverlay(5, 3) && view.HasOverlay(5, 4), Is.True);
                 Assert.That(view.HasOverlay(5, 2), Is.False);
@@ -56,25 +56,25 @@ namespace ShiftRegister.Tests
             }
             finally
             {
-                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(gameObject);
             }
         }
 
         [Test]
         public void Belts_ForWrapRowsAndChains()
         {
-            var go = new GameObject("Board");
+            var gameObject = new GameObject("Board");
             try
             {
-                var controls = go.AddComponent<BoardControls>();
+                var controls = gameObject.AddComponent<BoardControls>();
                 controls.Build(Mixed());
-                var root = go.transform.Find("Controls");
+                var root = gameObject.transform.Find("Controls");
                 Assert.That(root.Find("Wrap belt 2"), Is.Not.Null);
                 Assert.That(root.Find("Chain belt 3-4"), Is.Not.Null);
                 int belts = 0;
-                foreach (Transform t in root)
+                foreach (Transform parent in root)
                 {
-                    if (t.name.Contains("belt"))
+                    if (parent.name.Contains("belt"))
                     {
                         belts++;
                     }
@@ -84,7 +84,7 @@ namespace ShiftRegister.Tests
             }
             finally
             {
-                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(gameObject);
             }
         }
     }

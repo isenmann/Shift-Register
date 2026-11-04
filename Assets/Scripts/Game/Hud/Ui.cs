@@ -12,73 +12,73 @@ namespace ShiftRegister.Game.Hud
     /// </summary>
     public static class Ui
     {
-        public static RectTransform Rect(Transform parent, string name, float x, float y, float w, float h)
+        public static RectTransform Rect(Transform parent, string name, float x, float y, float width, float height)
         {
-            var go = new GameObject(name, typeof(RectTransform));
-            var rt = (RectTransform)go.transform;
-            rt.SetParent(parent, false);
-            rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f);
-            rt.pivot = new Vector2(0f, 1f);
-            rt.anchoredPosition = new Vector2(x, -y);
-            rt.sizeDelta = new Vector2(w, h);
-            return rt;
+            var gameObject = new GameObject(name, typeof(RectTransform));
+            var rectTransform = (RectTransform)gameObject.transform;
+            rectTransform.SetParent(parent, false);
+            rectTransform.anchorMin = rectTransform.anchorMax = new Vector2(0f, 1f);
+            rectTransform.pivot = new Vector2(0f, 1f);
+            rectTransform.anchoredPosition = new Vector2(x, -y);
+            rectTransform.sizeDelta = new Vector2(width, height);
+            return rectTransform;
         }
 
         /// <summary>Full-size child of a parent rect.</summary>
         public static RectTransform Fill(Transform parent, string name)
         {
-            var go = new GameObject(name, typeof(RectTransform));
-            var rt = (RectTransform)go.transform;
-            rt.SetParent(parent, false);
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = rt.offsetMax = Vector2.zero;
-            return rt;
+            var gameObject = new GameObject(name, typeof(RectTransform));
+            var rectTransform = (RectTransform)gameObject.transform;
+            rectTransform.SetParent(parent, false);
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.offsetMin = rectTransform.offsetMax = Vector2.zero;
+            return rectTransform;
         }
 
-        public static TextMeshProUGUI Text(Transform parent, string name, float x, float y, float w, float h,
+        public static TextMeshProUGUI Text(Transform parent, string name, float x, float y, float width, float height,
             TMP_FontAsset font, float size, Color32 color, TextAlignmentOptions align = TextAlignmentOptions.MidlineLeft, string text = "")
         {
-            var t = Rect(parent, name, x, y, w, h).gameObject.AddComponent<TextMeshProUGUI>();
-            Style(t, font, size, color, align);
-            t.text = text;
-            return t;
+            var label = Rect(parent, name, x, y, width, height).gameObject.AddComponent<TextMeshProUGUI>();
+            Style(label, font, size, color, align);
+            label.text = text;
+            return label;
         }
 
-        public static void Style(TextMeshProUGUI t, TMP_FontAsset font, float size, Color32 color, TextAlignmentOptions align)
+        public static void Style(TextMeshProUGUI label, TMP_FontAsset font, float size, Color32 color, TextAlignmentOptions align)
         {
-            t.font = font;
-            t.fontSize = size;
-            t.color = color;
-            t.alignment = align;
-            t.raycastTarget = false;
-            t.textWrappingMode = TextWrappingModes.NoWrap;
-            t.overflowMode = TextOverflowModes.Overflow;
+            label.font = font;
+            label.fontSize = size;
+            label.color = color;
+            label.alignment = align;
+            label.raycastTarget = false;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.overflowMode = TextOverflowModes.Overflow;
         }
 
         /// <summary>A procedural UI sprite centred on the given mockup rect.</summary>
-        public static Image Shape(Transform parent, string name, float x, float y, float w, float h, Sprite sprite, Color color)
+        public static Image Shape(Transform parent, string name, float x, float y, float width, float height, Sprite sprite, Color color)
         {
-            var go = new GameObject(name, typeof(RectTransform));
-            var rt = (RectTransform)go.transform;
-            rt.SetParent(parent, false);
-            rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = new Vector2(x + w / 2f, -(y + h / 2f));
-            var img = go.AddComponent<Image>();
-            img.sprite = sprite;
-            img.color = color;
-            img.raycastTarget = false;
-            img.SetNativeSize();
-            return img;
+            var gameObject = new GameObject(name, typeof(RectTransform));
+            var rectTransform = (RectTransform)gameObject.transform;
+            rectTransform.SetParent(parent, false);
+            rectTransform.anchorMin = rectTransform.anchorMax = new Vector2(0f, 1f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            rectTransform.anchoredPosition = new Vector2(x + width / 2f, -(y + height / 2f));
+            var image = gameObject.AddComponent<Image>();
+            image.sprite = sprite;
+            image.color = color;
+            image.raycastTarget = false;
+            image.SetNativeSize();
+            return image;
         }
 
-        public static Image Box(Transform parent, string name, float x, float y, float w, float h, float radius, Color color) =>
-            Shape(parent, name, x, y, w, h, ProceduralSprites.RoundedRect(w, h, radius, ui: true), color);
+        public static Image Box(Transform parent, string name, float x, float y, float width, float height, float radius, Color color) =>
+            Shape(parent, name, x, y, width, height, ProceduralSprites.RoundedRect(width, height, radius, ui: true), color);
 
-        public static Image Frame(Transform parent, string name, float x, float y, float w, float h, float radius,
+        public static Image Frame(Transform parent, string name, float x, float y, float width, float height, float radius,
             float thickness, Color color, float dash = 0f) =>
-            Shape(parent, name, x, y, w, h, ProceduralSprites.RoundedOutline(w, h, radius, thickness, dash, ui: true), color);
+            Shape(parent, name, x, y, width, height, ProceduralSprites.RoundedOutline(width, height, radius, thickness, dash, ui: true), color);
 
         /// <summary>
         /// Draws a canvas through the main camera instead of over the whole screen, so it follows the
@@ -86,14 +86,14 @@ namespace ShiftRegister.Game.Hud
         /// </summary>
         public static void RenderWithMainCamera(Canvas canvas, int order)
         {
-            var cam = Camera.main;
-            if (canvas == null || cam == null)
+            var mainCamera = Camera.main;
+            if (canvas == null || mainCamera == null)
             {
                 return;
             }
 
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
-            canvas.worldCamera = cam;
+            canvas.worldCamera = mainCamera;
             canvas.planeDistance = 5f;
             canvas.sortingOrder = order;
         }
@@ -126,6 +126,6 @@ namespace ShiftRegister.Game.Hud
         /// <summary>"1 move", "6 moves": custom levels can have a par of 1.</summary>
         public static string Moves(int count) => count == 1 ? "1 move" : $"{count} moves";
 
-        public static string Hex(Color32 c) => $"#{c.r:X2}{c.g:X2}{c.b:X2}";
+        public static string Hex(Color32 color) => $"#{color.r:X2}{color.g:X2}{color.b:X2}";
     }
 }

@@ -21,38 +21,38 @@ namespace ShiftRegister.Game.View
         static readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
 
         /// <summary>Filled rounded rectangle.</summary>
-        public static Sprite RoundedRect(float w, float h, float radius, bool ui = false) =>
-            Get($"rect {w} {h} {radius}", w, h, ui, (px, py, hw, hh) =>
+        public static Sprite RoundedRect(float width, float height, float radius, bool ui = false) =>
+            Get($"rect {width} {height} {radius}", width, height, ui, (pixelX, pixelY, halfWidth, halfHeight) =>
             {
-                float d = RoundedRectDistance(px, py, hw, hh, radius * Scale);
-                return new Color(1, 1, 1, Fill(d));
+                float distance = RoundedRectDistance(pixelX, pixelY, halfWidth, halfHeight, radius * Scale);
+                return new Color(1, 1, 1, Fill(distance));
             });
 
         /// <summary>Filled rectangle rounding only its top-left and bottom-right corners (a gate's corner tab).</summary>
-        public static Sprite CornerTab(float w, float h, float topLeftRadius, float bottomRightRadius) =>
-            Get($"tab {w} {h} {topLeftRadius} {bottomRightRadius}", w, h, false, (px, py, hw, hh) =>
+        public static Sprite CornerTab(float width, float height, float topLeftRadius, float bottomRightRadius) =>
+            Get($"tab {width} {height} {topLeftRadius} {bottomRightRadius}", width, height, false, (pixelX, pixelY, halfWidth, halfHeight) =>
             {
-                float r = px < 0f && py > 0f ? topLeftRadius : px > 0f && py < 0f ? bottomRightRadius : 0f;
-                float d = RoundedRectDistance(px, py, hw, hh, r * Scale);
-                return new Color(1, 1, 1, Fill(d));
+                float cornerRadius = pixelX < 0f && pixelY > 0f ? topLeftRadius : pixelX > 0f && pixelY < 0f ? bottomRightRadius : 0f;
+                float distance = RoundedRectDistance(pixelX, pixelY, halfWidth, halfHeight, cornerRadius * Scale);
+                return new Color(1, 1, 1, Fill(distance));
             });
 
         /// <summary>Rounded outline drawn inside the shape's edge; dash = 0 for a solid line.</summary>
-        public static Sprite RoundedOutline(float w, float h, float radius, float thickness, float dash = 0f, bool ui = false) =>
-            Get($"outline {w} {h} {radius} {thickness} {dash}", w, h, ui, (px, py, hw, hh) =>
+        public static Sprite RoundedOutline(float width, float height, float radius, float thickness, float dash = 0f, bool ui = false) =>
+            Get($"outline {width} {height} {radius} {thickness} {dash}", width, height, ui, (pixelX, pixelY, halfWidth, halfHeight) =>
             {
-                float d = RoundedRectDistance(px, py, hw, hh, radius * Scale);
-                float a = Fill(d) * Mathf.Clamp01(0.5f + d + thickness * Scale);
-                if (dash > 0f && a > 0f)
+                float distance = RoundedRectDistance(pixelX, pixelY, halfWidth, halfHeight, radius * Scale);
+                float alpha = Fill(distance) * Mathf.Clamp01(0.5f + distance + thickness * Scale);
+                if (dash > 0f && alpha > 0f)
                 {
                     // Position along the nearest edge; dashes are centred on each edge's midpoint.
-                    float s = Mathf.Abs(px) / hw > Mathf.Abs(py) / hh ? py : px;
+                    float edgePosition = Mathf.Abs(pixelX) / halfWidth > Mathf.Abs(pixelY) / halfHeight ? pixelY : pixelX;
                     float period = 2f * dash * Scale;
-                    float phase = Mathf.Repeat(s + dash * Scale * 0.5f, period);
-                    a *= phase < dash * Scale ? 1f : 0f;
+                    float phase = Mathf.Repeat(edgePosition + dash * Scale * 0.5f, period);
+                    alpha *= phase < dash * Scale ? 1f : 0f;
                 }
 
-                return new Color(1, 1, 1, a);
+                return new Color(1, 1, 1, alpha);
             });
 
         /// <summary>
@@ -60,84 +60,84 @@ namespace ShiftRegister.Game.View
         /// flip the renderer for the other quarters. Matches a <see cref="RoundedOutline"/> corner of the same radius.
         /// </summary>
         public static Sprite QuarterRing(float radius, float thickness) =>
-            Get($"ring {radius} {thickness}", radius, radius, false, (px, py, hw, hh) =>
+            Get($"ring {radius} {thickness}", radius, radius, false, (pixelX, pixelY, halfWidth, halfHeight) =>
             {
-                float x = px + hw, y = py + hh;
+                float x = pixelX + halfWidth, y = pixelY + halfHeight;
                 if (x < 0f || y < 0f)
                 {
                     return new Color(1, 1, 1, 0);
                 }
 
-                float d = Mathf.Sqrt(x * x + y * y) - radius * Scale;
-                return new Color(1, 1, 1, Fill(d) * Mathf.Clamp01(0.5f + d + thickness * Scale));
+                float distance = Mathf.Sqrt(x * x + y * y) - radius * Scale;
+                return new Color(1, 1, 1, Fill(distance) * Mathf.Clamp01(0.5f + distance + thickness * Scale));
             });
 
         /// <summary>Wall cell: diagonal hatching with a border, colours baked in.</summary>
         public static Sprite Hatched(float size, float radius, float stripe, float border, Color32 ink, Color32 ground) =>
-            Get($"hatch {size} {radius} {stripe} {border} {ink} {ground}", size, size, false, (px, py, hw, hh) =>
+            Get($"hatch {size} {radius} {stripe} {border} {ink} {ground}", size, size, false, (pixelX, pixelY, halfWidth, halfHeight) =>
             {
-                float d = RoundedRectDistance(px, py, hw, hh, radius * Scale);
-                float a = Fill(d);
-                bool edge = d > -border * Scale;
-                bool line = Mathf.Repeat(px - py, 2f * stripe * Scale) < stripe * Scale; // "/" stripes, like the mockup
-                Color c = edge || line ? (Color)ink : (Color)ground;
-                c.a = a;
-                return c;
+                float distance = RoundedRectDistance(pixelX, pixelY, halfWidth, halfHeight, radius * Scale);
+                float alpha = Fill(distance);
+                bool edge = distance > -border * Scale;
+                bool line = Mathf.Repeat(pixelX - pixelY, 2f * stripe * Scale) < stripe * Scale; // "/" stripes, like the mockup
+                Color color = edge || line ? (Color)ink : (Color)ground;
+                color.a = alpha;
+                return color;
             });
 
         /// <summary>Upward chevron with round caps (the mockup's 16 px "M3 10l5-5 5 5" icon), scaled to size.</summary>
         public static Sprite Chevron(float size, float stroke, bool ui = false) =>
-            Get($"chevron {size} {stroke}", size, size, ui, (px, py, hw, hh) =>
+            Get($"chevron {size} {stroke}", size, size, ui, (pixelX, pixelY, halfWidth, halfHeight) =>
             {
-                float k = size / 16f;
-                var p = new Vector2(px, py) / Scale;
-                var a = new Vector2(-5f, -2.5f) * k;
-                var b = new Vector2(0f, 2.5f) * k;
-                var c = new Vector2(5f, -2.5f) * k;
-                float d = Mathf.Min(SegmentDistance(p, a, b), SegmentDistance(p, b, c)) - stroke * 0.5f;
-                return new Color(1, 1, 1, Fill(d * Scale));
+                float iconScale = size / 16f;
+                var point = new Vector2(pixelX, pixelY) / Scale;
+                var left = new Vector2(-5f, -2.5f) * iconScale;
+                var tip = new Vector2(0f, 2.5f) * iconScale;
+                var right = new Vector2(5f, -2.5f) * iconScale;
+                float distance = Mathf.Min(SegmentDistance(point, left, tip), SegmentDistance(point, tip, right)) - stroke * 0.5f;
+                return new Color(1, 1, 1, Fill(distance * Scale));
             });
 
         /// <summary>Five-point star, point up; thickness 0 = filled, else an outline of that width.</summary>
         public static Sprite Star(float size, float thickness = 0f, bool ui = false) =>
-            Get($"star {size} {thickness}", size, size, ui, (px, py, hw, hh) =>
+            Get($"star {size} {thickness}", size, size, ui, (pixelX, pixelY, halfWidth, halfHeight) =>
             {
-                float r = hw * 0.92f;
-                float d = StarDistance(new Vector2(px, py + hh * 0.06f), r, 0.45f) - r * 0.06f;
-                float a = Fill(d);
+                float outerRadius = halfWidth * 0.92f;
+                float distance = StarDistance(new Vector2(pixelX, pixelY + halfHeight * 0.06f), outerRadius, 0.45f) - outerRadius * 0.06f;
+                float alpha = Fill(distance);
                 if (thickness > 0f)
                 {
-                    a *= Mathf.Clamp01(0.5f + d + thickness * Scale);
+                    alpha *= Mathf.Clamp01(0.5f + distance + thickness * Scale);
                 }
 
-                return new Color(1, 1, 1, a);
+                return new Color(1, 1, 1, alpha);
             });
 
-        /// <summary>Signed distance to a five-point star of outer radius r (Inigo Quilez's sdStar5).</summary>
-        static float StarDistance(Vector2 p, float r, float innerFactor)
+        /// <summary>Signed distance to a five-point star of the given outer radius (Inigo Quilez's sdStar5).</summary>
+        static float StarDistance(Vector2 point, float radius, float innerFactor)
         {
-            var k1 = new Vector2(0.809016994375f, -0.587785252292f);
-            var k2 = new Vector2(-k1.x, k1.y);
-            p.x = Mathf.Abs(p.x);
-            p -= 2f * Mathf.Max(Vector2.Dot(k1, p), 0f) * k1;
-            p -= 2f * Mathf.Max(Vector2.Dot(k2, p), 0f) * k2;
-            p.x = Mathf.Abs(p.x);
-            p.y -= r;
-            var ba = innerFactor * new Vector2(-k1.y, k1.x) - new Vector2(0f, 1f);
-            float h = Mathf.Clamp(Vector2.Dot(p, ba) / Vector2.Dot(ba, ba), 0f, r);
-            return (p - ba * h).magnitude * Mathf.Sign(p.y * ba.x - p.x * ba.y);
+            var axis1 = new Vector2(0.809016994375f, -0.587785252292f);
+            var axis2 = new Vector2(-axis1.x, axis1.y);
+            point.x = Mathf.Abs(point.x);
+            point -= 2f * Mathf.Max(Vector2.Dot(axis1, point), 0f) * axis1;
+            point -= 2f * Mathf.Max(Vector2.Dot(axis2, point), 0f) * axis2;
+            point.x = Mathf.Abs(point.x);
+            point.y -= radius;
+            var edge = innerFactor * new Vector2(-axis1.y, axis1.x) - new Vector2(0f, 1f);
+            float along = Mathf.Clamp(Vector2.Dot(point, edge) / Vector2.Dot(edge, edge), 0f, radius);
+            return (point - edge * along).magnitude * Mathf.Sign(point.y * edge.x - point.x * edge.y);
         }
 
-        static float SegmentDistance(Vector2 p, Vector2 a, Vector2 b)
+        static float SegmentDistance(Vector2 point, Vector2 start, Vector2 end)
         {
-            Vector2 pa = p - a, ba = b - a;
-            float h = Mathf.Clamp01(Vector2.Dot(pa, ba) / ba.sqrMagnitude);
-            return (pa - ba * h).magnitude;
+            Vector2 toPoint = point - start, segment = end - start;
+            float along = Mathf.Clamp01(Vector2.Dot(toPoint, segment) / segment.sqrMagnitude);
+            return (toPoint - segment * along).magnitude;
         }
 
-        delegate Color PixelFn(float px, float py, float hw, float hh);
+        delegate Color PixelFn(float pixelX, float pixelY, float halfWidth, float halfHeight);
 
-        static Sprite Get(string key, float w, float h, bool ui, PixelFn shade)
+        static Sprite Get(string key, float width, float height, bool ui, PixelFn shade)
         {
             if (ui)
             {
@@ -149,31 +149,31 @@ namespace ShiftRegister.Game.View
                 return sprite;
             }
 
-            int tw = Mathf.CeilToInt(w * Scale) + 2 * Pad;
-            int th = Mathf.CeilToInt(h * Scale) + 2 * Pad;
-            float hw = w * Scale * 0.5f, hh = h * Scale * 0.5f;
-            var pixels = new Color[tw * th];
-            for (int y = 0; y < th; y++)
+            int textureWidth = Mathf.CeilToInt(width * Scale) + 2 * Pad;
+            int textureHeight = Mathf.CeilToInt(height * Scale) + 2 * Pad;
+            float halfWidth = width * Scale * 0.5f, halfHeight = height * Scale * 0.5f;
+            var pixels = new Color[textureWidth * textureHeight];
+            for (int y = 0; y < textureHeight; y++)
             {
-                for (int x = 0; x < tw; x++)
+                for (int x = 0; x < textureWidth; x++)
                 {
-                    float px = x + 0.5f - tw * 0.5f;
-                    float py = y + 0.5f - th * 0.5f;
-                    pixels[y * tw + x] = shade(px, py, hw, hh);
+                    float pixelX = x + 0.5f - textureWidth * 0.5f;
+                    float pixelY = y + 0.5f - textureHeight * 0.5f;
+                    pixels[y * textureWidth + x] = shade(pixelX, pixelY, halfWidth, halfHeight);
                 }
             }
 
-            var tex = new Texture2D(tw, th, TextureFormat.RGBA32, true)
+            var texture = new Texture2D(textureWidth, textureHeight, TextureFormat.RGBA32, true)
             {
                 name = key,
                 wrapMode = TextureWrapMode.Clamp,
                 filterMode = FilterMode.Trilinear,
                 hideFlags = HideFlags.DontSave
             };
-            tex.SetPixels(pixels);
-            tex.Apply(true, true);
+            texture.SetPixels(pixels);
+            texture.Apply(true, true);
 
-            sprite = Sprite.Create(tex, new Rect(0, 0, tw, th), new Vector2(0.5f, 0.5f), ui ? UiPixelsPerUnit : Resolution, 0, SpriteMeshType.FullRect);
+            sprite = Sprite.Create(texture, new Rect(0, 0, textureWidth, textureHeight), new Vector2(0.5f, 0.5f), ui ? UiPixelsPerUnit : Resolution, 0, SpriteMeshType.FullRect);
             sprite.name = key;
             sprite.hideFlags = HideFlags.DontSave;
             cache[key] = sprite;
@@ -183,13 +183,13 @@ namespace ShiftRegister.Game.View
         static float Fill(float distance) => Mathf.Clamp01(0.5f - distance);
 
         /// <summary>Signed distance to a rounded rectangle centred on the origin (negative inside).</summary>
-        static float RoundedRectDistance(float px, float py, float hw, float hh, float r)
+        static float RoundedRectDistance(float pixelX, float pixelY, float halfWidth, float halfHeight, float radius)
         {
-            r = Mathf.Min(r, Mathf.Min(hw, hh));
-            float qx = Mathf.Abs(px) - (hw - r);
-            float qy = Mathf.Abs(py) - (hh - r);
-            float outside = new Vector2(Mathf.Max(qx, 0f), Mathf.Max(qy, 0f)).magnitude;
-            return outside + Mathf.Min(Mathf.Max(qx, qy), 0f) - r;
+            radius = Mathf.Min(radius, Mathf.Min(halfWidth, halfHeight));
+            float cornerX = Mathf.Abs(pixelX) - (halfWidth - radius);
+            float cornerY = Mathf.Abs(pixelY) - (halfHeight - radius);
+            float outside = new Vector2(Mathf.Max(cornerX, 0f), Mathf.Max(cornerY, 0f)).magnitude;
+            return outside + Mathf.Min(Mathf.Max(cornerX, cornerY), 0f) - radius;
         }
     }
 }

@@ -19,9 +19,9 @@ namespace ShiftRegister.Game.Hud
                 return false;
             }
 
-            for (int r = 0; r < BoardBits.Size; r++)
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                if (rules.IsRotating(r) || rules.ChainTopOf(r) >= 0)
+                if (rules.IsRotating(row) || rules.ChainTopOf(row) >= 0)
                 {
                     return false;
                 }
@@ -48,15 +48,15 @@ namespace ShiftRegister.Game.Hud
 
             string gate = null;
             int gates = 0;
-            foreach (var g in rules.Data.gates ?? Array.Empty<RowGate>())
+            foreach (var rowGate in rules.Data.gates ?? Array.Empty<RowGate>())
             {
-                if (g.row != row)
+                if (rowGate.row != row)
                 {
                     continue;
                 }
 
                 gates++;
-                gate ??= g.op.ToString().ToUpperInvariant();
+                gate ??= rowGate.op.ToString().ToUpperInvariant();
             }
 
             if (gate != null)
@@ -64,17 +64,17 @@ namespace ShiftRegister.Game.Hud
                 return gates > 1 ? gate + "+" : gate;
             }
 
-            foreach (int r in rules.Data.fillLeftRows ?? Array.Empty<int>())
+            foreach (int fillRow in rules.Data.fillLeftRows ?? Array.Empty<int>())
             {
-                if (r == row)
+                if (fillRow == row)
                 {
                     return "1-IN";
                 }
             }
 
-            foreach (int r in rules.Data.fillRightRows ?? Array.Empty<int>())
+            foreach (int fillRow in rules.Data.fillRightRows ?? Array.Empty<int>())
             {
-                if (r == row)
+                if (fillRow == row)
                 {
                     return "1-IN";
                 }
@@ -96,17 +96,17 @@ namespace ShiftRegister.Game.Hud
                 return "";
             }
 
-            for (int k = 1; k < BoardBits.Size; k++)
+            for (int shift = 1; shift < BoardBits.Size; shift++)
             {
                 // Only exact arithmetic: no bit may fall off the edge on the way.
-                if ((now << k) == target)
+                if ((now << shift) == target)
                 {
-                    return $"need ×{1 << k}";
+                    return $"need ×{1 << shift}";
                 }
 
-                if ((now >> k) == target && (now & ((1 << k) - 1)) == 0)
+                if ((now >> shift) == target && (now & ((1 << shift) - 1)) == 0)
                 {
-                    return $"need ÷{1 << k}";
+                    return $"need ÷{1 << shift}";
                 }
             }
 

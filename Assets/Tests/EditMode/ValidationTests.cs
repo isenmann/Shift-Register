@@ -16,31 +16,31 @@ namespace ShiftRegister.Tests
         [Test]
         public void BitOnWall_IsRejected()
         {
-            var d = TestLevels.OneRow("00100000", "00#00000");
-            Assert.Throws<LevelValidationException>(() => LevelRules.Compile(d));
+            var level = TestLevels.OneRow("00100000", "00#00000");
+            Assert.Throws<LevelValidationException>(() => LevelRules.Compile(level));
         }
 
         [Test]
         public void PinNotInTarget_IsRejected()
         {
-            var d = TestLevels.OneRow("00100000");
-            d.pins[3] = TestLevels.Bits("00100000");
-            Assert.That(LevelRules.Validate(d), Has.Some.Contains("target"));
+            var level = TestLevels.OneRow("00100000");
+            level.pins[3] = TestLevels.Bits("00100000");
+            Assert.That(LevelRules.Validate(level), Has.Some.Contains("target"));
         }
 
         [Test]
         public void ChainWithWalls_IsRejected()
         {
-            var d = new LevelData { chainTopRows = new[] { 3 } };
-            d.walls[4] = 1;
-            Assert.That(LevelRules.Validate(d), Has.Some.Contains("walls"));
+            var level = new LevelData { chainTopRows = new[] { 3 } };
+            level.walls[4] = 1;
+            Assert.That(LevelRules.Validate(level), Has.Some.Contains("walls"));
         }
 
         [Test]
         public void WrongRowCount_IsRejected()
         {
-            var d = new LevelData { start = new int[7] };
-            Assert.That(LevelRules.Validate(d), Is.Not.Empty);
+            var level = new LevelData { start = new int[7] };
+            Assert.That(LevelRules.Validate(level), Is.Not.Empty);
         }
     }
 }

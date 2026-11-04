@@ -88,22 +88,22 @@ namespace ShiftRegister.Core
             return true;
         }
 
-        static bool TryParse(string s, out Move move)
+        static bool TryParse(string text, out Move move)
         {
             move = default;
-            if (s.Length < 3)
+            if (text.Length < 3)
             {
                 return false;
             }
 
-            bool isRow = s[0] == 'R';
-            if (!isRow && s[0] != 'C')
+            bool isRow = text[0] == 'R';
+            if (!isRow && text[0] != 'C')
             {
                 return false;
             }
 
             Direction direction;
-            switch (s[s.Length - 1])
+            switch (text[text.Length - 1])
             {
                 case '←':
                     direction = Direction.Left;
@@ -127,18 +127,18 @@ namespace ShiftRegister.Core
                 return false;
             }
 
-            int line = s[1] - '1';
+            int line = text[1] - '1';
             if (line < 0 || line >= BoardBits.Size)
             {
                 return false;
             }
 
             int segment = 0;
-            if (s.Length == 5 && s[2] == '.')
+            if (text.Length == 5 && text[2] == '.')
             {
-                segment = s[3] - '1';
+                segment = text[3] - '1';
             }
-            else if (s.Length != 3)
+            else if (text.Length != 3)
             {
                 return false;
             }
@@ -153,10 +153,10 @@ namespace ShiftRegister.Core
         }
 
         public bool Equals(Move other) => Direction == other.Direction && Line == other.Line && Segment == other.Segment;
-        public override bool Equals(object obj) => obj is Move m && Equals(m);
+        public override bool Equals(object obj) => obj is Move move && Equals(move);
         public override int GetHashCode() => ((int)Direction << 16) | (Line << 8) | Segment;
-        public static bool operator ==(Move a, Move b) => a.Equals(b);
-        public static bool operator !=(Move a, Move b) => !a.Equals(b);
+        public static bool operator ==(Move left, Move right) => left.Equals(right);
+        public static bool operator !=(Move left, Move right) => !left.Equals(right);
 
         /// <summary>Player-facing notation with 1-based lines, e.g. "R5←", "C4↑", "R2.2→" (part 2 of row 2).</summary>
         public override string ToString()

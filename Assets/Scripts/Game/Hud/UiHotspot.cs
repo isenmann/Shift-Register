@@ -10,15 +10,15 @@ namespace ShiftRegister.Game.Hud
     {
         public Action Enter, Exit, Click;
 
-        public static UiHotspot Create(Transform parent, string name, float x, float y, float w, float h)
+        public static UiHotspot Create(Transform parent, string name, float x, float y, float width, float height)
         {
-            var rt = Ui.Rect(parent, name, x, y, w, h);
-            rt.gameObject.AddComponent<Image>().color = Color.clear;
-            return rt.gameObject.AddComponent<UiHotspot>();
+            var rectTransform = Ui.Rect(parent, name, x, y, width, height);
+            rectTransform.gameObject.AddComponent<Image>().color = Color.clear;
+            return rectTransform.gameObject.AddComponent<UiHotspot>();
         }
 
-        public void OnPointerEnter(PointerEventData e) => Enter?.Invoke();
-        public void OnPointerExit(PointerEventData e) => Exit?.Invoke();
-        public void OnPointerClick(PointerEventData e) => Click?.Invoke();
+        public void OnPointerEnter(PointerEventData eventData) => Enter?.Invoke();
+        public void OnPointerExit(PointerEventData eventData) => Exit?.Invoke();
+        public void OnPointerClick(PointerEventData eventData) => Click?.Invoke();
     }
 }

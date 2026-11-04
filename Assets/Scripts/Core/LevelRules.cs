@@ -94,10 +94,10 @@ namespace ShiftRegister.Core
         /// <summary>Every distinct legal move, ignoring the board state. Chains appear once, via their top row.</summary>
         public IReadOnlyList<Move> Moves => moves;
 
-        public static List<string> Validate(LevelData d)
+        public static List<string> Validate(LevelData level)
         {
             var errors = new List<string>();
-            if (d == null)
+            if (level == null)
             {
                 errors.Add("Level data is null.");
                 return errors;
@@ -112,11 +112,11 @@ namespace ShiftRegister.Core
                 }
 
                 bool ok = true;
-                for (int r = 0; r < values.Length; r++)
+                for (int row = 0; row < values.Length; row++)
                 {
-                    if (values[r] < 0 || values[r] > 255)
+                    if (values[row] < 0 || values[row] > 255)
                     {
-                        errors.Add($"{field}[{r}] = {values[r]} is not a byte.");
+                        errors.Add($"{field}[{row}] = {values[row]} is not a byte.");
                         ok = false;
                     }
                 }
@@ -124,105 +124,105 @@ namespace ShiftRegister.Core
                 return ok;
             }
 
-            bool RowIndexOk(int r, string field)
+            bool RowIndexOk(int row, string field)
             {
-                if (r >= 0 && r < BoardBits.Size)
+                if (row >= 0 && row < BoardBits.Size)
                 {
                     return true;
                 }
 
-                errors.Add($"{field} has row index {r} outside 0..7.");
+                errors.Add($"{field} has row index {row} outside 0..7.");
                 return false;
             }
 
-            bool startOk = RowsOk(d.start, nameof(d.start));
-            bool targetOk = RowsOk(d.target, nameof(d.target));
-            bool wallsOk = RowsOk(d.walls, nameof(d.walls));
-            bool pinsOk = RowsOk(d.pins, nameof(d.pins));
+            bool startOk = RowsOk(level.start, nameof(level.start));
+            bool targetOk = RowsOk(level.target, nameof(level.target));
+            bool wallsOk = RowsOk(level.walls, nameof(level.walls));
+            bool pinsOk = RowsOk(level.pins, nameof(level.pins));
             if (!(startOk && targetOk && wallsOk && pinsOk))
             {
                 return errors;
             }
 
-            for (int r = 0; r < BoardBits.Size; r++)
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                if ((d.start[r] & d.walls[r]) != 0)
+                if ((level.start[row] & level.walls[row]) != 0)
                 {
-                    errors.Add($"start row {r} has bits on wall cells.");
+                    errors.Add($"start row {row} has bits on wall cells.");
                 }
 
-                if ((d.target[r] & d.walls[r]) != 0)
+                if ((level.target[row] & level.walls[row]) != 0)
                 {
-                    errors.Add($"target row {r} has bits on wall cells.");
+                    errors.Add($"target row {row} has bits on wall cells.");
                 }
 
-                if ((d.pins[r] & d.walls[r]) != 0)
+                if ((level.pins[row] & level.walls[row]) != 0)
                 {
-                    errors.Add($"pins row {r} overlap walls.");
+                    errors.Add($"pins row {row} overlap walls.");
                 }
 
-                if ((d.pins[r] & ~d.start[r]) != 0)
+                if ((level.pins[row] & ~level.start[row]) != 0)
                 {
-                    errors.Add($"pins row {r} must also be bits in start.");
+                    errors.Add($"pins row {row} must also be bits in start.");
                 }
 
-                if ((d.pins[r] & ~d.target[r]) != 0)
+                if ((level.pins[row] & ~level.target[row]) != 0)
                 {
-                    errors.Add($"pins row {r} must also be bits in target.");
+                    errors.Add($"pins row {row} must also be bits in target.");
                 }
             }
 
             var rotate = new bool[BoardBits.Size];
-            foreach (int r in d.rotateRows ?? Array.Empty<int>())
+            foreach (int row in level.rotateRows ?? Array.Empty<int>())
             {
-                if (RowIndexOk(r, nameof(d.rotateRows)))
+                if (RowIndexOk(row, nameof(level.rotateRows)))
                 {
-                    rotate[r] = true;
+                    rotate[row] = true;
                 }
             }
 
             var fillLeft = new bool[BoardBits.Size];
-            foreach (int r in d.fillLeftRows ?? Array.Empty<int>())
+            foreach (int row in level.fillLeftRows ?? Array.Empty<int>())
             {
-                if (!RowIndexOk(r, nameof(d.fillLeftRows)))
+                if (!RowIndexOk(row, nameof(level.fillLeftRows)))
                 {
                     continue;
                 }
 
-                fillLeft[r] = true;
-                if ((d.walls[r] & 0x80) != 0)
+                fillLeft[row] = true;
+                if ((level.walls[row] & 0x80) != 0)
                 {
-                    errors.Add($"row {r} has a 1-IN left edge but its leftmost cell is a wall.");
+                    errors.Add($"row {row} has a 1-IN left edge but its leftmost cell is a wall.");
                 }
 
-                if (rotate[r])
+                if (rotate[row])
                 {
-                    errors.Add($"row {r} cannot both rotate and have a 1-IN edge.");
+                    errors.Add($"row {row} cannot both rotate and have a 1-IN edge.");
                 }
             }
 
             var fillRight = new bool[BoardBits.Size];
-            foreach (int r in d.fillRightRows ?? Array.Empty<int>())
+            foreach (int row in level.fillRightRows ?? Array.Empty<int>())
             {
-                if (!RowIndexOk(r, nameof(d.fillRightRows)))
+                if (!RowIndexOk(row, nameof(level.fillRightRows)))
                 {
                     continue;
                 }
 
-                fillRight[r] = true;
-                if ((d.walls[r] & 0x01) != 0)
+                fillRight[row] = true;
+                if ((level.walls[row] & 0x01) != 0)
                 {
-                    errors.Add($"row {r} has a 1-IN right edge but its rightmost cell is a wall.");
+                    errors.Add($"row {row} has a 1-IN right edge but its rightmost cell is a wall.");
                 }
 
-                if (rotate[r])
+                if (rotate[row])
                 {
-                    errors.Add($"row {r} cannot both rotate and have a 1-IN edge.");
+                    errors.Add($"row {row} cannot both rotate and have a 1-IN edge.");
                 }
             }
 
             var inChain = new bool[BoardBits.Size];
-            foreach (int top in d.chainTopRows ?? Array.Empty<int>())
+            foreach (int top in level.chainTopRows ?? Array.Empty<int>())
             {
                 if (top < 0 || top >= BoardBits.Size - 1)
                 {
@@ -237,7 +237,7 @@ namespace ShiftRegister.Core
                 }
 
                 inChain[top] = inChain[bottom] = true;
-                if (d.walls[top] != 0 || d.walls[bottom] != 0)
+                if (level.walls[top] != 0 || level.walls[bottom] != 0)
                 {
                     errors.Add($"chained rows {top}/{bottom} cannot have walls.");
                 }
@@ -253,45 +253,45 @@ namespace ShiftRegister.Core
                 }
             }
 
-            foreach (var g in d.gates ?? Array.Empty<RowGate>())
+            foreach (var gate in level.gates ?? Array.Empty<RowGate>())
             {
-                if (g == null)
+                if (gate == null)
                 {
                     errors.Add("gates contains a null entry.");
                     continue;
                 }
 
-                if (!RowIndexOk(g.row, nameof(d.gates)))
+                if (!RowIndexOk(gate.row, nameof(level.gates)))
                 {
                     continue;
                 }
 
-                if (!Enum.IsDefined(typeof(GateOp), g.op))
+                if (!Enum.IsDefined(typeof(GateOp), gate.op))
                 {
-                    errors.Add($"gate on row {g.row} has unknown op {(int)g.op}.");
+                    errors.Add($"gate on row {gate.row} has unknown op {(int)gate.op}.");
                 }
 
-                if (g.mask < 0 || g.mask > 255)
+                if (gate.mask < 0 || gate.mask > 255)
                 {
-                    errors.Add($"gate on row {g.row} has mask {g.mask}, not a byte.");
+                    errors.Add($"gate on row {gate.row} has mask {gate.mask}, not a byte.");
                 }
-                else if ((g.mask & d.walls[g.row]) != 0)
+                else if ((gate.mask & level.walls[gate.row]) != 0)
                 {
-                    errors.Add($"gate on row {g.row} covers wall cells.");
+                    errors.Add($"gate on row {gate.row} covers wall cells.");
                 }
             }
 
-            if (d.lossCount < 0)
+            if (level.lossCount < 0)
             {
                 errors.Add("lossCount cannot be negative.");
             }
 
-            if (!Enum.IsDefined(typeof(LossRule), d.lossRule))
+            if (!Enum.IsDefined(typeof(LossRule), level.lossRule))
             {
-                errors.Add($"unknown lossRule {(int)d.lossRule}.");
+                errors.Add($"unknown lossRule {(int)level.lossRule}.");
             }
 
-            if (d.par < 0)
+            if (level.par < 0)
             {
                 errors.Add("par cannot be negative.");
             }
@@ -310,43 +310,43 @@ namespace ShiftRegister.Core
             return new LevelRules(data);
         }
 
-        LevelRules(LevelData d)
+        LevelRules(LevelData level)
         {
-            Data = d;
-            Start = BoardBits.FromRows(d.start);
-            Target = BoardBits.FromRows(d.target);
-            Walls = BoardBits.FromRows(d.walls);
-            Pins = BoardBits.FromRows(d.pins);
-            LossRule = d.lossRule;
-            LossCount = d.lossCount;
-            gatesOnColumnMoves = d.gatesOnColumnMoves;
+            Data = level;
+            Start = BoardBits.FromRows(level.start);
+            Target = BoardBits.FromRows(level.target);
+            Walls = BoardBits.FromRows(level.walls);
+            Pins = BoardBits.FromRows(level.pins);
+            LossRule = level.lossRule;
+            LossCount = level.lossCount;
+            gatesOnColumnMoves = level.gatesOnColumnMoves;
 
             var rotate = new bool[BoardBits.Size];
             var fillLeft = new bool[BoardBits.Size];
             var fillRight = new bool[BoardBits.Size];
-            foreach (int r in d.rotateRows ?? Array.Empty<int>())
+            foreach (int row in level.rotateRows ?? Array.Empty<int>())
             {
-                rotate[r] = true;
+                rotate[row] = true;
             }
 
-            foreach (int r in d.fillLeftRows ?? Array.Empty<int>())
+            foreach (int row in level.fillLeftRows ?? Array.Empty<int>())
             {
-                fillLeft[r] = true;
+                fillLeft[row] = true;
             }
 
-            foreach (int r in d.fillRightRows ?? Array.Empty<int>())
+            foreach (int row in level.fillRightRows ?? Array.Empty<int>())
             {
-                fillRight[r] = true;
+                fillRight[row] = true;
             }
 
             for (int i = 0; i < BoardBits.Size; i++)
             {
-                wallRows[i] = (byte)d.walls[i];
-                pinRows[i] = (byte)d.pins[i];
+                wallRows[i] = (byte)level.walls[i];
+                pinRows[i] = (byte)level.pins[i];
                 chainTop[i] = -1;
             }
 
-            foreach (int top in d.chainTopRows ?? Array.Empty<int>())
+            foreach (int top in level.chainTopRows ?? Array.Empty<int>())
             {
                 chainTop[top] = chainTop[top + 1] = top;
             }
@@ -360,10 +360,10 @@ namespace ShiftRegister.Core
             bool creators = Array.IndexOf(fillLeft, true) >= 0 || Array.IndexOf(fillRight, true) >= 0;
             bool destroyers = false;
             var perRow = new List<Gate>[BoardBits.Size];
-            foreach (var g in d.gates ?? Array.Empty<RowGate>())
+            foreach (var gate in level.gates ?? Array.Empty<RowGate>())
             {
-                (perRow[g.row] ??= new List<Gate>()).Add(new Gate(g.op, (byte)g.mask));
-                switch (g.op)
+                (perRow[gate.row] ??= new List<Gate>()).Add(new Gate(gate.op, (byte)gate.mask));
+                switch (gate.op)
                 {
                     case GateOp.And:
                         destroyers = true;
@@ -386,36 +386,36 @@ namespace ShiftRegister.Core
             HasDestroyers = destroyers;
 
             var list = new List<Move>();
-            for (int r = 0; r < BoardBits.Size; r++)
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                if (chainTop[r] >= 0 && chainTop[r] != r)
+                if (chainTop[row] >= 0 && chainTop[row] != row)
                 {
                     continue; // a chain is listed once, by its top row
                 }
 
-                if (IsRowLocked(r))
+                if (IsRowLocked(row))
                 {
                     continue;
                 }
 
-                for (int s = 0; s < rows[r].Segments.Length; s++)
+                for (int segment = 0; segment < rows[row].Segments.Length; segment++)
                 {
-                    list.Add(Move.Row(r, Direction.Left, s));
-                    list.Add(Move.Row(r, Direction.Right, s));
+                    list.Add(Move.Row(row, Direction.Left, segment));
+                    list.Add(Move.Row(row, Direction.Right, segment));
                 }
             }
 
-            for (int c = 0; c < BoardBits.Size; c++)
+            for (int column = 0; column < BoardBits.Size; column++)
             {
-                if (columns[c].Locked)
+                if (columns[column].Locked)
                 {
                     continue;
                 }
 
-                for (int s = 0; s < columns[c].Segments.Length; s++)
+                for (int segment = 0; segment < columns[column].Segments.Length; segment++)
                 {
-                    list.Add(Move.Column(c, Direction.Up, s));
-                    list.Add(Move.Column(c, Direction.Down, s));
+                    list.Add(Move.Column(column, Direction.Up, segment));
+                    list.Add(Move.Column(column, Direction.Down, segment));
                 }
             }
 
@@ -472,12 +472,12 @@ namespace ShiftRegister.Core
             };
         }
 
-        bool IsRowLocked(int r)
+        bool IsRowLocked(int row)
         {
-            int top = chainTop[r];
+            int top = chainTop[row];
             if (top < 0)
             {
-                return rows[r].Locked;
+                return rows[row].Locked;
             }
 
             return rows[top].Locked || rows[top + 1].Locked;
@@ -495,34 +495,34 @@ namespace ShiftRegister.Core
         /// <summary>Which part of a line a cell (index along the line) belongs to; -1 for a wall cell.</summary>
         public int SegmentOf(Axis axis, int line, int index)
         {
-            var l = (axis == Axis.Row ? rows : columns)[line];
+            var lineInfo = (axis == Axis.Row ? rows : columns)[line];
             int bit = 0x80 >> index;
-            for (int s = 0; s < l.Segments.Length; s++)
+            for (int segment = 0; segment < lineInfo.Segments.Length; segment++)
             {
-                if ((l.Segments[s] & bit) != 0)
+                if ((lineInfo.Segments[segment] & bit) != 0)
                 {
-                    return s;
+                    return segment;
                 }
             }
 
             return -1;
         }
 
-        public bool CanMove(Move m)
+        public bool CanMove(Move move)
         {
-            if (m.Axis == Axis.Row)
+            if (move.Axis == Axis.Row)
             {
-                if (IsRowLocked(m.Line))
+                if (IsRowLocked(move.Line))
                 {
                     return false;
                 }
 
-                int r = chainTop[m.Line] >= 0 ? chainTop[m.Line] : m.Line;
-                return m.Segment < rows[r].Segments.Length;
+                int row = chainTop[move.Line] >= 0 ? chainTop[move.Line] : move.Line;
+                return move.Segment < rows[row].Segments.Length;
             }
 
-            var c = columns[m.Line];
-            return !c.Locked && m.Segment < c.Segments.Length;
+            var line = columns[move.Line];
+            return !line.Locked && move.Segment < line.Segments.Length;
         }
 
         public bool IsBroken(int lost) => LossRule != LossRule.Any && lost > LossCount;
@@ -538,9 +538,9 @@ namespace ShiftRegister.Core
         }
 
         /// <summary>Applies a move to a board. Returns false (and leaves outcome default) if the move is illegal.</summary>
-        public bool TryApply(ulong board, Move m, out MoveOutcome outcome)
+        public bool TryApply(ulong board, Move move, out MoveOutcome outcome)
         {
-            if (!CanMove(m))
+            if (!CanMove(move))
             {
                 outcome = default;
                 return false;
@@ -549,61 +549,61 @@ namespace ShiftRegister.Core
             ulong shifted;
             ulong lostCells;
 
-            if (m.Axis == Axis.Row)
+            if (move.Axis == Axis.Row)
             {
-                int top = chainTop[m.Line];
+                int top = chainTop[move.Line];
                 if (top >= 0)
                 {
-                    shifted = ShiftChain(board, top, m.TowardStart, out lostCells);
+                    shifted = ShiftChain(board, top, move.TowardStart, out lostCells);
                     ulong gated = ApplyGates(shifted, top);
                     gated = ApplyGates(gated, top + 1);
-                    outcome = new MoveOutcome(m, board, shifted, gated, lostCells);
+                    outcome = new MoveOutcome(move, board, shifted, gated, lostCells);
                     return true;
                 }
 
-                byte row = BoardBits.GetRow(board, m.Line);
-                byte newRow = ShiftLine(row, rows[m.Line], m.Segment, m.TowardStart, out byte lost);
-                shifted = BoardBits.SetRow(board, m.Line, newRow);
-                lostCells = (ulong)lost << (m.Line * 8);
-                outcome = new MoveOutcome(m, board, shifted, ApplyGates(shifted, m.Line), lostCells);
+                byte row = BoardBits.GetRow(board, move.Line);
+                byte newRow = ShiftLine(row, rows[move.Line], move.Segment, move.TowardStart, out byte lost);
+                shifted = BoardBits.SetRow(board, move.Line, newRow);
+                lostCells = (ulong)lost << (move.Line * 8);
+                outcome = new MoveOutcome(move, board, shifted, ApplyGates(shifted, move.Line), lostCells);
                 return true;
             }
 
-            var col = columns[m.Line];
-            byte colBits = BoardBits.GetColumn(board, m.Line);
-            byte newCol = ShiftLine(colBits, col, m.Segment, m.TowardStart, out byte lostCol);
-            shifted = BoardBits.SetColumn(board, m.Line, newCol);
-            lostCells = BoardBits.ColumnToBoard(m.Line, lostCol);
+            var columnLine = columns[move.Line];
+            byte colBits = BoardBits.GetColumn(board, move.Line);
+            byte newCol = ShiftLine(colBits, columnLine, move.Segment, move.TowardStart, out byte lostCol);
+            shifted = BoardBits.SetColumn(board, move.Line, newCol);
+            lostCells = BoardBits.ColumnToBoard(move.Line, lostCol);
 
             ulong after = shifted;
             if (gatesOnColumnMoves)
             {
-                byte seg = col.Segments[m.Segment];
-                for (int r = 0; r < BoardBits.Size; r++)
+                byte segment = columnLine.Segments[move.Segment];
+                for (int row = 0; row < BoardBits.Size; row++)
                 {
-                    if ((seg & (0x80 >> r)) != 0)
+                    if ((segment & (0x80 >> row)) != 0)
                     {
-                        after = ApplyGates(after, r);
+                        after = ApplyGates(after, row);
                     }
                 }
             }
 
-            outcome = new MoveOutcome(m, board, shifted, after, lostCells);
+            outcome = new MoveOutcome(move, board, shifted, after, lostCells);
             return true;
         }
 
-        static byte ShiftLine(byte v, Line line, int s, bool towardStart, out byte lost)
+        static byte ShiftLine(byte value, Line line, int segment, bool towardStart, out byte lost)
         {
-            int seg = line.Segments[s];
-            int inSeg = v & seg;
+            int seg = line.Segments[segment];
+            int inSeg = value & seg;
             int shifted, outBit;
             if (towardStart)
             {
-                outBit = inSeg & line.SegStart[s];
+                outBit = inSeg & line.SegStart[segment];
                 shifted = (inSeg << 1) & seg;
                 if (outBit != 0 && line.Rotate)
                 {
-                    shifted |= line.SegEnd[s];
+                    shifted |= line.SegEnd[segment];
                 }
 
                 if (line.FillEnd && (seg & 0x01) != 0)
@@ -613,11 +613,11 @@ namespace ShiftRegister.Core
             }
             else
             {
-                outBit = inSeg & line.SegEnd[s];
+                outBit = inSeg & line.SegEnd[segment];
                 shifted = (inSeg >> 1) & seg;
                 if (outBit != 0 && line.Rotate)
                 {
-                    shifted |= line.SegStart[s];
+                    shifted |= line.SegStart[segment];
                 }
 
                 if (line.FillStart && (seg & 0x80) != 0)
@@ -627,21 +627,21 @@ namespace ShiftRegister.Core
             }
 
             lost = line.Rotate ? (byte)0 : (byte)outBit;
-            return (byte)((v & ~seg) | shifted);
+            return (byte)((value & ~seg) | shifted);
         }
 
         ulong ShiftChain(ulong board, int top, bool towardStart, out ulong lostCells)
         {
-            int v = (BoardBits.GetRow(board, top) << 8) | BoardBits.GetRow(board, top + 1);
+            int value = (BoardBits.GetRow(board, top) << 8) | BoardBits.GetRow(board, top + 1);
             bool rotate = rows[top].Rotate;
             lostCells = 0;
             if (towardStart)
             {
-                bool outBit = (v & 0x8000) != 0;
-                v = (v << 1) & 0xFFFF;
+                bool outBit = (value & 0x8000) != 0;
+                value = (value << 1) & 0xFFFF;
                 if (outBit && rotate)
                 {
-                    v |= 0x0001;
+                    value |= 0x0001;
                 }
                 else if (outBit)
                 {
@@ -650,16 +650,16 @@ namespace ShiftRegister.Core
 
                 if (rows[top + 1].FillEnd)
                 {
-                    v |= 0x0001;
+                    value |= 0x0001;
                 }
             }
             else
             {
-                bool outBit = (v & 0x0001) != 0;
-                v >>= 1;
+                bool outBit = (value & 0x0001) != 0;
+                value >>= 1;
                 if (outBit && rotate)
                 {
-                    v |= 0x8000;
+                    value |= 0x8000;
                 }
                 else if (outBit)
                 {
@@ -668,49 +668,49 @@ namespace ShiftRegister.Core
 
                 if (rows[top].FillStart)
                 {
-                    v |= 0x8000;
+                    value |= 0x8000;
                 }
             }
 
-            board = BoardBits.SetRow(board, top, (byte)(v >> 8));
-            return BoardBits.SetRow(board, top + 1, (byte)v);
+            board = BoardBits.SetRow(board, top, (byte)(value >> 8));
+            return BoardBits.SetRow(board, top + 1, (byte)value);
         }
 
-        ulong ApplyGates(ulong board, int r)
+        ulong ApplyGates(ulong board, int row)
         {
-            var gates = gatesByRow[r];
+            var gates = gatesByRow[row];
             if (gates.Length == 0)
             {
                 return board;
             }
 
-            int v = BoardBits.GetRow(board, r);
-            foreach (var g in gates)
+            int value = BoardBits.GetRow(board, row);
+            foreach (var gate in gates)
             {
-                switch (g.Op)
+                switch (gate.Op)
                 {
                     case GateOp.And:
-                        v &= g.Mask;
+                        value &= gate.Mask;
                         break;
                     case GateOp.Or:
-                        v |= g.Mask;
+                        value |= gate.Mask;
                         break;
                     case GateOp.Xor:
-                        v ^= g.Mask;
+                        value ^= gate.Mask;
                         break;
                     case GateOp.Not:
-                        if ((v & g.Mask) != 0)
+                        if ((value & gate.Mask) != 0)
                         {
-                            v = ~v;
+                            value = ~value;
                         }
 
                         break;
                 }
             }
 
-            v &= ~wallRows[r];
-            v |= pinRows[r];
-            return BoardBits.SetRow(board, r, (byte)v);
+            value &= ~wallRows[row];
+            value |= pinRows[row];
+            return BoardBits.SetRow(board, row, (byte)value);
         }
     }
 }

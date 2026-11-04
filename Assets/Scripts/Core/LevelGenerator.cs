@@ -247,120 +247,120 @@ namespace ShiftRegister.Core
         /// the rules limit each other (a chained row cannot have walls, a pin locks its row). Null if it did
         /// not fit the board.
         /// </summary>
-        static LevelData BuildRules(Random rng, Tier tier, Mechanic mix)
+        static LevelData BuildRules(Random random, Tier tier, Mechanic mix)
         {
-            var d = new LevelData();
-            int symmetry = rng.Next(SymmetryCount);
-            Stamp(d.target, rng, symmetry, rng.Next(tier.StampsMin, tier.StampsMax + 1));
-            d.start = (int[])d.target.Clone();
+            var level = new LevelData();
+            int symmetry = random.Next(SymmetryCount);
+            Stamp(level.target, random, symmetry, random.Next(tier.StampsMin, tier.StampsMax + 1));
+            level.start = (int[])level.target.Clone();
 
             var taken = new bool[BoardBits.Size];
 
             if ((mix & Mechanic.Chain) != 0)
             {
-                int top = rng.Next(BoardBits.Size - 1);
+                int top = random.Next(BoardBits.Size - 1);
                 taken[top] = taken[top + 1] = true;
-                d.chainTopRows = new[] { top };
+                level.chainTopRows = new[] { top };
             }
 
             if ((mix & Mechanic.Rotate) != 0)
             {
                 var rotate = new List<int>();
-                int wanted = rng.Next(1, 3);
-                foreach (int r in ShuffledRows(rng))
+                int wanted = random.Next(1, 3);
+                foreach (int row in ShuffledRows(random))
                 {
                     if (rotate.Count == wanted)
                     {
                         break;
                     }
 
-                    if (taken[r])
+                    if (taken[row])
                     {
                         continue;
                     }
 
-                    taken[r] = true;
-                    rotate.Add(r);
+                    taken[row] = true;
+                    rotate.Add(row);
                 }
 
-                d.rotateRows = rotate.ToArray();
+                level.rotateRows = rotate.ToArray();
             }
 
-            if ((mix & Mechanic.Pin) != 0 && !PlacePin(d, rng, taken))
+            if ((mix & Mechanic.Pin) != 0 && !PlacePin(level, random, taken))
             {
                 return null;
             }
 
-            if ((mix & Mechanic.Walls) != 0 && !PlaceWalls(d, rng, symmetry, taken))
+            if ((mix & Mechanic.Walls) != 0 && !PlaceWalls(level, random, symmetry, taken))
             {
                 return null;
             }
 
-            return LevelEdit.AuthoredErrors(d).Count == 0 ? d : null;
+            return LevelEdit.AuthoredErrors(level).Count == 0 ? level : null;
         }
 
         const int SymmetryCount = 3;
 
         /// <summary>A cell and its mirror images under one of the three symmetries the pictures use.</summary>
-        static IEnumerable<(int r, int c)> Images(int symmetry, int r, int c)
+        static IEnumerable<(int row, int column)> Images(int symmetry, int row, int column)
         {
             int last = BoardBits.Size - 1;
-            yield return (r, c);
+            yield return (row, column);
             switch (symmetry)
             {
                 case 0: // left-right
-                    yield return (r, last - c);
+                    yield return (row, last - column);
                     break;
                 case 1: // left-right and up-down
-                    yield return (r, last - c);
-                    yield return (last - r, c);
-                    yield return (last - r, last - c);
+                    yield return (row, last - column);
+                    yield return (last - row, column);
+                    yield return (last - row, last - column);
                     break;
                 default: // half a turn
-                    yield return (last - r, last - c);
+                    yield return (last - row, last - column);
                     break;
             }
         }
 
         /// <summary>Short strokes rather than single cells, so the target reads as a shape and not as noise.</summary>
-        static void Stamp(int[] rows, Random rng, int symmetry, int strokes)
+        static void Stamp(int[] rows, Random random, int symmetry, int strokes)
         {
             for (int i = 0; i < strokes; i++)
             {
-                bool across = rng.Next(2) == 0;
-                int length = rng.Next(2, 5);
-                int r = rng.Next(BoardBits.Size - (across ? 0 : length - 1));
-                int c = rng.Next(BoardBits.Size - (across ? length - 1 : 0));
-                for (int k = 0; k < length; k++)
+                bool across = random.Next(2) == 0;
+                int length = random.Next(2, 5);
+                int row = random.Next(BoardBits.Size - (across ? 0 : length - 1));
+                int column = random.Next(BoardBits.Size - (across ? length - 1 : 0));
+                for (int step = 0; step < length; step++)
                 {
-                    foreach (var (ir, ic) in Images(symmetry, across ? r : r + k, across ? c + k : c))
+                    foreach (var (imageRow, imageColumn) in Images(symmetry, across ? row : row + step, across ? column + step : column))
                     {
-                        rows[ir] |= 0x80 >> ic;
+                        rows[imageRow] |= 0x80 >> imageColumn;
                     }
                 }
             }
         }
 
-        static bool PlacePin(LevelData d, Random rng, bool[] taken)
+        static bool PlacePin(LevelData level, Random random, bool[] taken)
         {
-            foreach (int r in ShuffledRows(rng))
+            foreach (int row in ShuffledRows(random))
             {
-                if (taken[r] || d.target[r] == 0)
+                if (taken[row] || level.target[row] == 0)
                 {
                     continue;
                 }
 
-                int c = rng.Next(BoardBits.Size);
-                for (int k = 0; k < BoardBits.Size; k++, c = (c + 1) % BoardBits.Size)
+                int column = random.Next(BoardBits.Size);
+                for (int attempt = 0; attempt < BoardBits.Size; attempt++, column = (column + 1) % BoardBits.Size)
                 {
-                    int bit = 0x80 >> c;
-                    if ((d.target[r] & bit) == 0)
+                    int bit = 0x80 >> column;
+                    if ((level.target[row] & bit) == 0)
                     {
                         continue;
                     }
 
-                    d.pins[r] |= bit;
-                    taken[r] = true;
+                    level.pins[row] |= bit;
+                    taken[row] = true;
                     return true;
                 }
             }
@@ -369,16 +369,16 @@ namespace ShiftRegister.Core
         }
 
         /// <summary>Walls follow the picture's symmetry, and only stand on free rows and empty cells.</summary>
-        static bool PlaceWalls(LevelData d, Random rng, int symmetry, bool[] taken)
+        static bool PlaceWalls(LevelData level, Random random, int symmetry, bool[] taken)
         {
-            int wanted = rng.Next(1, 3), placed = 0;
+            int wanted = random.Next(1, 3), placed = 0;
             for (int tries = 0; tries < 40 && placed < wanted; tries++)
             {
-                int r = rng.Next(BoardBits.Size), c = rng.Next(BoardBits.Size);
+                int row = random.Next(BoardBits.Size), column = random.Next(BoardBits.Size);
                 bool fits = true;
-                foreach (var (ir, ic) in Images(symmetry, r, c))
+                foreach (var (imageRow, imageColumn) in Images(symmetry, row, column))
                 {
-                    if (taken[ir] || (d.target[ir] & (0x80 >> ic)) != 0)
+                    if (taken[imageRow] || (level.target[imageRow] & (0x80 >> imageColumn)) != 0)
                     {
                         fits = false;
                     }
@@ -389,9 +389,9 @@ namespace ShiftRegister.Core
                     continue;
                 }
 
-                foreach (var (ir, ic) in Images(symmetry, r, c))
+                foreach (var (imageRow, imageColumn) in Images(symmetry, row, column))
                 {
-                    d.walls[ir] |= 0x80 >> ic;
+                    level.walls[imageRow] |= 0x80 >> imageColumn;
                 }
 
                 placed++;
@@ -400,7 +400,7 @@ namespace ShiftRegister.Core
             return placed > 0;
         }
 
-        static int[] ShuffledRows(Random rng)
+        static int[] ShuffledRows(Random random)
         {
             var rows = new int[BoardBits.Size];
             for (int i = 0; i < rows.Length; i++)
@@ -410,7 +410,7 @@ namespace ShiftRegister.Core
 
             for (int i = rows.Length - 1; i > 0; i--)
             {
-                int j = rng.Next(i + 1);
+                int j = random.Next(i + 1);
                 (rows[i], rows[j]) = (rows[j], rows[i]);
             }
 
@@ -423,7 +423,7 @@ namespace ShiftRegister.Core
         /// Plays <paramref name="count"/> moves from the target, losing no bits and never returning to a board
         /// it already passed. Returns the moves that undo them in order, or null if it got stuck.
         /// </summary>
-        static List<Move> Scramble(LevelRules rules, Random rng, int count, out ulong board)
+        static List<Move> Scramble(LevelRules rules, Random random, int count, out ulong board)
         {
             board = rules.Target;
             var moves = rules.Moves;
@@ -436,14 +436,14 @@ namespace ShiftRegister.Core
             var seen = new HashSet<ulong> { board };
             for (int guard = 0; undo.Count < count && guard < count * 50; guard++)
             {
-                var m = moves[rng.Next(moves.Count)];
-                if (!rules.TryApply(board, m, out var o) || o.LostCount > 0 || !seen.Add(o.After))
+                var move = moves[random.Next(moves.Count)];
+                if (!rules.TryApply(board, move, out var outcome) || outcome.LostCount > 0 || !seen.Add(outcome.After))
                 {
                     continue;
                 }
 
-                board = o.After;
-                undo.Add(Opposite(m));
+                board = outcome.After;
+                undo.Add(Opposite(move));
             }
 
             if (undo.Count < count)
@@ -455,10 +455,10 @@ namespace ShiftRegister.Core
             return undo;
         }
 
-        static Move Opposite(Move m)
+        static Move Opposite(Move move)
         {
             Direction back;
-            switch (m.Direction)
+            switch (move.Direction)
             {
                 case Direction.Left:
                     back = Direction.Right;
@@ -474,7 +474,7 @@ namespace ShiftRegister.Core
                     break;
             }
 
-            return new Move(back, m.Line, m.Segment);
+            return new Move(back, move.Line, move.Segment);
         }
 
         // ----- Is every rule doing something? -----
@@ -484,31 +484,31 @@ namespace ShiftRegister.Core
         {
             bool split = false, wrap = false, carry = false;
             ulong board = rules.Start;
-            foreach (var m in solution)
+            foreach (var move in solution)
             {
-                if (!rules.TryApply(board, m, out var o))
+                if (!rules.TryApply(board, move, out var outcome))
                 {
                     return false;
                 }
 
-                if (rules.SegmentCount(m.Axis, m.Line) > 1)
+                if (rules.SegmentCount(move.Axis, move.Line) > 1)
                 {
                     split = true;
                 }
 
-                if (m.Axis == Axis.Row)
+                if (move.Axis == Axis.Row)
                 {
-                    int row = BoardBits.GetRow(board, m.Line);
+                    int row = BoardBits.GetRow(board, move.Line);
                     // Rotating rows have no walls here, so the bit that wraps is the one at the row's edge.
-                    if (rules.IsRotating(m.Line) && (row & (m.TowardStart ? 0x80 : 0x01)) != 0)
+                    if (rules.IsRotating(move.Line) && (row & (move.TowardStart ? 0x80 : 0x01)) != 0)
                     {
                         wrap = true;
                     }
 
-                    int top = rules.ChainTopOf(m.Line);
+                    int top = rules.ChainTopOf(move.Line);
                     if (top >= 0)
                     {
-                        int crossing = m.TowardStart ? BoardBits.GetRow(board, top + 1) & 0x80 : BoardBits.GetRow(board, top) & 0x01;
+                        int crossing = move.TowardStart ? BoardBits.GetRow(board, top + 1) & 0x80 : BoardBits.GetRow(board, top) & 0x01;
                         if (crossing != 0)
                         {
                             carry = true;
@@ -516,7 +516,7 @@ namespace ShiftRegister.Core
                     }
                 }
 
-                board = o.After;
+                board = outcome.After;
             }
 
             return ((mix & Mechanic.Walls) == 0 || split)

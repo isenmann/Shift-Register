@@ -19,39 +19,39 @@ namespace ShiftRegister.Game.Hud
         readonly System.Collections.Generic.List<Image> icons = new System.Collections.Generic.List<Image>();
 
         /// <summary>Ink-on-background button (top bar).</summary>
-        public static HudButton Create(Transform parent, string text, float x, float y, float w, float h,
+        public static HudButton Create(Transform parent, string text, float x, float y, float width, float height,
             TMP_FontAsset font, float size, Action onClick) =>
-            Create(parent, text, x, y, w, h, font, size, Lcd.Ink, Lcd.Light, onClick);
+            Create(parent, text, x, y, width, height, font, size, Lcd.Ink, Lcd.Light, onClick);
 
         /// <param name="ink">Frame and label colour; also the hover fill.</param>
         /// <param name="paper">Label colour while hovered.</param>
-        public static HudButton Create(Transform parent, string text, float x, float y, float w, float h,
+        public static HudButton Create(Transform parent, string text, float x, float y, float width, float height,
             TMP_FontAsset font, float size, Color32 ink, Color32 paper, Action onClick)
         {
-            var rt = Ui.Rect(parent, text, x, y, w, h);
+            var rectTransform = Ui.Rect(parent, text, x, y, width, height);
             // Invisible graphic so the whole rect receives pointer events.
-            var hit = rt.gameObject.AddComponent<Image>();
-            hit.color = Color.clear;
+            var hitArea = rectTransform.gameObject.AddComponent<Image>();
+            hitArea.color = Color.clear;
 
-            var b = rt.gameObject.AddComponent<HudButton>();
-            b.onClick = onClick;
-            b.ink = ink;
-            b.paper = paper;
-            b.fill = Ui.Box(rt, "Fill", 0, 0, w, h, 6f, ink);
-            b.fill.enabled = false;
-            b.frame = Ui.Frame(rt, "Frame", 0, 0, w, h, 6f, 2f, ink);
-            b.label = Ui.Text(rt, "Label", 0, 0, w, h, font, size, ink, TextAlignmentOptions.Center, text);
-            return b;
+            var button = rectTransform.gameObject.AddComponent<HudButton>();
+            button.onClick = onClick;
+            button.ink = ink;
+            button.paper = paper;
+            button.fill = Ui.Box(rectTransform, "Fill", 0, 0, width, height, 6f, ink);
+            button.fill.enabled = false;
+            button.frame = Ui.Frame(rectTransform, "Frame", 0, 0, width, height, 6f, 2f, ink);
+            button.label = Ui.Text(rectTransform, "Label", 0, 0, width, height, font, size, ink, TextAlignmentOptions.Center, text);
+            return button;
         }
 
         /// <summary>Filled button (the title screen's PLAY): ink box, paper label, lighter ink on hover.</summary>
-        public static HudButton CreateSolid(Transform parent, string text, float x, float y, float w, float h,
+        public static HudButton CreateSolid(Transform parent, string text, float x, float y, float width, float height,
             TMP_FontAsset font, float size, Action onClick)
         {
-            var b = Create(parent, text, x, y, w, h, font, size, Lcd.Ink, Lcd.Light, onClick);
-            b.solid = true;
-            b.SetHot(false);
-            return b;
+            var button = Create(parent, text, x, y, width, height, font, size, Lcd.Ink, Lcd.Light, onClick);
+            button.solid = true;
+            button.SetHot(false);
+            return button;
         }
 
         public string Text
@@ -91,9 +91,9 @@ namespace ShiftRegister.Game.Hud
 
         void OnDisable() => SetHot(false);
 
-        public void OnPointerEnter(PointerEventData e) => SetHot(true);
-        public void OnPointerExit(PointerEventData e) => SetHot(false);
-        public void OnPointerClick(PointerEventData e)
+        public void OnPointerEnter(PointerEventData eventData) => SetHot(true);
+        public void OnPointerExit(PointerEventData eventData) => SetHot(false);
+        public void OnPointerClick(PointerEventData eventData)
         {
             if (disabled)
             {

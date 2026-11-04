@@ -179,35 +179,35 @@ namespace ShiftRegister.Core
 
         public void SetBit(EditLayer layer, int row, int column, bool on) => Edit(() =>
         {
-            int m = Mask(column);
+            int mask = Mask(column);
             if (on)
             {
-                if ((Level.walls[row] & m) == 0)
+                if ((Level.walls[row] & mask) == 0)
                 {
-                    Rows(layer)[row] |= m;
+                    Rows(layer)[row] |= mask;
                 }
 
                 return;
             }
 
-            Rows(layer)[row] &= ~m;
-            Level.pins[row] &= ~m; // a pin has to be on in both pictures
+            Rows(layer)[row] &= ~mask;
+            Level.pins[row] &= ~mask; // a pin has to be on in both pictures
         });
 
         public void SetWall(int row, int column, bool on) => Edit(() =>
         {
-            int m = Mask(column);
+            int mask = Mask(column);
             if (!on)
             {
-                Level.walls[row] &= ~m;
+                Level.walls[row] &= ~mask;
                 return;
             }
 
-            Level.walls[row] |= m;
-            Level.start[row] &= ~m;
-            Level.target[row] &= ~m;
-            Level.pins[row] &= ~m;
-            RemoveGateCells(row, m);
+            Level.walls[row] |= mask;
+            Level.start[row] &= ~mask;
+            Level.target[row] &= ~mask;
+            Level.pins[row] &= ~mask;
+            RemoveGateCells(row, mask);
             if (column == 0)
             {
                 Level.fillLeftRows = Without(Level.fillLeftRows, row);
@@ -223,28 +223,28 @@ namespace ShiftRegister.Core
 
         public void SetPin(int row, int column, bool on) => Edit(() =>
         {
-            int m = Mask(column);
+            int mask = Mask(column);
             if (!on)
             {
-                Level.pins[row] &= ~m;
+                Level.pins[row] &= ~mask;
                 return;
             }
 
-            Level.walls[row] &= ~m;
-            Level.pins[row] |= m;
-            Level.start[row] |= m;
-            Level.target[row] |= m;
+            Level.walls[row] &= ~mask;
+            Level.pins[row] |= mask;
+            Level.start[row] |= mask;
+            Level.target[row] |= mask;
         });
 
         /// <summary>Removes everything on a cell: bits in both pictures, wall, pin and gate cell.</summary>
         public void Erase(int row, int column) => Edit(() =>
         {
-            int m = Mask(column);
-            Level.start[row] &= ~m;
-            Level.target[row] &= ~m;
-            Level.walls[row] &= ~m;
-            Level.pins[row] &= ~m;
-            RemoveGateCells(row, m);
+            int mask = Mask(column);
+            Level.start[row] &= ~mask;
+            Level.target[row] &= ~mask;
+            Level.walls[row] &= ~mask;
+            Level.pins[row] &= ~mask;
+            RemoveGateCells(row, mask);
         });
 
         // ----- Row options -----
@@ -338,9 +338,9 @@ namespace ShiftRegister.Core
                 SetRotateRow(partner, false);
             }
 
-            int m = Mask(left ? 0 : Last);
-            Level.walls[row] &= ~m;
-            RemoveGateCells(row, m);
+            int mask = Mask(left ? 0 : Last);
+            Level.walls[row] &= ~mask;
+            RemoveGateCells(row, mask);
             if (left)
             {
                 Level.fillLeftRows = With(Level.fillLeftRows, row);
@@ -352,13 +352,13 @@ namespace ShiftRegister.Core
         });
 
         /// <summary>The row's gate, or null. A row has at most one.</summary>
-        public RowGate GateOn(int row) => Array.Find(Level.gates, g => g.row == row);
+        public RowGate GateOn(int row) => Array.Find(Level.gates, gate => gate.row == row);
 
         /// <summary>Adds a cell to the row's gate, creating the gate with this op or changing it to this op.</summary>
         public void SetGateCell(int row, int column, GateOp op) => Edit(() =>
         {
-            int m = Mask(column);
-            Level.walls[row] &= ~m;
+            int mask = Mask(column);
+            Level.walls[row] &= ~mask;
             if (column == 0)
             {
                 Level.fillLeftRows = Without(Level.fillLeftRows, row);
@@ -372,12 +372,12 @@ namespace ShiftRegister.Core
             var gate = GateOn(row);
             if (gate == null)
             {
-                AddGate(new RowGate(row, op, m));
+                AddGate(new RowGate(row, op, mask));
             }
             else
             {
                 gate.op = op;
-                gate.mask |= m;
+                gate.mask |= mask;
             }
         });
 
@@ -394,7 +394,7 @@ namespace ShiftRegister.Core
             }
         });
 
-        public void RemoveGate(int row) => Edit(() => Level.gates = Array.FindAll(Level.gates, g => g.row != row));
+        public void RemoveGate(int row) => Edit(() => Level.gates = Array.FindAll(Level.gates, gate => gate.row != row));
 
         // ----- Level settings -----
 
@@ -448,42 +448,42 @@ namespace ShiftRegister.Core
         /// Everything <see cref="LevelRules.Validate"/> rejects, plus what only authored levels must keep
         /// to: the view draws one rule per cell, so a row has one gate and a gate cell is no 1-IN cell.
         /// </summary>
-        public static List<string> AuthoredErrors(LevelData d)
+        public static List<string> AuthoredErrors(LevelData level)
         {
-            var errors = LevelRules.Validate(d);
+            var errors = LevelRules.Validate(level);
             if (errors.Count > 0)
             {
                 return errors;
             }
 
             var seen = new bool[BoardBits.Size];
-            foreach (var g in d.gates ?? Array.Empty<RowGate>())
+            foreach (var gate in level.gates ?? Array.Empty<RowGate>())
             {
-                if (seen[g.row])
+                if (seen[gate.row])
                 {
-                    errors.Add($"row {g.row} has more than one gate.");
+                    errors.Add($"row {gate.row} has more than one gate.");
                 }
 
-                seen[g.row] = true;
-                if (Contains(d.fillLeftRows, g.row) && (g.mask & 0x80) != 0)
+                seen[gate.row] = true;
+                if (Contains(level.fillLeftRows, gate.row) && (gate.mask & 0x80) != 0)
                 {
-                    errors.Add($"gate on row {g.row} covers its 1-IN left cell.");
+                    errors.Add($"gate on row {gate.row} covers its 1-IN left cell.");
                 }
 
-                if (Contains(d.fillRightRows, g.row) && (g.mask & 0x01) != 0)
+                if (Contains(level.fillRightRows, gate.row) && (gate.mask & 0x01) != 0)
                 {
-                    errors.Add($"gate on row {g.row} covers its 1-IN right cell.");
+                    errors.Add($"gate on row {gate.row} covers its 1-IN right cell.");
                 }
 
-                if (g.mask == 0)
+                if (gate.mask == 0)
                 {
-                    errors.Add($"gate on row {g.row} has no cells.");
+                    errors.Add($"gate on row {gate.row} has no cells.");
                 }
             }
 
-            if (d.lossCount > MaxLossCount)
+            if (level.lossCount > MaxLossCount)
             {
-                errors.Add($"lossCount {d.lossCount} is above {MaxLossCount}.");
+                errors.Add($"lossCount {level.lossCount} is above {MaxLossCount}.");
             }
 
             return errors;
@@ -496,16 +496,16 @@ namespace ShiftRegister.Core
         public static string SanitizeName(string name)
         {
             var kept = new System.Text.StringBuilder();
-            foreach (char ch in name ?? "")
+            foreach (char character in name ?? "")
             {
                 if (kept.Length == MaxNameLength)
                 {
                     break;
                 }
 
-                if (IsNameChar(ch))
+                if (IsNameChar(character))
                 {
-                    kept.Append(ch);
+                    kept.Append(character);
                 }
             }
 
@@ -513,78 +513,78 @@ namespace ShiftRegister.Core
         }
 
         /// <summary>The characters a level name may hold.</summary>
-        public static bool IsNameChar(char ch) =>
-            (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')
-            || ch == ' ' || ch == '-' || ch == '.' || ch == '!' || ch == '?' || ch == '\'';
+        public static bool IsNameChar(char character) =>
+            (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9')
+            || character == ' ' || character == '-' || character == '.' || character == '!' || character == '?' || character == '\'';
 
         // ----- Copies -----
 
-        public static LevelData Clone(LevelData d) => new LevelData
+        public static LevelData Clone(LevelData level) => new LevelData
         {
-            id = d.id,
-            name = d.name,
-            start = (int[])d.start.Clone(),
-            target = (int[])d.target.Clone(),
-            walls = (int[])d.walls.Clone(),
-            pins = (int[])d.pins.Clone(),
-            rotateRows = (int[])(d.rotateRows ?? Array.Empty<int>()).Clone(),
-            chainTopRows = (int[])(d.chainTopRows ?? Array.Empty<int>()).Clone(),
-            fillLeftRows = (int[])(d.fillLeftRows ?? Array.Empty<int>()).Clone(),
-            fillRightRows = (int[])(d.fillRightRows ?? Array.Empty<int>()).Clone(),
-            gates = Array.ConvertAll(d.gates ?? Array.Empty<RowGate>(), g => new RowGate(g.row, g.op, g.mask)),
-            gatesOnColumnMoves = d.gatesOnColumnMoves,
-            lossRule = d.lossRule,
-            lossCount = d.lossCount,
-            par = d.par,
-            solution = d.solution
+            id = level.id,
+            name = level.name,
+            start = (int[])level.start.Clone(),
+            target = (int[])level.target.Clone(),
+            walls = (int[])level.walls.Clone(),
+            pins = (int[])level.pins.Clone(),
+            rotateRows = (int[])(level.rotateRows ?? Array.Empty<int>()).Clone(),
+            chainTopRows = (int[])(level.chainTopRows ?? Array.Empty<int>()).Clone(),
+            fillLeftRows = (int[])(level.fillLeftRows ?? Array.Empty<int>()).Clone(),
+            fillRightRows = (int[])(level.fillRightRows ?? Array.Empty<int>()).Clone(),
+            gates = Array.ConvertAll(level.gates ?? Array.Empty<RowGate>(), gate => new RowGate(gate.row, gate.op, gate.mask)),
+            gatesOnColumnMoves = level.gatesOnColumnMoves,
+            lossRule = level.lossRule,
+            lossCount = level.lossCount,
+            par = level.par,
+            solution = level.solution
         };
 
         /// <summary>True if both have the same name and rules; par and solution do not count.</summary>
-        public static bool SameLevel(LevelData a, LevelData b) => a.name == b.name && SamePuzzle(a, b);
+        public static bool SameLevel(LevelData first, LevelData second) => first.name == second.name && SamePuzzle(first, second);
 
         /// <summary>True if both have the same rules, whatever their names, par and solution.</summary>
-        public static bool SamePuzzle(LevelData a, LevelData b)
+        public static bool SamePuzzle(LevelData first, LevelData second)
         {
-            if (a.gatesOnColumnMoves != b.gatesOnColumnMoves)
+            if (first.gatesOnColumnMoves != second.gatesOnColumnMoves)
             {
                 return false;
             }
 
-            if (a.lossRule != b.lossRule || a.lossCount != b.lossCount)
+            if (first.lossRule != second.lossRule || first.lossCount != second.lossCount)
             {
                 return false;
             }
 
-            if (!SameRows(a.start, b.start) || !SameRows(a.target, b.target))
+            if (!SameRows(first.start, second.start) || !SameRows(first.target, second.target))
             {
                 return false;
             }
 
-            if (!SameRows(a.walls, b.walls) || !SameRows(a.pins, b.pins))
+            if (!SameRows(first.walls, second.walls) || !SameRows(first.pins, second.pins))
             {
                 return false;
             }
 
-            if (!SameSet(a.rotateRows, b.rotateRows) || !SameSet(a.chainTopRows, b.chainTopRows))
+            if (!SameSet(first.rotateRows, second.rotateRows) || !SameSet(first.chainTopRows, second.chainTopRows))
             {
                 return false;
             }
 
-            if (!SameSet(a.fillLeftRows, b.fillLeftRows) || !SameSet(a.fillRightRows, b.fillRightRows))
+            if (!SameSet(first.fillLeftRows, second.fillLeftRows) || !SameSet(first.fillRightRows, second.fillRightRows))
             {
                 return false;
             }
 
-            var ga = a.gates ?? Array.Empty<RowGate>();
-            var gb = b.gates ?? Array.Empty<RowGate>();
-            if (ga.Length != gb.Length)
+            var firstGates = first.gates ?? Array.Empty<RowGate>();
+            var secondGates = second.gates ?? Array.Empty<RowGate>();
+            if (firstGates.Length != secondGates.Length)
             {
                 return false;
             }
 
-            for (int i = 0; i < ga.Length; i++)
+            for (int i = 0; i < firstGates.Length; i++)
             {
-                if (ga[i].row != gb[i].row || ga[i].op != gb[i].op || ga[i].mask != gb[i].mask)
+                if (firstGates[i].row != secondGates[i].row || firstGates[i].op != secondGates[i].op || firstGates[i].mask != secondGates[i].mask)
                 {
                     return false;
                 }
@@ -637,14 +637,14 @@ namespace ShiftRegister.Core
             gate.mask &= ~mask;
             if (gate.mask == 0)
             {
-                Level.gates = Array.FindAll(Level.gates, g => g.row != row);
+                Level.gates = Array.FindAll(Level.gates, other => other.row != row);
             }
         }
 
         void AddGate(RowGate gate)
         {
             var list = new List<RowGate>(Level.gates) { gate };
-            list.Sort((a, b) => a.row.CompareTo(b.row));
+            list.Sort((first, second) => first.row.CompareTo(second.row));
             Level.gates = list.ToArray();
         }
 
@@ -662,13 +662,13 @@ namespace ShiftRegister.Core
             return list.ToArray();
         }
 
-        static int[] Without(int[] rows, int row) => Array.FindAll(rows ?? Array.Empty<int>(), r => r != row);
+        static int[] Without(int[] rows, int row) => Array.FindAll(rows ?? Array.Empty<int>(), other => other != row);
 
-        static bool SameRows(int[] a, int[] b)
+        static bool SameRows(int[] first, int[] second)
         {
             for (int i = 0; i < BoardBits.Size; i++)
             {
-                if (a[i] != b[i])
+                if (first[i] != second[i])
                 {
                     return false;
                 }
@@ -677,18 +677,18 @@ namespace ShiftRegister.Core
             return true;
         }
 
-        static bool SameSet(int[] a, int[] b)
+        static bool SameSet(int[] first, int[] second)
         {
-            a = a ?? Array.Empty<int>();
-            b = b ?? Array.Empty<int>();
-            if (a.Length != b.Length)
+            first = first ?? Array.Empty<int>();
+            second = second ?? Array.Empty<int>();
+            if (first.Length != second.Length)
             {
                 return false;
             }
 
-            foreach (int r in a)
+            foreach (int row in first)
             {
-                if (!Contains(b, r))
+                if (!Contains(second, row))
                 {
                     return false;
                 }

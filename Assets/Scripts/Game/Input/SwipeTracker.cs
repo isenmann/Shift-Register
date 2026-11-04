@@ -47,18 +47,18 @@ namespace ShiftRegister.Game.Input
                 return null;
             }
 
-            Vector2 d = local - origin;
+            Vector2 delta = local - origin;
             if (axis == null)
             {
-                if (Mathf.Abs(d.x) < threshold && Mathf.Abs(d.y) < threshold)
+                if (Mathf.Abs(delta.x) < threshold && Mathf.Abs(delta.y) < threshold)
                 {
                     return null;
                 }
 
-                axis = Mathf.Abs(d.x) >= Mathf.Abs(d.y) ? Axis.Row : Axis.Column;
+                axis = Mathf.Abs(delta.x) >= Mathf.Abs(delta.y) ? Axis.Row : Axis.Column;
             }
 
-            float along = axis == Axis.Row ? d.x : d.y;
+            float along = axis == Axis.Row ? delta.x : delta.y;
             float need = Swiped ? step : threshold;
             if (Mathf.Abs(along) < need)
             {

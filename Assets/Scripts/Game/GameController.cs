@@ -122,11 +122,11 @@ namespace ShiftRegister.Game
             Settings = SettingsStore.Load();
             CustomLevels = CustomLevelStore.Load();
             ApplySettings();
-            foreach (var (c, l, file) in catalog.AllLevels())
+            foreach (var (chapter, level, file) in catalog.AllLevels())
             {
                 if (file != null)
                 {
-                    levels.Add(new LevelEntry { Chapter = c, Index = l, Order = levels.Count, Data = LevelJson.Parse(file) });
+                    levels.Add(new LevelEntry { Chapter = chapter, Index = level, Order = levels.Count, Data = LevelJson.Parse(file) });
                 }
             }
         }
@@ -152,7 +152,7 @@ namespace ShiftRegister.Game
         /// <summary>Loads the inspector's test level (see <see cref="StartsInLevel"/>).</summary>
         public void LoadStartLevel() => Load(startChapter, startLevel);
 
-        public LevelEntry Entry(int chapter, int level) => levels.Find(e => e.Chapter == chapter && e.Index == level);
+        public LevelEntry Entry(int chapter, int level) => levels.Find(levelEntry => levelEntry.Chapter == chapter && levelEntry.Index == level);
 
         public bool IsUnlocked(int chapter, int level)
         {
@@ -163,9 +163,9 @@ namespace ShiftRegister.Game
             }
 
             var solved = new List<bool>(levels.Count);
-            foreach (var e in levels)
+            foreach (var levelEntry in levels)
             {
-                solved.Add(Progress.IsSolved(e.Data.id));
+                solved.Add(Progress.IsSolved(levelEntry.Data.id));
             }
 
             return Unlocks.IsUnlocked(solved, entry.Order);
@@ -174,17 +174,17 @@ namespace ShiftRegister.Game
         /// <summary>Where PLAY goes: the last level played, else the first unsolved open level, else the first.</summary>
         public (int chapter, int level) ResumeTarget()
         {
-            var last = levels.Find(e => e.Data.id == Progress.lastLevelId);
+            var last = levels.Find(levelEntry => levelEntry.Data.id == Progress.lastLevelId);
             if (last != null)
             {
                 return (last.Chapter, last.Index);
             }
 
-            foreach (var e in levels)
+            foreach (var levelEntry in levels)
             {
-                if (!Progress.IsSolved(e.Data.id) && IsUnlocked(e.Chapter, e.Index))
+                if (!Progress.IsSolved(levelEntry.Data.id) && IsUnlocked(levelEntry.Chapter, levelEntry.Index))
                 {
-                    return (e.Chapter, e.Index);
+                    return (levelEntry.Chapter, levelEntry.Index);
                 }
             }
 
@@ -316,12 +316,12 @@ namespace ShiftRegister.Game
                 return true;
             }
 
-            if (!catalog.TryNext(ChapterIndex, LevelIndex, out int c, out int l))
+            if (!catalog.TryNext(ChapterIndex, LevelIndex, out int chapter, out int level))
             {
                 return false;
             }
 
-            Load(c, l);
+            Load(chapter, level);
             return true;
         }
 
@@ -332,12 +332,12 @@ namespace ShiftRegister.Game
                 return false;
             }
 
-            if (!catalog.TryPrevious(ChapterIndex, LevelIndex, out int c, out int l))
+            if (!catalog.TryPrevious(ChapterIndex, LevelIndex, out int chapter, out int level))
             {
                 return false;
             }
 
-            Load(c, l);
+            Load(chapter, level);
             return true;
         }
 

@@ -141,33 +141,33 @@ namespace ShiftRegister.Game.Hud
             StatusSize = 16
         };
 
-        void BuildRandom(Screens s, RandomLayout k)
+        void BuildRandom(Screens screens, RandomLayout layout)
         {
-            var root = s.Random;
-            var left = Outer(s, root, "Left", k.Outer ? -1f : 0f, 0f);
-            var right = Outer(s, root, "Right", k.Outer ? 1f : 0f, 0f);
+            var root = screens.Random;
+            var left = Outer(screens, root, "Left", layout.Outer ? -1f : 0f, 0f);
+            var right = Outer(screens, root, "Right", layout.Outer ? 1f : 0f, 0f);
             var ui = new RandomUi();
-            s.RandomUi = ui;
+            screens.RandomUi = ui;
 
-            Ui.Text(left, "Heading", k.HeadingX, k.HeadingY, k.HeadingW, k.HeadingH, displayBold, k.HeadingSize, Lcd.Ink, text: "RANDOM");
-            HudButton.Create(right, "BACK", k.BackX, k.BackY, k.BackW, k.BackH, display, 14, () => flow.Show(GameScreen.Title));
+            Ui.Text(left, "Heading", layout.HeadingX, layout.HeadingY, layout.HeadingW, layout.HeadingH, displayBold, layout.HeadingSize, Lcd.Ink, text: "RANDOM");
+            HudButton.Create(right, "BACK", layout.BackX, layout.BackY, layout.BackW, layout.BackH, display, 14, () => flow.Show(GameScreen.Title));
 
             for (int i = 0; i < Difficulties.Length; i++)
             {
                 int index = i;
-                float y = k.ButtonY + i * k.RowPitch;
-                ui.Buttons[i] = HudButton.Create(left, DifficultyName(Difficulties[i]), k.ButtonX, y, k.ButtonW, k.ButtonH, display, k.ButtonSize, () => MakeRandom(index));
-                var text = Ui.Text(left, "About", k.TextX, y + k.TextDy, k.TextW, k.TextH, mono, k.TextSize, Lcd.Text2,
-                    k.TextDy > 0f ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft, DifficultyText(Difficulties[i]));
+                float y = layout.ButtonY + i * layout.RowPitch;
+                ui.Buttons[i] = HudButton.Create(left, DifficultyName(Difficulties[i]), layout.ButtonX, y, layout.ButtonW, layout.ButtonH, display, layout.ButtonSize, () => MakeRandom(index));
+                var text = Ui.Text(left, "About", layout.TextX, y + layout.TextDy, layout.TextW, layout.TextH, mono, layout.TextSize, Lcd.Text2,
+                    layout.TextDy > 0f ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft, DifficultyText(Difficulties[i]));
                 text.textWrappingMode = TextWrappingModes.Normal;
             }
 
-            var note = Ui.Text(left, "Note", k.NoteX, k.NoteY, k.NoteW, k.NoteH, mono, k.NoteSize, Lcd.Text3, TextAlignmentOptions.TopLeft,
+            var note = Ui.Text(left, "Note", layout.NoteX, layout.NoteY, layout.NoteW, layout.NoteH, mono, layout.NoteSize, Lcd.Text3, TextAlignmentOptions.TopLeft,
                 "Every level is new and can be solved. They earn no stars and unlock nothing. After you beat one, SAVE keeps it in MY LEVELS; otherwise it is gone when you leave.");
             note.textWrappingMode = TextWrappingModes.Normal;
-            ui.Status = Ui.Text(left, "Status", k.NoteX, k.StatusY, k.NoteW, k.StatusH, mono, k.StatusSize, Lcd.Ink);
+            ui.Status = Ui.Text(left, "Status", layout.NoteX, layout.StatusY, layout.NoteW, layout.StatusH, mono, layout.StatusSize, Lcd.Ink);
 
-            if (k.Keys)
+            if (layout.Keys)
             {
                 Ui.Text(left, "Keys", 56, 690, 1168, 20, mono, 13, Lcd.Text3, text: "Up and down choose · Enter make a level · Esc back");
             }
@@ -210,7 +210,7 @@ namespace ShiftRegister.Game.Hud
         }
 
         /// <summary>Runs on phones too, which have no keyboard.</summary>
-        void UpdateRandom(Keyboard kb)
+        void UpdateRandom(Keyboard keyboard)
         {
             if (randomSession.IsGenerating)
             {
@@ -222,20 +222,20 @@ namespace ShiftRegister.Game.Hud
                 return;
             }
             // The key that opened this screen must not also act on it.
-            if (kb == null || Time.frameCount - randomEnteredFrame <= 1)
+            if (keyboard == null || Time.frameCount - randomEnteredFrame <= 1)
             {
                 return;
             }
 
-            if (kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame)
+            if (keyboard.upArrowKey.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame)
             {
                 StepRandom(-1);
             }
-            else if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame)
+            else if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
             {
                 StepRandom(1);
             }
-            else if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
+            else if (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame)
             {
                 Sfx.Play(Sound.Click);
                 MakeRandom(randomFocus);
@@ -298,9 +298,9 @@ namespace ShiftRegister.Game.Hud
                 : randomSession.Failed ? "No level came out this time. Try again."
                 : "";
 
-            foreach (var s in Both)
+            foreach (var screens in Both)
             {
-                var ui = s.RandomUi;
+                var ui = screens.RandomUi;
                 ui.Status.text = status;
                 for (int i = 0; i < ui.Buttons.Length; i++)
                 {

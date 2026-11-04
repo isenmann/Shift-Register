@@ -29,9 +29,9 @@ namespace ShiftRegister.Tests
         {
             var samples = Synth.Render(Note.Glide(wave, 300f, 600f, 0f, 0.2f));
             float max = 0f;
-            foreach (float s in samples)
+            foreach (float sample in samples)
             {
-                max = Math.Max(max, Math.Abs(s));
+                max = Math.Max(max, Math.Abs(sample));
             }
 
             Assert.That(max, Is.EqualTo(Synth.Peak).Within(1e-4f));
@@ -61,12 +61,12 @@ namespace ShiftRegister.Tests
         [Test]
         public void EverySoundRenders()
         {
-            foreach (Sound s in Enum.GetValues(typeof(Sound)))
+            foreach (Sound sound in Enum.GetValues(typeof(Sound)))
             {
-                var samples = SoundBank.Render(s);
-                Assert.That(samples.Length, Is.GreaterThan(Synth.SampleRate / 100), s.ToString());
-                Assert.That(samples.Length, Is.LessThan(Synth.SampleRate), s + " stays under a second");
-                Assert.That(SoundBank.Gain(s), Is.InRange(0.05f, 1f), s.ToString());
+                var samples = SoundBank.Render(sound);
+                Assert.That(samples.Length, Is.GreaterThan(Synth.SampleRate / 100), sound.ToString());
+                Assert.That(samples.Length, Is.LessThan(Synth.SampleRate), sound + " stays under a second");
+                Assert.That(SoundBank.Gain(sound), Is.InRange(0.05f, 1f), sound.ToString());
             }
         }
 

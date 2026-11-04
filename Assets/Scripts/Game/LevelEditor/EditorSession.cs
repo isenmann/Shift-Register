@@ -59,15 +59,15 @@ namespace ShiftRegister.Game.LevelEditor
         /// </summary>
         public LevelData DisplayLevel()
         {
-            var d = LevelEdit.Clone(Edit.Level);
+            var level = LevelEdit.Clone(Edit.Level);
             if (Layer == EditLayer.Target)
             {
-                var start = d.start;
-                d.start = d.target;
-                d.target = start;
+                var start = level.start;
+                level.start = level.target;
+                level.target = start;
             }
 
-            return d;
+            return level;
         }
 
         // ----- Painting -----
@@ -95,9 +95,9 @@ namespace ShiftRegister.Game.LevelEditor
             int steps = Math.Max(Math.Abs(row - lastRow), Math.Abs(column - lastColumn));
             for (int i = 1; i <= steps; i++)
             {
-                int r = lastRow + (int)Math.Round((row - lastRow) * (double)i / steps, MidpointRounding.AwayFromZero);
-                int c = lastColumn + (int)Math.Round((column - lastColumn) * (double)i / steps, MidpointRounding.AwayFromZero);
-                Apply(r, c);
+                int stepRow = lastRow + (int)Math.Round((row - lastRow) * (double)i / steps, MidpointRounding.AwayFromZero);
+                int stepColumn = lastColumn + (int)Math.Round((column - lastColumn) * (double)i / steps, MidpointRounding.AwayFromZero);
+                Apply(stepRow, stepColumn);
             }
 
             lastRow = row;

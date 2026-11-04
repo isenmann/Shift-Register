@@ -11,20 +11,20 @@ namespace ShiftRegister.Tests
     {
         static LevelRules WalledRow()
         {
-            var d = OneRow("01000110", "01#00110"); // wall at row 3, column 2
-            return LevelRules.Compile(d);
+            var level = OneRow("01000110", "01#00110"); // wall at row 3, column 2
+            return LevelRules.Compile(level);
         }
 
         [Test]
         public void Cursor_ShiftsThePartUnderIt()
         {
             var rules = WalledRow();
-            Assert.That(InputMapping.TryCursorMove(rules, 3, 6, Direction.Right, out var m), Is.True);
-            Assert.That(m, Is.EqualTo(Move.Row(3, Direction.Right, 1)));
-            Assert.That(InputMapping.TryCursorMove(rules, 3, 0, Direction.Left, out m), Is.True);
-            Assert.That(m, Is.EqualTo(Move.Row(3, Direction.Left, 0)));
-            Assert.That(InputMapping.TryCursorMove(rules, 3, 6, Direction.Up, out m), Is.True);
-            Assert.That(m, Is.EqualTo(Move.Column(6, Direction.Up)));
+            Assert.That(InputMapping.TryCursorMove(rules, 3, 6, Direction.Right, out var move), Is.True);
+            Assert.That(move, Is.EqualTo(Move.Row(3, Direction.Right, 1)));
+            Assert.That(InputMapping.TryCursorMove(rules, 3, 0, Direction.Left, out move), Is.True);
+            Assert.That(move, Is.EqualTo(Move.Row(3, Direction.Left, 0)));
+            Assert.That(InputMapping.TryCursorMove(rules, 3, 6, Direction.Up, out move), Is.True);
+            Assert.That(move, Is.EqualTo(Move.Column(6, Direction.Up)));
         }
 
         [Test]
@@ -47,10 +47,10 @@ namespace ShiftRegister.Tests
         [Test]
         public void EdgeButtons_DisabledOnPinnedLine()
         {
-            var d = OneRow("01000000");
-            d.pins[3] = Bits("01000000");
-            d.target[3] = d.start[3];
-            var rules = LevelRules.Compile(d);
+            var level = OneRow("01000000");
+            level.pins[3] = Bits("01000000");
+            level.target[3] = level.start[3];
+            var rules = LevelRules.Compile(level);
             Assert.That(InputMapping.TryEdgeMove(rules, 3, Direction.Left, out _), Is.False);
             Assert.That(InputMapping.TryEdgeMove(rules, 1, Direction.Up, out _), Is.False);
             Assert.That(InputMapping.TryEdgeMove(rules, 2, Direction.Up, out _), Is.True);
@@ -59,27 +59,27 @@ namespace ShiftRegister.Tests
         [Test]
         public void HitCell_MapsBoardLocalPoints()
         {
-            Assert.That(BoardControls.HitCell(BoardView.CellCenter(2, 5), out int r, out int c), Is.True);
-            Assert.That((r, c), Is.EqualTo((2, 5)));
+            Assert.That(BoardControls.HitCell(BoardView.CellCenter(2, 5), out int row, out int column), Is.True);
+            Assert.That((row, column), Is.EqualTo((2, 5)));
             Assert.That(BoardControls.HitCell(new Vector2(10f, 0f), out _, out _), Is.False);
         }
 
         [Test]
         public void Controls_Build32Buttons_HitTestFindsThem()
         {
-            var go = new GameObject("Board");
+            var gameObject = new GameObject("Board");
             try
             {
-                var controls = go.AddComponent<BoardControls>();
+                var controls = gameObject.AddComponent<BoardControls>();
                 controls.Build(WalledRow());
                 Assert.That(controls.Buttons.Count, Is.EqualTo(32));
-                var b = controls.Buttons[0];
-                Assert.That(controls.HitButton(b.Rect.center), Is.EqualTo(0));
+                var button = controls.Buttons[0];
+                Assert.That(controls.HitButton(button.Rect.center), Is.EqualTo(0));
                 Assert.That(controls.HitButton(Vector2.zero), Is.EqualTo(-1));
             }
             finally
             {
-                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(gameObject);
             }
         }
     }

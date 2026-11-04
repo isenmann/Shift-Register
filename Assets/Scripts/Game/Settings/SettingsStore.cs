@@ -17,13 +17,13 @@ namespace ShiftRegister.Game.Settings
 
             try
             {
-                var s = JsonUtility.FromJson<GameSettings>(json) ?? new GameSettings();
-                s.StepVolume(0); // clamp a hand-edited value
-                return s;
+                var settings = JsonUtility.FromJson<GameSettings>(json) ?? new GameSettings();
+                settings.StepVolume(0); // clamp a hand-edited value
+                return settings;
             }
-            catch (System.ArgumentException e)
+            catch (System.ArgumentException exception)
             {
-                Debug.LogWarning($"Saved options could not be read and were reset: {e.Message}");
+                Debug.LogWarning($"Saved options could not be read and were reset: {exception.Message}");
                 return new GameSettings();
             }
         }

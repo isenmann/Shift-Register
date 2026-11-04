@@ -8,44 +8,44 @@ namespace ShiftRegister.Tests
         /// <summary>"00110100" → 52. '1' is a bit; any other character is empty.</summary>
         public static int Bits(string row)
         {
-            int v = 0;
+            int value = 0;
             for (int i = 0; i < 8; i++)
             {
                 if (row[i] == '1')
                 {
-                    v |= 0x80 >> i;
+                    value |= 0x80 >> i;
                 }
             }
 
-            return v;
+            return value;
         }
 
         /// <summary>"01#00110" → 32: the '#' cells.</summary>
         public static int Walls(string row)
         {
-            int v = 0;
+            int value = 0;
             for (int i = 0; i < 8; i++)
             {
                 if (row[i] == '#')
                 {
-                    v |= 0x80 >> i;
+                    value |= 0x80 >> i;
                 }
             }
 
-            return v;
+            return value;
         }
 
         /// <summary>A level with a single interesting row (row 3), target left empty.</summary>
         public static LevelData OneRow(string row, string walls = null)
         {
-            var d = new LevelData { id = "one-row" };
-            d.start[3] = Bits(row);
+            var level = new LevelData { id = "one-row" };
+            level.start[3] = Bits(row);
             if (walls != null)
             {
-                d.walls[3] = Walls(walls);
+                level.walls[3] = Walls(walls);
             }
 
-            return d;
+            return level;
         }
 
         /// <summary>2-3 Heart: rows 5-7 need one, two and three left shifts.</summary>

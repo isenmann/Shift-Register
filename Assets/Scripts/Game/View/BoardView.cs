@@ -57,15 +57,15 @@ namespace ShiftRegister.Game.View
             var eye = ProceduralSprites.RoundedRect(EyeW, EyeH, EyeRadius);
 
             cells = new Cell[BoardBits.Size, BoardBits.Size];
-            for (int r = 0; r < BoardBits.Size; r++)
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                for (int c = 0; c < BoardBits.Size; c++)
+                for (int column = 0; column < BoardBits.Size; column++)
                 {
-                    var root = new GameObject($"Cell {r + 1},{c + 1}").transform;
+                    var root = new GameObject($"Cell {row + 1},{column + 1}").transform;
                     root.SetParent(cellsRoot, false);
-                    root.localPosition = CellCenter(r, c);
+                    root.localPosition = CellCenter(row, column);
 
-                    bool isWall = rules.IsWall(r, c);
+                    bool isWall = rules.IsWall(row, column);
                     var cell = new Cell
                     {
                         Ground = Renderer(root, "Ground", isWall ? wall : ground, isWall ? Color.white : (Color)Lcd.Cell, Layer.Ground),
@@ -78,8 +78,8 @@ namespace ShiftRegister.Game.View
                     Renderer(bit.transform, "Eye R", eye, Lcd.Light, Layer.Eyes).transform.localPosition = new Vector2(EyeX, EyeY) / CellPx;
 
                     cell.Pin = Renderer(root, "Pin", pin, Lcd.Light, Layer.Pin);
-                    cell.Pin.enabled = rules.IsPinned(r, c);
-                    cells[r, c] = cell;
+                    cell.Pin.enabled = rules.IsPinned(row, column);
+                    cells[row, column] = cell;
                 }
             }
 
@@ -102,15 +102,15 @@ namespace ShiftRegister.Game.View
                 return;
             }
 
-            for (int r = 0; r < BoardBits.Size; r++)
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                for (int c = 0; c < BoardBits.Size; c++)
+                for (int column = 0; column < BoardBits.Size; column++)
                 {
-                    var cell = cells[r, c];
-                    cell.Bit.SetActive(BoardBits.GetCell(bits, r, c));
+                    var cell = cells[row, column];
+                    cell.Bit.SetActive(BoardBits.GetCell(bits, row, column));
                     cell.Bit.transform.localPosition = Vector3.zero;
                     cell.Bit.transform.localScale = Vector3.one;
-                    cell.Ghost.enabled = !BoardBits.GetCell(ghostsFrom, r, c) && BoardBits.GetCell(rules.Target, r, c);
+                    cell.Ghost.enabled = !BoardBits.GetCell(ghostsFrom, row, column) && BoardBits.GetCell(rules.Target, row, column);
                 }
             }
 
@@ -122,29 +122,29 @@ namespace ShiftRegister.Game.View
 
         SpriteRenderer Renderer(Transform parent, string name, Sprite sprite, Color color, Layer layer)
         {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = sprite;
-            sr.color = color;
-            sr.sortingOrder = (int)layer;
+            var gameObject = new GameObject(name);
+            gameObject.transform.SetParent(parent, false);
+            var spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+            spriteRenderer.sprite = sprite;
+            spriteRenderer.color = color;
+            spriteRenderer.sortingOrder = (int)layer;
             if (spriteMaterial != null)
             {
-                sr.sharedMaterial = spriteMaterial;
+                spriteRenderer.sharedMaterial = spriteMaterial;
             }
 
-            return sr;
+            return spriteRenderer;
         }
 
-        static void DestroySafe(GameObject go)
+        static void DestroySafe(GameObject gameObject)
         {
             if (Application.isPlaying)
             {
-                Destroy(go);
+                Destroy(gameObject);
             }
             else
             {
-                DestroyImmediate(go);
+                DestroyImmediate(gameObject);
             }
         }
     }

@@ -65,12 +65,12 @@ namespace ShiftRegister.Game
         /// <summary>Finds a level by its id (parses each level file; the catalog is small).</summary>
         public bool TryFind(string id, out int chapter, out int level)
         {
-            foreach (var (c, l, file) in AllLevels())
+            foreach (var (entryChapter, entryLevel, file) in AllLevels())
             {
                 if (file != null && LevelJson.Parse(file).id == id)
                 {
-                    chapter = c;
-                    level = l;
+                    chapter = entryChapter;
+                    level = entryLevel;
                     return true;
                 }
             }
@@ -82,12 +82,12 @@ namespace ShiftRegister.Game
         /// <summary>Every level file with its 0-based chapter and level index.</summary>
         public IEnumerable<(int chapter, int level, TextAsset file)> AllLevels()
         {
-            for (int c = 0; c < chapters.Count; c++)
+            for (int chapter = 0; chapter < chapters.Count; chapter++)
             {
-                var levels = chapters[c].levels;
-                for (int l = 0; l < levels.Count; l++)
+                var levels = chapters[chapter].levels;
+                for (int level = 0; level < levels.Count; level++)
                 {
-                    yield return (c, l, levels[l]);
+                    yield return (chapter, level, levels[level]);
                 }
             }
         }

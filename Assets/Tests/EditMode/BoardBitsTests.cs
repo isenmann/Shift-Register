@@ -8,22 +8,22 @@ namespace ShiftRegister.Tests
         [Test]
         public void Rows_ReadAsNumbers_LeftmostIs128()
         {
-            ulong b = BoardBits.SetRow(0, 2, 0b10000001);
-            Assert.That(BoardBits.GetCell(b, 2, 0), Is.True);
-            Assert.That(BoardBits.GetCell(b, 2, 7), Is.True);
-            Assert.That(BoardBits.GetCell(b, 2, 1), Is.False);
-            Assert.That(BoardBits.GetRow(b, 2), Is.EqualTo(129));
+            ulong board = BoardBits.SetRow(0, 2, 0b10000001);
+            Assert.That(BoardBits.GetCell(board, 2, 0), Is.True);
+            Assert.That(BoardBits.GetCell(board, 2, 7), Is.True);
+            Assert.That(BoardBits.GetCell(board, 2, 1), Is.False);
+            Assert.That(BoardBits.GetRow(board, 2), Is.EqualTo(129));
         }
 
         [Test]
         public void Columns_RoundTrip_TopIsMostSignificant()
         {
-            ulong b = BoardBits.SetColumn(0, 5, 0b10100001);
-            Assert.That(BoardBits.GetCell(b, 0, 5), Is.True);
-            Assert.That(BoardBits.GetCell(b, 2, 5), Is.True);
-            Assert.That(BoardBits.GetCell(b, 7, 5), Is.True);
-            Assert.That(BoardBits.GetColumn(b, 5), Is.EqualTo(0b10100001));
-            Assert.That(BoardBits.PopCount(b), Is.EqualTo(3));
+            ulong board = BoardBits.SetColumn(0, 5, 0b10100001);
+            Assert.That(BoardBits.GetCell(board, 0, 5), Is.True);
+            Assert.That(BoardBits.GetCell(board, 2, 5), Is.True);
+            Assert.That(BoardBits.GetCell(board, 7, 5), Is.True);
+            Assert.That(BoardBits.GetColumn(board, 5), Is.EqualTo(0b10100001));
+            Assert.That(BoardBits.PopCount(board), Is.EqualTo(3));
         }
 
         [Test]

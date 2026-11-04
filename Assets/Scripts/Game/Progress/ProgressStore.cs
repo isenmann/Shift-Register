@@ -19,9 +19,9 @@ namespace ShiftRegister.Game.Progress
             {
                 return JsonUtility.FromJson<PlayerProgress>(json) ?? new PlayerProgress();
             }
-            catch (System.ArgumentException e)
+            catch (System.ArgumentException exception)
             {
-                Debug.LogWarning($"Saved progress could not be read and was reset: {e.Message}");
+                Debug.LogWarning($"Saved progress could not be read and was reset: {exception.Message}");
                 return new PlayerProgress();
             }
         }

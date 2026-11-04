@@ -8,7 +8,7 @@ namespace ShiftRegister.Tests
 {
     public class HelpTextTests
     {
-        static string[] Titles(LevelData d) => HelpText.Mechanics(d).Select(e => e.Title).ToArray();
+        static string[] Titles(LevelData level) => HelpText.Mechanics(level).Select(entry => entry.Title).ToArray();
 
         [Test]
         public void PlainLevel_OnlyTheGoal()
@@ -19,7 +19,7 @@ namespace ShiftRegister.Tests
         [Test]
         public void ListsEveryMechanicOnTheBoard_InChapterOrder()
         {
-            var d = new LevelData
+            var level = new LevelData
             {
                 walls = new[] { 0, 16, 0, 0, 0, 0, 0, 0 },
                 pins = new[] { 0, 0, 0, 8, 0, 0, 0, 0 },
@@ -30,21 +30,21 @@ namespace ShiftRegister.Tests
                 lossRule = LossRule.Exactly,
                 lossCount = 3
             };
-            Assert.That(Titles(d), Is.EqualTo(new[]
+            Assert.That(Titles(level), Is.EqualTo(new[]
             {
                 "GOAL", "WALLS", "PINS", "WRAP BELT", "CARRY BELT", "1-IN EDGE", "GATES", "BIT BUCKET"
             }));
-            var gates = HelpText.Mechanics(d).First(e => e.Title == "GATES").Text;
+            var gates = HelpText.Mechanics(level).First(entry => entry.Title == "GATES").Text;
             Assert.That(gates.IndexOf("&"), Is.LessThan(gates.IndexOf("^")), "ops listed in enum order");
             Assert.That(gates, Does.Not.Contain("|"), "only the ops on this board");
-            Assert.That(HelpText.Mechanics(d).Last().Text, Does.Contain("exactly 3"));
+            Assert.That(HelpText.Mechanics(level).Last().Text, Does.Contain("exactly 3"));
         }
 
         [Test]
         public void ColumnGates_SayColumnsToo()
         {
-            var d = new LevelData { gates = new[] { new RowGate(0, GateOp.Or, 1) }, gatesOnColumnMoves = true };
-            Assert.That(HelpText.Mechanics(d).Last().Text, Does.Contain("column"));
+            var level = new LevelData { gates = new[] { new RowGate(0, GateOp.Or, 1) }, gatesOnColumnMoves = true };
+            Assert.That(HelpText.Mechanics(level).Last().Text, Does.Contain("column"));
         }
 
         [TestCase(LossRule.AtMost, 0, "no bits")]
@@ -53,7 +53,7 @@ namespace ShiftRegister.Tests
         public void BucketRule(LossRule rule, int count, string expected)
         {
             var entries = HelpText.Mechanics(new LevelData { lossRule = rule, lossCount = count });
-            var bucket = entries.Where(e => e.Title == "BIT BUCKET").ToList();
+            var bucket = entries.Where(entry => entry.Title == "BIT BUCKET").ToList();
             if (expected == null)
             {
                 Assert.That(bucket, Is.Empty);
@@ -67,12 +67,12 @@ namespace ShiftRegister.Tests
         [Test]
         public void MarkHelpSeen_OnlyFirstTime()
         {
-            var p = new PlayerProgress();
-            Assert.That(p.MarkHelpSeen("3-1"), Is.True);
-            Assert.That(p.MarkHelpSeen("3-1"), Is.False);
-            Assert.That(p.MarkHelpSeen("4-1"), Is.True);
-            p.helpSeen = null; // progress saved before help existed
-            Assert.That(p.MarkHelpSeen("3-1"), Is.True);
+            var progress = new PlayerProgress();
+            Assert.That(progress.MarkHelpSeen("3-1"), Is.True);
+            Assert.That(progress.MarkHelpSeen("3-1"), Is.False);
+            Assert.That(progress.MarkHelpSeen("4-1"), Is.True);
+            progress.helpSeen = null; // progress saved before help existed
+            Assert.That(progress.MarkHelpSeen("3-1"), Is.True);
         }
     }
 }

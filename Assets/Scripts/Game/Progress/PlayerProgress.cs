@@ -62,7 +62,7 @@ namespace ShiftRegister.Game.Progress
             return true;
         }
 
-        public LevelRecord Get(string id) => levels.Find(r => r.id == id);
+        public LevelRecord Get(string id) => levels.Find(record => record.id == id);
 
         public bool IsSolved(string id) => Get(id) != null;
 
@@ -71,9 +71,9 @@ namespace ShiftRegister.Game.Progress
         public int TotalStars()
         {
             int total = 0;
-            foreach (var r in levels)
+            foreach (var record in levels)
             {
-                total += r.stars;
+                total += record.stars;
             }
 
             return total;

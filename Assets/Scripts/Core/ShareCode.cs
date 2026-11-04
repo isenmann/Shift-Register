@@ -35,132 +35,132 @@ namespace ShiftRegister.Core
 
         /// <summary>Encodes a proven level. The caller must have checked it (see <see cref="CanEncode"/>).</summary>
         /// <exception cref="ArgumentException">The level is not valid or has no replaying solution.</exception>
-        public static string Encode(LevelData d)
+        public static string Encode(LevelData level)
         {
-            if (!CanEncode(d, out string why))
+            if (!CanEncode(level, out string reason))
             {
-                throw new ArgumentException(why, nameof(d));
+                throw new ArgumentException(reason, nameof(level));
             }
 
-            Move.TryParseList(d.solution, out var solution);
+            Move.TryParseList(level.solution, out var solution);
 
-            var b = new List<byte>();
+            var bytes = new List<byte>();
             int flags = 0;
-            if (Any(d.walls))
+            if (Any(level.walls))
             {
                 flags |= FlagWalls;
             }
 
-            if (Any(d.pins))
+            if (Any(level.pins))
             {
                 flags |= FlagPins;
             }
 
-            if (HasRows(d.rotateRows))
+            if (HasRows(level.rotateRows))
             {
                 flags |= FlagRotate;
             }
 
-            if (HasRows(d.chainTopRows))
+            if (HasRows(level.chainTopRows))
             {
                 flags |= FlagChain;
             }
 
-            if (HasRows(d.fillLeftRows))
+            if (HasRows(level.fillLeftRows))
             {
                 flags |= FlagFillLeft;
             }
 
-            if (HasRows(d.fillRightRows))
+            if (HasRows(level.fillRightRows))
             {
                 flags |= FlagFillRight;
             }
 
-            if (d.gates != null && d.gates.Length > 0)
+            if (level.gates != null && level.gates.Length > 0)
             {
                 flags |= FlagGates;
             }
 
-            if (d.gatesOnColumnMoves)
+            if (level.gatesOnColumnMoves)
             {
                 flags |= FlagGatesOnColumns;
             }
 
-            b.Add((byte)flags);
-            b.Add((byte)((int)d.lossRule | (d.lossCount << 2)));
-            WriteRows(b, d.start);
-            WriteRows(b, d.target);
+            bytes.Add((byte)flags);
+            bytes.Add((byte)((int)level.lossRule | (level.lossCount << 2)));
+            WriteRows(bytes, level.start);
+            WriteRows(bytes, level.target);
             if ((flags & FlagWalls) != 0)
             {
-                WriteRows(b, d.walls);
+                WriteRows(bytes, level.walls);
             }
 
             if ((flags & FlagPins) != 0)
             {
-                WriteRows(b, d.pins);
+                WriteRows(bytes, level.pins);
             }
 
             if ((flags & FlagRotate) != 0)
             {
-                b.Add(RowSet(d.rotateRows));
+                bytes.Add(RowSet(level.rotateRows));
             }
 
             if ((flags & FlagChain) != 0)
             {
-                b.Add(RowSet(d.chainTopRows));
+                bytes.Add(RowSet(level.chainTopRows));
             }
 
             if ((flags & FlagFillLeft) != 0)
             {
-                b.Add(RowSet(d.fillLeftRows));
+                bytes.Add(RowSet(level.fillLeftRows));
             }
 
             if ((flags & FlagFillRight) != 0)
             {
-                b.Add(RowSet(d.fillRightRows));
+                bytes.Add(RowSet(level.fillRightRows));
             }
 
             if ((flags & FlagGates) != 0)
             {
-                b.Add((byte)d.gates.Length);
-                foreach (var g in d.gates)
+                bytes.Add((byte)level.gates.Length);
+                foreach (var gate in level.gates)
                 {
-                    b.Add((byte)(g.row | ((int)g.op << 3)));
-                    b.Add((byte)g.mask);
+                    bytes.Add((byte)(gate.row | ((int)gate.op << 3)));
+                    bytes.Add((byte)gate.mask);
                 }
             }
 
-            b.Add((byte)solution.Count);
-            foreach (var m in solution)
+            bytes.Add((byte)solution.Count);
+            foreach (var move in solution)
             {
-                b.Add(m.ToByte());
+                bytes.Add(move.ToByte());
             }
 
-            string name = LevelEdit.SanitizeName(d.name);
-            b.Add((byte)name.Length);
-            b.AddRange(Encoding.ASCII.GetBytes(name));
+            string name = LevelEdit.SanitizeName(level.name);
+            bytes.Add((byte)name.Length);
+            bytes.AddRange(Encoding.ASCII.GetBytes(name));
 
-            int crc = Crc16(b, b.Count);
-            b.Add((byte)(crc >> 8));
-            b.Add((byte)crc);
-            return Prefix + ToBase64Url(b.ToArray());
+            int crc = Crc16(bytes, bytes.Count);
+            bytes.Add((byte)(crc >> 8));
+            bytes.Add((byte)crc);
+            return Prefix + ToBase64Url(bytes.ToArray());
         }
 
         /// <summary>False, with the reason, if this level cannot be shared: invalid, or without a replaying solution.</summary>
-        public static bool CanEncode(LevelData d, out string why)
+        public static bool CanEncode(LevelData level, out string reason)
         {
-            why = "";
-            var errors = LevelEdit.AuthoredErrors(d);
+            reason = "";
+            var errors = LevelEdit.AuthoredErrors(level);
             if (errors.Count > 0)
             {
-                why = errors[0];
+                reason = errors[0];
                 return false;
             }
 
-            if (!Move.TryParseList(d.solution, out var solution) || solution.Count > MaxSolutionMoves
-                || !Solver.Replays(LevelRules.Compile(d), solution))
+            if (!Move.TryParseList(level.solution, out var solution) || solution.Count > MaxSolutionMoves
+                || !Solver.Replays(LevelRules.Compile(level), solution))
             {
-                why = "The level has no solution that replays.";
+                reason = "The level has no solution that replays.";
                 return false;
             }
 
@@ -198,46 +198,46 @@ namespace ShiftRegister.Core
                 return ShareCodeError.Damaged;
             }
 
-            var d = new LevelData();
+            var decoded = new LevelData();
             var solution = new List<Move>();
             var reader = new Reader(bytes, bytes.Length - 2);
             try
             {
                 int flags = reader.Next();
                 int loss = reader.Next();
-                d.lossRule = (LossRule)(loss & 3);
-                d.lossCount = loss >> 2;
-                d.gatesOnColumnMoves = (flags & FlagGatesOnColumns) != 0;
-                ReadRows(reader, d.start);
-                ReadRows(reader, d.target);
+                decoded.lossRule = (LossRule)(loss & 3);
+                decoded.lossCount = loss >> 2;
+                decoded.gatesOnColumnMoves = (flags & FlagGatesOnColumns) != 0;
+                ReadRows(reader, decoded.start);
+                ReadRows(reader, decoded.target);
                 if ((flags & FlagWalls) != 0)
                 {
-                    ReadRows(reader, d.walls);
+                    ReadRows(reader, decoded.walls);
                 }
 
                 if ((flags & FlagPins) != 0)
                 {
-                    ReadRows(reader, d.pins);
+                    ReadRows(reader, decoded.pins);
                 }
 
                 if ((flags & FlagRotate) != 0)
                 {
-                    d.rotateRows = RowList(reader.Next());
+                    decoded.rotateRows = RowList(reader.Next());
                 }
 
                 if ((flags & FlagChain) != 0)
                 {
-                    d.chainTopRows = RowList(reader.Next());
+                    decoded.chainTopRows = RowList(reader.Next());
                 }
 
                 if ((flags & FlagFillLeft) != 0)
                 {
-                    d.fillLeftRows = RowList(reader.Next());
+                    decoded.fillLeftRows = RowList(reader.Next());
                 }
 
                 if ((flags & FlagFillRight) != 0)
                 {
-                    d.fillRightRows = RowList(reader.Next());
+                    decoded.fillRightRows = RowList(reader.Next());
                 }
 
                 if ((flags & FlagGates) != 0)
@@ -248,11 +248,11 @@ namespace ShiftRegister.Core
                         return ShareCodeError.InvalidLevel;
                     }
 
-                    d.gates = new RowGate[count];
+                    decoded.gates = new RowGate[count];
                     for (int i = 0; i < count; i++)
                     {
                         int rowOp = reader.Next();
-                        d.gates[i] = new RowGate(rowOp & 7, (GateOp)(rowOp >> 3), reader.Next());
+                        decoded.gates[i] = new RowGate(rowOp & 7, (GateOp)(rowOp >> 3), reader.Next());
                     }
                 }
 
@@ -269,7 +269,7 @@ namespace ShiftRegister.Core
                     name.Append((char)reader.Next());
                 }
 
-                d.name = LevelEdit.SanitizeName(name.ToString());
+                decoded.name = LevelEdit.SanitizeName(name.ToString());
             }
             catch (IndexOutOfRangeException)
             {
@@ -281,19 +281,19 @@ namespace ShiftRegister.Core
                 return ShareCodeError.Damaged;
             }
 
-            d.par = solution.Count;
-            d.solution = string.Join(" ", solution);
-            if (LevelEdit.AuthoredErrors(d).Count > 0)
+            decoded.par = solution.Count;
+            decoded.solution = string.Join(" ", solution);
+            if (LevelEdit.AuthoredErrors(decoded).Count > 0)
             {
                 return ShareCodeError.InvalidLevel;
             }
 
-            if (!Solver.Replays(LevelRules.Compile(d), solution))
+            if (!Solver.Replays(LevelRules.Compile(decoded), solution))
             {
                 return ShareCodeError.BadSolution;
             }
 
-            level = d;
+            level = decoded;
             return ShareCodeError.None;
         }
 
@@ -320,23 +320,23 @@ namespace ShiftRegister.Core
             }
         }
 
-        static void WriteRows(List<byte> b, int[] rows)
+        static void WriteRows(List<byte> bytes, int[] rows)
         {
             int present = 0;
-            for (int r = 0; r < BoardBits.Size; r++)
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                if (rows[r] != 0)
+                if (rows[row] != 0)
                 {
-                    present |= 1 << r;
+                    present |= 1 << row;
                 }
             }
 
-            b.Add((byte)present);
-            for (int r = 0; r < BoardBits.Size; r++)
+            bytes.Add((byte)present);
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                if (rows[r] != 0)
+                if (rows[row] != 0)
                 {
-                    b.Add((byte)rows[r]);
+                    bytes.Add((byte)rows[row]);
                 }
             }
         }
@@ -344,31 +344,31 @@ namespace ShiftRegister.Core
         static void ReadRows(Reader reader, int[] rows)
         {
             int present = reader.Next();
-            for (int r = 0; r < BoardBits.Size; r++)
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                rows[r] = (present & (1 << r)) != 0 ? reader.Next() : 0;
+                rows[row] = (present & (1 << row)) != 0 ? reader.Next() : 0;
             }
         }
 
         static byte RowSet(int[] rows)
         {
-            int set = 0;
-            foreach (int r in rows)
+            int rowBits = 0;
+            foreach (int row in rows)
             {
-                set |= 1 << r;
+                rowBits |= 1 << row;
             }
 
-            return (byte)set;
+            return (byte)rowBits;
         }
 
-        static int[] RowList(int set)
+        static int[] RowList(int rowBits)
         {
             var rows = new List<int>();
-            for (int r = 0; r < BoardBits.Size; r++)
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                if ((set & (1 << r)) != 0)
+                if ((rowBits & (1 << row)) != 0)
                 {
-                    rows.Add(r);
+                    rows.Add(row);
                 }
             }
 
@@ -377,9 +377,9 @@ namespace ShiftRegister.Core
 
         static bool Any(int[] rows)
         {
-            foreach (int v in rows)
+            foreach (int row in rows)
             {
-                if (v != 0)
+                if (row != 0)
                 {
                     return true;
                 }
@@ -409,11 +409,11 @@ namespace ShiftRegister.Core
         static string RemoveWhitespace(string text)
         {
             var kept = new StringBuilder();
-            foreach (char ch in text ?? "")
+            foreach (char character in text ?? "")
             {
-                if (!char.IsWhiteSpace(ch))
+                if (!char.IsWhiteSpace(character))
                 {
-                    kept.Append(ch);
+                    kept.Append(character);
                 }
             }
 

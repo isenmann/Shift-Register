@@ -49,18 +49,18 @@ namespace ShiftRegister.Game
 
         void Update()
         {
-            var kb = Keyboard.current;
-            if (kb == null || Ui.IsTyping)
+            var keyboard = Keyboard.current;
+            if (keyboard == null || Ui.IsTyping)
             {
                 return;
             }
 
-            if (kb.mKey.wasPressedThisFrame)
+            if (keyboard.mKey.wasPressedThisFrame)
             {
-                game.ChangeSettings(s => s.muted = !s.muted);
+                game.ChangeSettings(settings => settings.muted = !settings.muted);
             }
 
-            if (!kb.escapeKey.wasPressedThisFrame)
+            if (!keyboard.escapeKey.wasPressedThisFrame)
             {
                 return;
             }

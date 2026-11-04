@@ -6,244 +6,244 @@ using ShiftRegister.Core;
 static class P
 {
     const Direction L = Direction.Left, Rt = Direction.Right, U = Direction.Up, D = Direction.Down;
-    static Move R(int r, Direction d, int s = 0) => Move.Row(r, d, s);
-    static Move C(int c, Direction d, int s = 0) => Move.Column(c, d, s);
+    static Move R(int row, Direction direction, int segment = 0) => Move.Row(row, direction, segment);
+    static Move C(int column, Direction direction, int segment = 0) => Move.Column(column, direction, segment);
 
-    static LevelData Copy(LevelData d) => new LevelData
+    static LevelData Copy(LevelData level) => new LevelData
     {
-        id = d.id,
-        name = d.name,
-        start = (int[])d.start.Clone(),
-        target = (int[])d.target.Clone(),
-        walls = (int[])d.walls.Clone(),
-        pins = (int[])d.pins.Clone(),
-        rotateRows = (int[])d.rotateRows.Clone(),
-        chainTopRows = (int[])d.chainTopRows.Clone(),
-        fillLeftRows = (int[])d.fillLeftRows.Clone(),
-        fillRightRows = (int[])d.fillRightRows.Clone(),
-        gates = d.gates.Select(g => new RowGate(g.row, g.op, g.mask)).ToArray(),
-        gatesOnColumnMoves = d.gatesOnColumnMoves,
-        lossRule = d.lossRule,
-        lossCount = d.lossCount
+        id = level.id,
+        name = level.name,
+        start = (int[])level.start.Clone(),
+        target = (int[])level.target.Clone(),
+        walls = (int[])level.walls.Clone(),
+        pins = (int[])level.pins.Clone(),
+        rotateRows = (int[])level.rotateRows.Clone(),
+        chainTopRows = (int[])level.chainTopRows.Clone(),
+        fillLeftRows = (int[])level.fillLeftRows.Clone(),
+        fillRightRows = (int[])level.fillRightRows.Clone(),
+        gates = level.gates.Select(gate => new RowGate(gate.row, gate.op, gate.mask)).ToArray(),
+        gatesOnColumnMoves = level.gatesOnColumnMoves,
+        lossRule = level.lossRule,
+        lossCount = level.lossCount
     };
 
-    /// <summary>Start = target after k random lossless moves (invertible for walls/pins/rotate/chains).</summary>
-    static LevelData Scramble(LevelData tmpl, int k, int seed, int junk = 0)
+    /// <summary>Start = target after moveCount random lossless moves (invertible for walls/pins/rotate/chains).</summary>
+    static LevelData Scramble(LevelData tmpl, int moveCount, int seed, int junk = 0)
     {
-        var rng = new Random(seed);
-        var d = Copy(tmpl);
-        d.start = (int[])d.target.Clone();
-        var rules = LevelRules.Compile(d);
-        ulong b = rules.Target;
+        var random = new Random(seed);
+        var level = Copy(tmpl);
+        level.start = (int[])level.target.Clone();
+        var rules = LevelRules.Compile(level);
+        ulong board = rules.Target;
         Move? last = null;
         int done = 0, guard = 0;
-        while (done < k && guard++ < 1000)
+        while (done < moveCount && guard++ < 1000)
         {
-            var m = rules.Moves[rng.Next(rules.Moves.Count)];
-            if (last.HasValue && last.Value.Axis == m.Axis && last.Value.Line == m.Line && last.Value.Segment == m.Segment && last.Value.TowardStart != m.TowardStart)
+            var move = rules.Moves[random.Next(rules.Moves.Count)];
+            if (last.HasValue && last.Value.Axis == move.Axis && last.Value.Line == move.Line && last.Value.Segment == move.Segment && last.Value.TowardStart != move.TowardStart)
             {
                 continue;
             }
 
-            if (!rules.TryApply(b, m, out var o) || o.LostCount > 0 || o.After == b)
+            if (!rules.TryApply(board, move, out var outcome) || outcome.LostCount > 0 || outcome.After == board)
             {
                 continue;
             }
 
-            b = o.After;
-            last = m;
+            board = outcome.After;
+            last = move;
             done++;
         }
         // Junk bits for bucket goals: random empty, non-wall cells.
         int added = 0;
         while (added < junk)
         {
-            int r = rng.Next(8), c = rng.Next(8);
-            if (BoardBits.GetCell(b, r, c) || rules.IsWall(r, c))
+            int row = random.Next(8), column = random.Next(8);
+            if (BoardBits.GetCell(board, row, column) || rules.IsWall(row, column))
             {
                 continue;
             }
 
-            b = BoardBits.SetCell(b, r, c, true);
+            board = BoardBits.SetCell(board, row, column, true);
             added++;
         }
 
-        d.start = BoardBits.ToRows(b);
-        return d;
+        level.start = BoardBits.ToRows(board);
+        return level;
     }
 
     /// <summary>Target = start after the given forward moves (for gates and other irreversible rules).</summary>
     static LevelData Forward(LevelData tmpl, params Move[] moves)
     {
-        var d = Copy(tmpl);
-        d.target = (int[])d.start.Clone();
-        var rules = LevelRules.Compile(d);
-        ulong b = rules.Start;
+        var level = Copy(tmpl);
+        level.target = (int[])level.start.Clone();
+        var rules = LevelRules.Compile(level);
+        ulong board = rules.Start;
         int lost = 0;
-        foreach (var m in moves)
+        foreach (var move in moves)
         {
-            if (!rules.TryApply(b, m, out var o))
+            if (!rules.TryApply(board, move, out var outcome))
             {
-                throw new Exception("illegal " + m);
+                throw new Exception("illegal " + move);
             }
 
-            b = o.After;
-            lost += o.LostCount;
+            board = outcome.After;
+            lost += outcome.LostCount;
         }
 
-        d.target = BoardBits.ToRows(b);
-        if (d.lossRule == LossRule.Exactly)
+        level.target = BoardBits.ToRows(board);
+        if (level.lossRule == LossRule.Exactly)
         {
-            d.lossCount = lost;
+            level.lossCount = lost;
         }
 
-        if (d.lossRule == LossRule.AtMost && lost > d.lossCount)
+        if (level.lossRule == LossRule.AtMost && lost > level.lossCount)
         {
             throw new Exception("forward design breaks the loss rule");
         }
 
-        return d;
+        return level;
     }
 
-    static bool Uses(LevelData d, SolveResult r, Func<LevelRules, MoveOutcome, bool> pred)
+    static bool Uses(LevelData level, SolveResult result, Func<LevelRules, MoveOutcome, bool> pred)
     {
-        var rules = LevelRules.Compile(d);
-        ulong b = rules.Start;
+        var rules = LevelRules.Compile(level);
+        ulong board = rules.Start;
         bool any = false;
-        foreach (var m in r.Solution)
+        foreach (var move in result.Solution)
         {
-            rules.TryApply(b, m, out var o);
-            if (pred(rules, o))
+            rules.TryApply(board, move, out var outcome);
+            if (pred(rules, outcome))
             {
                 any = true;
             }
 
-            b = o.After;
+            board = outcome.After;
         }
 
         return any;
     }
 
     // Mechanic checks on a solution step.
-    static bool SplitLine(LevelRules rules, MoveOutcome o) => rules.SegmentCount(o.Move.Axis, o.Move.Line) > 1;
-    static bool Wraps(LevelRules rules, MoveOutcome o)
+    static bool SplitLine(LevelRules rules, MoveOutcome outcome) => rules.SegmentCount(outcome.Move.Axis, outcome.Move.Line) > 1;
+    static bool Wraps(LevelRules rules, MoveOutcome outcome)
     {
-        if (o.Move.Axis != Axis.Row || !rules.IsRotating(o.Move.Line))
+        if (outcome.Move.Axis != Axis.Row || !rules.IsRotating(outcome.Move.Line))
         {
             return false;
         }
 
-        return BoardBits.PopCount(o.Before) == BoardBits.PopCount(o.AfterShift) && o.Before != o.AfterShift &&
-               PlainShiftLoses(o);
+        return BoardBits.PopCount(outcome.Before) == BoardBits.PopCount(outcome.AfterShift) && outcome.Before != outcome.AfterShift &&
+               PlainShiftLoses(outcome);
     }
 
-    static bool PlainShiftLoses(MoveOutcome o)
+    static bool PlainShiftLoses(MoveOutcome outcome)
     {
-        int line = o.Move.Line;
-        int v = BoardBits.GetRow(o.Before, line);
-        return o.Move.TowardStart ? (v & 0x80) != 0 : (v & 0x01) != 0;
+        int line = outcome.Move.Line;
+        int value = BoardBits.GetRow(outcome.Before, line);
+        return outcome.Move.TowardStart ? (value & 0x80) != 0 : (value & 0x01) != 0;
     }
 
-    static bool Carries(LevelRules rules, MoveOutcome o)
+    static bool Carries(LevelRules rules, MoveOutcome outcome)
     {
-        if (o.Move.Axis != Axis.Row)
+        if (outcome.Move.Axis != Axis.Row)
         {
             return false;
         }
 
-        int top = rules.ChainTopOf(o.Move.Line);
+        int top = rules.ChainTopOf(outcome.Move.Line);
         if (top < 0)
         {
             return false;
         }
 
-        return o.Move.TowardStart ? (BoardBits.GetRow(o.Before, top + 1) & 0x80) != 0
-                                  : (BoardBits.GetRow(o.Before, top) & 0x01) != 0;
+        return outcome.Move.TowardStart ? (BoardBits.GetRow(outcome.Before, top + 1) & 0x80) != 0
+                                  : (BoardBits.GetRow(outcome.Before, top) & 0x01) != 0;
     }
 
-    static bool Column(LevelRules rules, MoveOutcome o) => o.Move.Axis == Axis.Column;
+    static bool Column(LevelRules rules, MoveOutcome outcome) => outcome.Move.Axis == Axis.Column;
 
     static readonly List<LevelData> picked = new List<LevelData>();
 
-    static void Find(string id, string name, LevelData tmpl, int k, int parMin, int parMax,
+    static void Find(string id, string name, LevelData tmpl, int moveCount, int parMin, int parMax,
         Func<LevelData, SolveResult, bool> require = null, int junk = 0, int seeds = 300, int maxStates = 2_500_000)
     {
         tmpl.id = id;
         tmpl.name = name;
         for (int seed = 1; seed <= seeds; seed++)
         {
-            var d = Scramble(tmpl, k, seed * 7919 + id.GetHashCode(), junk);
-            if (d.lossRule == LossRule.Exactly)
+            var level = Scramble(tmpl, moveCount, seed * 7919 + id.GetHashCode(), junk);
+            if (level.lossRule == LossRule.Exactly)
             {
-                d.lossCount = junk;
+                level.lossCount = junk;
             }
 
-            if (LevelRules.Validate(d).Count > 0)
-            {
-                continue;
-            }
-
-            var r = Solver.Solve(d, maxStates, 30);
-            if (r.Status != SolveStatus.Solved || r.Par < parMin || r.Par > parMax)
+            if (LevelRules.Validate(level).Count > 0)
             {
                 continue;
             }
 
-            if (require != null && !require(d, r))
+            var result = Solver.Solve(level, maxStates, 30);
+            if (result.Status != SolveStatus.Solved || result.Par < parMin || result.Par > parMax)
             {
                 continue;
             }
 
-            Report(d, r, $"seed {seed}");
-            picked.Add(d);
+            if (require != null && !require(level, result))
+            {
+                continue;
+            }
+
+            Report(level, result, $"seed {seed}");
+            picked.Add(level);
             return;
         }
 
         Console.WriteLine($"!! {id} {name}: no seed found");
     }
 
-    static void Check(LevelData d, string note = "", int maxStates = 4_000_000)
+    static void Check(LevelData level, string note = "", int maxStates = 4_000_000)
     {
-        var errs = LevelRules.Validate(d);
+        var errs = LevelRules.Validate(level);
         if (errs.Count > 0)
-        { Console.WriteLine($"!! {d.id} INVALID: {string.Join("; ", errs)}"); return; }
-        var r = Solver.Solve(d, maxStates, 30);
-        Report(d, r, note);
-        if (r.Status == SolveStatus.Solved)
+        { Console.WriteLine($"!! {level.id} INVALID: {string.Join("; ", errs)}"); return; }
+        var result = Solver.Solve(level, maxStates, 30);
+        Report(level, result, note);
+        if (result.Status == SolveStatus.Solved)
         {
-            picked.Add(d);
+            picked.Add(level);
         }
     }
 
-    static void Report(LevelData d, SolveResult r, string note)
+    static void Report(LevelData level, SolveResult result, string note)
     {
-        var rules = LevelRules.Compile(d);
-        Console.WriteLine($"== {d.id} {d.name} [{note}] {r}  rule={d.lossRule}/{d.lossCount}");
-        var s = BoardBits.ToPicture(rules.Start).Split('\n');
-        var t = BoardBits.ToPicture(rules.Target).Split('\n');
+        var rules = LevelRules.Compile(level);
+        Console.WriteLine($"== {level.id} {level.name} [{note}] {result}  rule={level.lossRule}/{level.lossCount}");
+        var startRows = BoardBits.ToPicture(rules.Start).Split('\n');
+        var targetRows = BoardBits.ToPicture(rules.Target).Split('\n');
         for (int i = 0; i < 8; i++)
         {
-            string a = Mark(s[i], rules, i), b = Mark(t[i], rules, i);
-            Console.WriteLine($"   {a}   {(i == 3 ? "->" : "  ")}   {b}");
+            string startRow = Mark(startRows[i], rules, i), targetRow = Mark(targetRows[i], rules, i);
+            Console.WriteLine($"   {startRow}   {(i == 3 ? "->" : "  ")}   {targetRow}");
         }
     }
 
-    static string Mark(string row, LevelRules rules, int r)
+    static string Mark(string row, LevelRules rules, int rowIndex)
     {
-        var ch = row.ToCharArray();
-        for (int c = 0; c < 8; c++)
+        var cells = row.ToCharArray();
+        for (int column = 0; column < 8; column++)
         {
-            if (rules.IsWall(r, c))
+            if (rules.IsWall(rowIndex, column))
             {
-                ch[c] = 'X';
+                cells[column] = 'X';
             }
-            else if (rules.IsPinned(r, c))
+            else if (rules.IsPinned(rowIndex, column))
             {
-                ch[c] = 'P';
+                cells[column] = 'P';
             }
         }
 
-        return new string(ch);
+        return new string(cells);
     }
 
     static int Bits(string row)
@@ -285,43 +285,43 @@ static class P
             Chapter6();
         }
 
-        System.IO.File.WriteAllText($"picked{only}.txt", string.Join("\n", picked.Select(d =>
-            $"{d.id}|{d.name}|{string.Join(",", d.start)}|{string.Join(",", d.target)}|{string.Join(",", d.walls)}|{string.Join(",", d.pins)}|" +
-            $"{string.Join(",", d.rotateRows)}|{string.Join(",", d.chainTopRows)}|{string.Join(",", d.fillLeftRows)}|{string.Join(",", d.fillRightRows)}|" +
-            $"{string.Join(";", d.gates.Select(g => $"{g.row}:{(int)g.op}:{g.mask}"))}|{(d.gatesOnColumnMoves ? 1 : 0)}|{(int)d.lossRule}|{d.lossCount}")));
+        System.IO.File.WriteAllText($"picked{only}.txt", string.Join("\n", picked.Select(level =>
+            $"{level.id}|{level.name}|{string.Join(",", level.start)}|{string.Join(",", level.target)}|{string.Join(",", level.walls)}|{string.Join(",", level.pins)}|" +
+            $"{string.Join(",", level.rotateRows)}|{string.Join(",", level.chainTopRows)}|{string.Join(",", level.fillLeftRows)}|{string.Join(",", level.fillRightRows)}|" +
+            $"{string.Join(";", level.gates.Select(gate => $"{gate.row}:{(int)gate.op}:{gate.mask}"))}|{(level.gatesOnColumnMoves ? 1 : 0)}|{(int)level.lossRule}|{level.lossCount}")));
     }
 
     /// <summary>'#' bit, 'X' wall, 'P' pinned bit, '.' empty.</summary>
     static LevelData Pic(params string[] rows)
     {
-        var d = new LevelData();
-        for (int r = 0; r < 8; r++)
+        var level = new LevelData();
+        for (int row = 0; row < 8; row++)
         {
-            for (int c = 0; c < 8; c++)
+            for (int column = 0; column < 8; column++)
             {
-                int bit = 0x80 >> c;
-                switch (rows[r][c])
+                int bit = 0x80 >> column;
+                switch (rows[row][column])
                 {
                     case '#':
-                        d.target[r] |= bit;
+                        level.target[row] |= bit;
                         break;
                     case 'P':
-                        d.target[r] |= bit;
-                        d.pins[r] |= bit;
+                        level.target[row] |= bit;
+                        level.pins[row] |= bit;
                         break;
                     case 'X':
-                        d.walls[r] |= bit;
+                        level.walls[row] |= bit;
                         break;
                 }
             }
         }
 
-        d.start = (int[])d.target.Clone();
-        return d;
+        level.start = (int[])level.target.Clone();
+        return level;
     }
 
     static Func<LevelData, SolveResult, bool> Needs(params Func<LevelRules, MoveOutcome, bool>[] preds) =>
-        (d, r) => preds.All(p => Uses(d, r, p));
+        (level, result) => preds.All(predicate => Uses(level, result, predicate));
 
     static void Chapter3()
     {

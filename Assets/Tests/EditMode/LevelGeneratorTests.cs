@@ -35,10 +35,10 @@ namespace ShiftRegister.Tests
         {
             for (int seed = 1; seed <= Seeds; seed++)
             {
-                var d = Make(difficulty, seed).Level;
-                Assert.That(Move.TryParseList(d.solution, out var moves), Is.True, $"seed {seed}: {d.solution}");
-                Assert.That(moves.Count, Is.EqualTo(d.par), $"seed {seed}");
-                Assert.That(Solver.Replays(LevelRules.Compile(d), moves), Is.True, $"seed {seed}: {d.solution}");
+                var level = Make(difficulty, seed).Level;
+                Assert.That(Move.TryParseList(level.solution, out var moves), Is.True, $"seed {seed}: {level.solution}");
+                Assert.That(moves.Count, Is.EqualTo(level.par), $"seed {seed}");
+                Assert.That(Solver.Replays(LevelRules.Compile(level), moves), Is.True, $"seed {seed}: {level.solution}");
             }
         }
 
@@ -47,10 +47,10 @@ namespace ShiftRegister.Tests
         {
             for (int seed = 1; seed <= Seeds; seed++)
             {
-                var d = Make(difficulty, seed).Level;
-                Assert.That(ShareCode.CanEncode(d, out string why), Is.True, $"seed {seed}: {why}");
-                Assert.That(ShareCode.TryDecode(ShareCode.Encode(d), out var back), Is.EqualTo(ShareCodeError.None), $"seed {seed}");
-                Assert.That(LevelEdit.SamePuzzle(d, back), Is.True, $"seed {seed}");
+                var level = Make(difficulty, seed).Level;
+                Assert.That(ShareCode.CanEncode(level, out string reason), Is.True, $"seed {seed}: {reason}");
+                Assert.That(ShareCode.TryDecode(ShareCode.Encode(level), out var back), Is.EqualTo(ShareCodeError.None), $"seed {seed}");
+                Assert.That(LevelEdit.SamePuzzle(level, back), Is.True, $"seed {seed}");
             }
         }
 
@@ -81,11 +81,11 @@ namespace ShiftRegister.Tests
         {
             for (int seed = 1; seed <= Seeds; seed++)
             {
-                var d = Make(RandomDifficulty.Easy, seed).Level;
-                Assert.That(d.walls, Is.All.Zero, $"seed {seed}");
-                Assert.That(d.pins, Is.All.Zero, $"seed {seed}");
-                Assert.That(d.rotateRows, Is.Empty, $"seed {seed}");
-                Assert.That(d.chainTopRows, Is.Empty, $"seed {seed}");
+                var level = Make(RandomDifficulty.Easy, seed).Level;
+                Assert.That(level.walls, Is.All.Zero, $"seed {seed}");
+                Assert.That(level.pins, Is.All.Zero, $"seed {seed}");
+                Assert.That(level.rotateRows, Is.Empty, $"seed {seed}");
+                Assert.That(level.chainTopRows, Is.Empty, $"seed {seed}");
             }
         }
 
@@ -94,29 +94,29 @@ namespace ShiftRegister.Tests
         {
             for (int seed = 1; seed <= Seeds; seed++)
             {
-                var d = Make(difficulty, seed).Level;
-                Assert.That(d.gates, Is.Empty, $"seed {seed}");
-                Assert.That(d.fillLeftRows, Is.Empty, $"seed {seed}");
-                Assert.That(d.fillRightRows, Is.Empty, $"seed {seed}");
-                Assert.That(d.lossRule, Is.EqualTo(LossRule.Any), $"seed {seed}");
+                var level = Make(difficulty, seed).Level;
+                Assert.That(level.gates, Is.Empty, $"seed {seed}");
+                Assert.That(level.fillLeftRows, Is.Empty, $"seed {seed}");
+                Assert.That(level.fillRightRows, Is.Empty, $"seed {seed}");
+                Assert.That(level.lossRule, Is.EqualTo(LossRule.Any), $"seed {seed}");
             }
         }
 
         [Test]
         public void SameSeed_GivesTheSameLevel([ValueSource(nameof(All))] RandomDifficulty difficulty)
         {
-            var a = Make(difficulty, 7).Level;
-            var b = Make(difficulty, 7).Level;
-            Assert.That(LevelEdit.SameLevel(a, b), Is.True);
-            Assert.That(a.solution, Is.EqualTo(b.solution));
+            var first = Make(difficulty, 7).Level;
+            var second = Make(difficulty, 7).Level;
+            Assert.That(LevelEdit.SameLevel(first, second), Is.True);
+            Assert.That(first.solution, Is.EqualTo(second.solution));
         }
 
         [Test]
         public void DifferentSeeds_GiveDifferentLevels([ValueSource(nameof(All))] RandomDifficulty difficulty)
         {
-            var a = Make(difficulty, 1).Level;
-            var b = Make(difficulty, 2).Level;
-            Assert.That(LevelEdit.SamePuzzle(a, b), Is.False);
+            var first = Make(difficulty, 1).Level;
+            var second = Make(difficulty, 2).Level;
+            Assert.That(LevelEdit.SamePuzzle(first, second), Is.False);
         }
 
         [Test]

@@ -26,9 +26,9 @@ namespace ShiftRegister.Game.CustomLevels
 
                 return library;
             }
-            catch (System.ArgumentException e)
+            catch (System.ArgumentException exception)
             {
-                Debug.LogWarning($"Saved custom levels could not be read: {e.Message}");
+                Debug.LogWarning($"Saved custom levels could not be read: {exception.Message}");
                 return new CustomLevelLibrary();
             }
         }

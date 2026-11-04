@@ -32,9 +32,9 @@ namespace ShiftRegister.Core
         {
             int bit = 7 - column;
             int value = 0;
-            for (int r = 0; r < Size; r++)
+            for (int row = 0; row < Size; row++)
             {
-                value |= (int)((board >> (r * 8 + bit)) & 1UL) << (7 - r);
+                value |= (int)((board >> (row * 8 + bit)) & 1UL) << (7 - row);
             }
 
             return (byte)value;
@@ -43,10 +43,10 @@ namespace ShiftRegister.Core
         public static ulong SetColumn(ulong board, int column, byte value)
         {
             int bit = 7 - column;
-            for (int r = 0; r < Size; r++)
+            for (int row = 0; row < Size; row++)
             {
-                ulong mask = 1UL << (r * 8 + bit);
-                if (((value >> (7 - r)) & 1) != 0)
+                ulong mask = 1UL << (row * 8 + bit);
+                if (((value >> (7 - row)) & 1) != 0)
                 {
                     board |= mask;
                 }
@@ -70,9 +70,9 @@ namespace ShiftRegister.Core
                 return board;
             }
 
-            for (int r = 0; r < Size && r < rows.Count; r++)
+            for (int row = 0; row < Size && row < rows.Count; row++)
             {
-                board = SetRow(board, r, (byte)rows[r]);
+                board = SetRow(board, row, (byte)rows[row]);
             }
 
             return board;
@@ -81,9 +81,9 @@ namespace ShiftRegister.Core
         public static int[] ToRows(ulong board)
         {
             var rows = new int[Size];
-            for (int r = 0; r < Size; r++)
+            for (int row = 0; row < Size; row++)
             {
-                rows[r] = GetRow(board, r);
+                rows[row] = GetRow(board, row);
             }
 
             return rows;
@@ -111,21 +111,21 @@ namespace ShiftRegister.Core
         /// <summary>Multi-line picture for logs and test failures: '#' bit, '.' empty.</summary>
         public static string ToPicture(ulong board)
         {
-            var sb = new System.Text.StringBuilder(Size * (Size + 1));
-            for (int r = 0; r < Size; r++)
+            var builder = new System.Text.StringBuilder(Size * (Size + 1));
+            for (int row = 0; row < Size; row++)
             {
-                for (int c = 0; c < Size; c++)
+                for (int column = 0; column < Size; column++)
                 {
-                    sb.Append(GetCell(board, r, c) ? '#' : '.');
+                    builder.Append(GetCell(board, row, column) ? '#' : '.');
                 }
 
-                if (r < Size - 1)
+                if (row < Size - 1)
                 {
-                    sb.Append('\n');
+                    builder.Append('\n');
                 }
             }
 
-            return sb.ToString();
+            return builder.ToString();
         }
     }
 }

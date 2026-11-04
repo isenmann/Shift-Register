@@ -36,20 +36,20 @@ namespace ShiftRegister.Game.Hud
 
         void Build(RectTransform root, float frameW, float frameH, TMP_FontAsset display, TMP_FontAsset mono)
         {
-            float W = Mathf.Min(MaxWidth, frameW - 24f);
+            float dialogWidth = Mathf.Min(MaxWidth, frameW - 24f);
             // Wider than any window, so nothing behind it can be clicked or read through it.
             var shade = Ui.Rect(root, "Shade", -2000f, -2000f, frameW + 4000f, frameH + 4000f).gameObject.AddComponent<Image>();
             var ground = (Color)Lcd.Background;
             ground.a = 0.9f;
             shade.color = ground;
 
-            float x = (frameW - W) / 2f, y = (frameH - H) / 2f;
-            Ui.Box(root, "Panel", x, y, W, H, 10f, Lcd.Card);
-            Ui.Frame(root, "Panel Frame", x, y, W, H, 10f, 3f, Lcd.Ink);
-            title = Ui.Text(root, "Title", x + 24, y + 20, W - 48, 26, display, 20, Lcd.Ink);
-            hint = Ui.Text(root, "Hint", x + 24, y + 50, W - 48, 20, mono, 13, Lcd.Text2);
+            float x = (frameW - dialogWidth) / 2f, y = (frameH - H) / 2f;
+            Ui.Box(root, "Panel", x, y, dialogWidth, H, 10f, Lcd.Card);
+            Ui.Frame(root, "Panel Frame", x, y, dialogWidth, H, 10f, 3f, Lcd.Ink);
+            title = Ui.Text(root, "Title", x + 24, y + 20, dialogWidth - 48, 26, display, 20, Lcd.Ink);
+            hint = Ui.Text(root, "Hint", x + 24, y + 50, dialogWidth - 48, 20, mono, 13, Lcd.Text2);
 
-            field = CodeField(root, x + 24, y + 78, W - 48, 118, mono);
+            field = CodeField(root, x + 24, y + 78, dialogWidth - 48, 118, mono);
             field.onSubmit.AddListener(_ =>
             {
                 if (import != null)
@@ -57,28 +57,28 @@ namespace ShiftRegister.Game.Hud
                     Primary();
                 }
             });
-            message = Ui.Text(root, "Message", x + 24, y + 202, W - 48, 34, mono, 13, Lcd.LossText, TextAlignmentOptions.TopLeft);
+            message = Ui.Text(root, "Message", x + 24, y + 202, dialogWidth - 48, 34, mono, 13, Lcd.LossText, TextAlignmentOptions.TopLeft);
             message.textWrappingMode = TextWrappingModes.Normal;
 
-            float by = y + H - 68f, bw = (W - 48f - 16f) / 3f;
-            primary = HudButton.CreateSolid(root, "COPY", x + 24, by, bw, 44, display, 14, Primary);
-            paste = HudButton.Create(root, "PASTE", x + 24 + bw + 8f, by, bw, 44, display, 14, Paste);
-            HudButton.Create(root, "CLOSE", x + 24 + 2f * (bw + 8f), by, bw, 44, display, 14, () => Close());
+            float buttonY = y + H - 68f, buttonWidth = (dialogWidth - 48f - 16f) / 3f;
+            primary = HudButton.CreateSolid(root, "COPY", x + 24, buttonY, buttonWidth, 44, display, 14, Primary);
+            paste = HudButton.Create(root, "PASTE", x + 24 + buttonWidth + 8f, buttonY, buttonWidth, 44, display, 14, Paste);
+            HudButton.Create(root, "CLOSE", x + 24 + 2f * (buttonWidth + 8f), buttonY, buttonWidth, 44, display, 14, () => Close());
         }
 
-        static TMP_InputField CodeField(Transform root, float x, float y, float w, float h, TMP_FontAsset mono)
+        static TMP_InputField CodeField(Transform root, float x, float y, float width, float height, TMP_FontAsset mono)
         {
-            var rt = Ui.Rect(root, "Code Field", x, y, w, h);
-            rt.gameObject.AddComponent<Image>().color = Color.clear;
-            Ui.Box(rt, "Ground", 0, 0, w, h, 6f, Lcd.Light);
-            Ui.Frame(rt, "Frame", 0, 0, w, h, 6f, 2f, Lcd.Ink);
-            var area = Ui.Rect(rt, "Text Area", 10, 8, w - 20, h - 16);
+            var rectTransform = Ui.Rect(root, "Code Field", x, y, width, height);
+            rectTransform.gameObject.AddComponent<Image>().color = Color.clear;
+            Ui.Box(rectTransform, "Ground", 0, 0, width, height, 6f, Lcd.Light);
+            Ui.Frame(rectTransform, "Frame", 0, 0, width, height, 6f, 2f, Lcd.Ink);
+            var area = Ui.Rect(rectTransform, "Text Area", 10, 8, width - 20, height - 16);
             area.gameObject.AddComponent<RectMask2D>();
-            var text = Ui.Text(area, "Text", 0, 0, w - 20, h - 16, mono, 15, Lcd.Ink, TextAlignmentOptions.TopLeft);
+            var text = Ui.Text(area, "Text", 0, 0, width - 20, height - 16, mono, 15, Lcd.Ink, TextAlignmentOptions.TopLeft);
             text.richText = false;
             text.textWrappingMode = TextWrappingModes.Normal;
 
-            var field = rt.gameObject.AddComponent<TMP_InputField>();
+            var field = rectTransform.gameObject.AddComponent<TMP_InputField>();
             field.textViewport = area;
             field.textComponent = text;
             field.fontAsset = mono;
@@ -90,7 +90,7 @@ namespace ShiftRegister.Game.Hud
             field.caretColor = Lcd.Ink;
             field.selectionColor = new Color(Lcd.Text3.r / 255f, Lcd.Text3.g / 255f, Lcd.Text3.b / 255f, 0.4f);
             // Share codes hold only these, so a stray space or line break from a paste never gets in.
-            field.onValidateInput = (_, __, ch) => char.IsLetterOrDigit(ch) && ch < 128 || ch == '-' || ch == '_' ? ch : '\0';
+            field.onValidateInput = (_, __, character) => char.IsLetterOrDigit(character) && character < 128 || character == '-' || character == '_' ? character : '\0';
             field.onEndEdit.AddListener(_ => Ui.NoteTypingEnded());
             return field;
         }
@@ -106,7 +106,7 @@ namespace ShiftRegister.Game.Hud
             primary.Text = "COPY";
             paste.gameObject.SetActive(false);
 
-            if (ShareCode.CanEncode(level, out string why))
+            if (ShareCode.CanEncode(level, out string reason))
             {
                 exportCode = ShareCode.Encode(level);
                 hint.text = "Anyone can open this code with IMPORT.";
@@ -119,7 +119,7 @@ namespace ShiftRegister.Game.Hud
                 hint.text = "";
                 SetMessage(level.par > ShareCode.MaxSolutionMoves
                     ? $"This solution is too long to share. Beat the level in at most {ShareCode.MaxSolutionMoves} moves."
-                    : why);
+                    : reason);
                 primary.Disabled = true;
             }
 
@@ -207,11 +207,11 @@ namespace ShiftRegister.Game.Hud
         static string Clean(string text)
         {
             var kept = new System.Text.StringBuilder();
-            foreach (char ch in text)
+            foreach (char character in text)
             {
-                if (!char.IsWhiteSpace(ch))
+                if (!char.IsWhiteSpace(character))
                 {
-                    kept.Append(ch);
+                    kept.Append(character);
                 }
             }
 
