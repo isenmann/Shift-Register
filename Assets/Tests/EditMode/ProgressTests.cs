@@ -64,7 +64,8 @@ namespace ShiftRegister.Tests
                 };
                 Assert.That(catalog.TryFirst(out int chapter, out int level) && (chapter, level) == (0, 0), Is.True);
                 Assert.That(catalog.TryNext(0, 0, out chapter, out level) && (chapter, level) == (0, 1), Is.True);
-                Assert.That(catalog.TryNext(0, 1, out chapter, out level) && (chapter, level) == (2, 0), Is.True, "skips the empty chapter");
+                Assert.That(catalog.TryNext(0, 1, out chapter, out level) && (chapter, level) == (2, 0), Is.True,
+                    "skips the empty chapter");
                 Assert.That(catalog.TryNext(2, 0, out _, out _), Is.False);
                 Assert.That(catalog.TryPrevious(2, 0, out chapter, out level) && (chapter, level) == (0, 1), Is.True);
                 Assert.That(catalog.TryPrevious(0, 0, out _, out _), Is.False);

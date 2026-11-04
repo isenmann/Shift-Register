@@ -55,10 +55,15 @@ namespace ShiftRegister.Core
         public int[] start = new int[BoardBits.Size];
         public int[] target = new int[BoardBits.Size];
 
-        /// <summary>Wall cells per row. Walls hold no bits and split rows and columns into parts that shift on their own.</summary>
+        /// <summary>
+        /// Wall cells per row. Walls hold no bits and split rows and columns into parts that shift on their own.
+        /// </summary>
         public int[] walls = new int[BoardBits.Size];
 
-        /// <summary>Pinned bits per row. They never move, so their whole row and column are locked. Must be on in start and target.</summary>
+        /// <summary>
+        /// Pinned bits per row. They never move, so their whole row and column are locked. Must be on in start and
+        /// target.
+        /// </summary>
         public int[] pins = new int[BoardBits.Size];
 
         /// <summary>Rows that wrap around instead of dropping bits.</summary>
@@ -67,10 +72,14 @@ namespace ShiftRegister.Core
         /// <summary>Each entry r chains rows r and r+1 into one 16-bit register (r is the high byte).</summary>
         public int[] chainTopRows = Array.Empty<int>();
 
-        /// <summary>Rows whose left edge is a 1-IN edge: shifting the row right feeds a 1 into its leftmost cell.</summary>
+        /// <summary>
+        /// Rows whose left edge is a 1-IN edge: shifting the row right feeds a 1 into its leftmost cell.
+        /// </summary>
         public int[] fillLeftRows = Array.Empty<int>();
 
-        /// <summary>Rows whose right edge is a 1-IN edge: shifting the row left feeds a 1 into its rightmost cell.</summary>
+        /// <summary>
+        /// Rows whose right edge is a 1-IN edge: shifting the row left feeds a 1 into its rightmost cell.
+        /// </summary>
         public int[] fillRightRows = Array.Empty<int>();
 
         /// <summary>Gates applied, in list order, to a row after every move of that row.</summary>

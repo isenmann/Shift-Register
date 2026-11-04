@@ -202,7 +202,8 @@ namespace ShiftRegister.Tests
             RunToEnd(session);
             Assert.That(session.Outcome, Is.EqualTo(SolveOutcome.NoSolution));
             Assert.That(session.ProofTitle, Is.EqualTo("NO SOLUTION"));
-            Assert.That(session.Status(out _), Does.Not.Contain("Ready"), "the status line must agree with the proof panel");
+            Assert.That(session.Status(out _), Does.Not.Contain("Ready"),
+                "the status line must agree with the proof panel");
 
             session.Edit.SetBit(EditLayer.Start, 0, 1, true);
             Assert.That(session.Outcome, Is.EqualTo(SolveOutcome.None));

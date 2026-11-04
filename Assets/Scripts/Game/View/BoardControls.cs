@@ -11,7 +11,7 @@ namespace ShiftRegister.Game.View
     /// </summary>
     public sealed class BoardControls : MonoBehaviour
     {
-        const float Px = ScreenLayout.PxPerUnit;
+        const float PixelsPerUnit = ScreenLayout.PxPerUnit;
         // Mockup sizes: buttons 46×36 px, 8 px from the board; selection outline 6 px around the cells.
         const float ButtonLong = 46f, ButtonShort = 36f, ButtonGap = 8f, ButtonRadius = 6f;
         const float OutlineMargin = 6f, OutlineRadius = 10f, OutlineWidth = 3f;
@@ -41,7 +41,8 @@ namespace ShiftRegister.Game.View
         public IReadOnlyList<ArrowButton> Buttons => buttons;
 
         /// <param name="withArrows">False for the level editor, where the board is painted and nothing shifts.</param>
-        /// <param name="tightBelts">Belts hug the cells, leaving the arrow button slots free for the editor's own buttons.</param>
+        /// <param name="tightBelts">Belts hug the cells, leaving the arrow button slots free for the editor's own
+        /// buttons.</param>
         public void Build(LevelRules levelRules, bool withArrows = true, bool tightBelts = false)
         {
             rules = levelRules;
@@ -57,7 +58,7 @@ namespace ShiftRegister.Game.View
 
             // Phones and tablets shift by swiping in either orientation: no arrow buttons, and the belts hug the board.
             bool arrows = withArrows && !DeviceMode.IsMobile;
-            float offset = ScreenLayout.BoardSize / 2f + (ButtonGap + ButtonShort / 2f) / Px;
+            float offset = ScreenLayout.BoardSize / 2f + (ButtonGap + ButtonShort / 2f) / PixelsPerUnit;
             if (arrows)
             {
                 for (int column = 0; column < BoardBits.Size; column++)
@@ -75,14 +76,17 @@ namespace ShiftRegister.Game.View
                 }
             }
 
-            BuildBelts(arrows ? offset + ButtonShort / 2f / Px : ScreenLayout.BoardSize / 2f + (tightBelts ? 0f : ButtonGap / Px));
+            BuildBelts(arrows ? offset + ButtonShort / 2f / PixelsPerUnit
+                : ScreenLayout.BoardSize / 2f + (tightBelts ? 0f : ButtonGap / PixelsPerUnit));
             rowOutline = Renderer(root, "Row outline", null, Lcd.Ink, (int)Layer.Outline);
             columnOutline = Renderer(root, "Column outline", null, Lcd.Ink, (int)Layer.Outline);
             crossPieces.Clear();
             crossRoot = new GameObject("Cursor outline").transform;
             crossRoot.SetParent(root, false);
             float cellOutlineSize = 46f + 2f * OutlineMargin;
-            cellOutline = Renderer(root, "Cell outline", ProceduralSprites.RoundedOutline(cellOutlineSize, cellOutlineSize, OutlineRadius, OutlineWidth), Lcd.Ink, (int)Layer.Outline);
+            cellOutline = Renderer(root, "Cell outline",
+                ProceduralSprites.RoundedOutline(cellOutlineSize, cellOutlineSize, OutlineRadius, OutlineWidth),
+                Lcd.Ink, (int)Layer.Outline);
             cellOutline.enabled = false;
         }
 
@@ -120,7 +124,7 @@ namespace ShiftRegister.Game.View
                 }
 
                 int count = chain ? 2 : 1;
-                float width = 2f * halfWidth * Px + 2f * margin;
+                float width = 2f * halfWidth * PixelsPerUnit + 2f * margin;
                 float height = count * 46f + (count - 1) * ScreenLayout.GapPx + 2f * margin;
                 var belt = Renderer(root, chain ? $"Chain belt {row + 1}-{row + 2}" : $"Wrap belt {row + 1}",
                     ProceduralSprites.RoundedOutline(width, height, 14f, thickness, 6f), Lcd.Text3, (int)Layer.Belt);
@@ -152,7 +156,8 @@ namespace ShiftRegister.Game.View
         }
 
         /// <summary>
-        /// Hovering a button outlines the line part it shifts; otherwise the cursor's row and column parts are outlined.
+        /// Hovering a button outlines the line part it shifts; otherwise the cursor's row and column parts are
+        /// outlined.
         /// </summary>
         public void Highlight(int hoveredButton, int cursorRow, int cursorColumn)
         {
@@ -195,7 +200,9 @@ namespace ShiftRegister.Game.View
             }
         }
 
-        /// <summary>Outlines one line part (both rows for a carry chain); hidden for a wall cell (segment -1).</summary>
+        /// <summary>
+        /// Outlines one line part (both rows for a carry chain); hidden for a wall cell (segment -1).
+        /// </summary>
         void Place(SpriteRenderer outline, Axis axis, int line, int segment)
         {
             if (!PartRect(axis, line, segment, out var rect))
@@ -204,12 +211,15 @@ namespace ShiftRegister.Game.View
                 return;
             }
 
-            outline.sprite = ProceduralSprites.RoundedOutline(rect.width * Px, rect.height * Px, OutlineRadius, OutlineWidth);
+            outline.sprite = ProceduralSprites.RoundedOutline(rect.width * PixelsPerUnit, rect.height * PixelsPerUnit,
+                OutlineRadius, OutlineWidth);
             outline.transform.localPosition = rect.center;
             outline.enabled = true;
         }
 
-        /// <summary>The outline's outer edge around one line part (both rows for a carry chain), in board-local units.</summary>
+        /// <summary>
+        /// The outline's outer edge around one line part (both rows for a carry chain), in board-local units.
+        /// </summary>
         bool PartRect(Axis axis, int line, int segment, out Rect rect)
         {
             rect = default;
@@ -226,13 +236,15 @@ namespace ShiftRegister.Game.View
                 lineTo = lineFrom + 1;
             }
 
-            Vector2 firstCenter = axis == Axis.Row ? BoardView.CellCenter(lineFrom, first) : BoardView.CellCenter(first, line);
-            Vector2 lastCenter = axis == Axis.Row ? BoardView.CellCenter(lineTo, last) : BoardView.CellCenter(last, line);
+            Vector2 firstCenter = axis == Axis.Row ? BoardView.CellCenter(lineFrom, first)
+                : BoardView.CellCenter(first, line);
+            Vector2 lastCenter = axis == Axis.Row ? BoardView.CellCenter(lineTo, last)
+                : BoardView.CellCenter(last, line);
             float along = Span(last - first + 1), across = Span(lineTo - lineFrom + 1);
             float width = axis == Axis.Row ? along : across;
             float height = axis == Axis.Row ? across : along;
 
-            var size = new Vector2(width, height) / Px;
+            var size = new Vector2(width, height) / PixelsPerUnit;
             rect = new Rect((firstCenter + lastCenter) / 2f - size / 2f, size);
             return true;
         }
@@ -258,7 +270,8 @@ namespace ShiftRegister.Game.View
 
             if (rects.Count > 0)
             {
-                // The union on a grid of the rectangles' edges: cell (i, j) spans xEdges[i]..xEdges[i+1], yEdges[j]..yEdges[j+1].
+                // The union on a grid of the rectangles' edges: cell (i, j) spans xEdges[i]..xEdges[i+1],
+                // yEdges[j]..yEdges[j+1].
                 var xEdges = Edges(rects, true);
                 var yEdges = Edges(rects, false);
                 bool Occupied(int i, int j)
@@ -283,23 +296,27 @@ namespace ShiftRegister.Game.View
                 // Corners: one filled quadrant around a grid point is an outer corner, three an inner one.
                 // Both use the same quarter ring; how far the straight lines stop short of each corner is kept.
                 var trim = new float[xEdges.Count, yEdges.Count];
-                float outer = OutlineRadius / Px, inner = (OutlineRadius - OutlineWidth) / Px;
+                float outer = OutlineRadius / PixelsPerUnit, inner = (OutlineRadius - OutlineWidth) / PixelsPerUnit;
                 for (int i = 0; i < xEdges.Count; i++)
                 {
                     for (int j = 0; j < yEdges.Count; j++)
                     {
-                        bool bottomLeft = Occupied(i - 1, j - 1), bottomRight = Occupied(i, j - 1), topLeft = Occupied(i - 1, j), topRight = Occupied(i, j);
-                        int filled = (bottomLeft ? 1 : 0) + (bottomRight ? 1 : 0) + (topLeft ? 1 : 0) + (topRight ? 1 : 0);
+                        bool bottomLeft = Occupied(i - 1, j - 1), bottomRight = Occupied(i, j - 1),
+                            topLeft = Occupied(i - 1, j), topRight = Occupied(i, j);
+                        int filled = (bottomLeft ? 1 : 0) + (bottomRight ? 1 : 0) + (topLeft ? 1 : 0)
+                            + (topRight ? 1 : 0);
                         if (filled != 1 && filled != 3)
                         {
                             continue;
                         }
 
-                        bool odd = filled == 1 ? topRight || bottomRight : !topRight || !bottomRight; // the odd quadrant lies to the right
+                        // the odd quadrant lies to the right
+                        bool odd = filled == 1 ? topRight || bottomRight : !topRight || !bottomRight;
                         bool up = filled == 1 ? topRight || topLeft : !topRight || !topLeft;
                         var toward = new Vector2(odd ? 1f : -1f, up ? 1f : -1f);
                         var corner = new Vector2(xEdges[i], yEdges[j]);
-                        // Outer: ring centre inside the shape, arc facing out. Inner: centre outside, arc facing the corner.
+                        // Outer: ring centre inside the shape, arc facing out. Inner: centre outside, arc facing the
+                        // corner.
                         float radius = filled == 1 ? outer : inner;
                         var centre = corner + toward * radius;
                         var arc = -toward;
@@ -308,7 +325,7 @@ namespace ShiftRegister.Game.View
                         var ring = Piece(used++, ProceduralSprites.QuarterRing(OutlineRadius, OutlineWidth));
                         ring.flipX = arc.x < 0f;
                         ring.flipY = arc.y < 0f;
-                        ring.transform.localPosition = centre + arc * (OutlineRadius / Px / 2f);
+                        ring.transform.localPosition = centre + arc * (OutlineRadius / PixelsPerUnit / 2f);
                     }
                 }
 
@@ -326,8 +343,10 @@ namespace ShiftRegister.Game.View
                             int side = 0;
                             if (alongIndex < along.Count - 1)
                             {
-                                bool before = horizontal ? Occupied(alongIndex, acrossIndex - 1) : Occupied(acrossIndex - 1, alongIndex);
-                                bool after = horizontal ? Occupied(alongIndex, acrossIndex) : Occupied(acrossIndex, alongIndex);
+                                bool before = horizontal ? Occupied(alongIndex, acrossIndex - 1)
+                                    : Occupied(acrossIndex - 1, alongIndex);
+                                bool after = horizontal ? Occupied(alongIndex, acrossIndex)
+                                    : Occupied(acrossIndex, alongIndex);
                                 side = before == after ? 0 : after ? 1 : -1;
                             }
 
@@ -340,7 +359,8 @@ namespace ShiftRegister.Game.View
                             {
                                 used = AddBar(used, horizontal, across[acrossIndex], startSide,
                                 along[start] + (horizontal ? trim[start, acrossIndex] : trim[acrossIndex, start]),
-                                along[alongIndex] - (horizontal ? trim[alongIndex, acrossIndex] : trim[acrossIndex, alongIndex]));
+                                along[alongIndex] - (horizontal ? trim[alongIndex, acrossIndex]
+                                : trim[acrossIndex, alongIndex]));
                             }
 
                             start = alongIndex;
@@ -358,22 +378,24 @@ namespace ShiftRegister.Game.View
             crossRoot.gameObject.SetActive(true);
         }
 
-        /// <summary>One straight piece of the cursor outline on the line at 'position', drawn towards 'side' (+1 = up/right).</summary>
+        /// <summary>
+        /// One straight piece of the cursor outline on the line at 'position', drawn towards 'side' (+1 = up/right).
+        /// </summary>
         int AddBar(int used, bool horizontal, float position, int side, float from, float to)
         {
             // A pixel of overlap with the rings at both ends hides the seams.
-            float overlap = 1f / Px, length = to - from + 2f * overlap;
+            float overlap = 1f / PixelsPerUnit, length = to - from + 2f * overlap;
             if (length <= 0f)
             {
                 return used;
             }
 
-            float lengthPx = Mathf.Round(length * Px * 100f) / 100f;
+            float lengthPx = Mathf.Round(length * PixelsPerUnit * 100f) / 100f;
             var bar = Piece(used, horizontal
                 ? ProceduralSprites.RoundedRect(lengthPx, OutlineWidth, 0f)
                 : ProceduralSprites.RoundedRect(OutlineWidth, lengthPx, 0f));
             bar.flipX = bar.flipY = false;
-            float mid = (from + to) / 2f, offset = position + side * OutlineWidth / Px / 2f;
+            float mid = (from + to) / 2f, offset = position + side * OutlineWidth / PixelsPerUnit / 2f;
             bar.transform.localPosition = horizontal ? new Vector2(mid, offset) : new Vector2(offset, mid);
             return used + 1;
         }
@@ -428,10 +450,14 @@ namespace ShiftRegister.Game.View
             {
                 Move = enabled ? move : new Move(direction, line),
                 Enabled = enabled,
-                Rect = new Rect(position - new Vector2(width, height) / (2f * Px), new Vector2(width, height) / Px),
-                Frame = Renderer(parent, "Frame", ProceduralSprites.RoundedOutline(width, height, ButtonRadius, 2f), Fade(Lcd.Ink, enabled), (int)Layer.ButtonFrame),
-                Fill = Renderer(parent, "Fill", ProceduralSprites.RoundedRect(width, height, ButtonRadius), Lcd.Ink, (int)Layer.ButtonFill),
-                Icon = Renderer(parent, "Icon", ProceduralSprites.Chevron(16f, 2.5f), Fade(Lcd.Ink, enabled), (int)Layer.ButtonIcon)
+                Rect = new Rect(position - new Vector2(width, height) / (2f * PixelsPerUnit),
+                new Vector2(width, height) / PixelsPerUnit),
+                Frame = Renderer(parent, "Frame", ProceduralSprites.RoundedOutline(width, height, ButtonRadius, 2f),
+                Fade(Lcd.Ink, enabled), (int)Layer.ButtonFrame),
+                Fill = Renderer(parent, "Fill", ProceduralSprites.RoundedRect(width, height, ButtonRadius), Lcd.Ink,
+                (int)Layer.ButtonFill),
+                Icon = Renderer(parent, "Icon", ProceduralSprites.Chevron(16f, 2.5f), Fade(Lcd.Ink, enabled),
+                (int)Layer.ButtonIcon)
             };
             button.Fill.enabled = false;
             button.Icon.transform.localRotation = Quaternion.Euler(0, 0, direction switch

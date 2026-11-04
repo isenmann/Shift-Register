@@ -25,7 +25,9 @@ namespace ShiftRegister.Game.Audio
         Tick
     }
 
-    /// <summary>The game's sound effects as synth recipes. Everything here is plain data, rendered by <see cref="Synth"/>.</summary>
+    /// <summary>
+    /// The game's sound effects as synth recipes. Everything here is plain data, rendered by <see cref="Synth"/>.
+    /// </summary>
     public static class SoundBank
     {
         /// <summary>C major pentatonic, C5 up to E6, in semitones from A4: one note per line.</summary>
@@ -81,7 +83,17 @@ namespace ShiftRegister.Game.Audio
                         Note.Of(Wave.Square, Synth.Hz(26), 0.045f, 0.06f, 1f, 0.125f));
                 case Sound.Broken:
                     return Synth.Render(
-                        new Note { Wave = Wave.Square, FromHz = 110f, ToHz = 98f, Duration = 0.4f, Volume = 1f, Duty = 0.5f, Vibrato = 0.04f, VibratoHz = 14f },
+                        new Note
+                        {
+                            Wave = Wave.Square,
+                            FromHz = 110f,
+                            ToHz = 98f,
+                            Duration = 0.4f,
+                            Volume = 1f,
+                            Duty = 0.5f,
+                            Vibrato = 0.04f,
+                            VibratoHz = 14f
+                        },
                         Note.Glide(Wave.Square, 117f, 104f, 0f, 0.4f, 0.7f, 0.25f));
                 case Sound.Solved:
                     return Synth.Render(

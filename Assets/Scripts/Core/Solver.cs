@@ -61,10 +61,12 @@ namespace ShiftRegister.Core
             }
         }
 
-        public static SolveResult Solve(LevelData data, int maxStates = DefaultMaxStates, int maxDepth = DefaultMaxDepth) =>
+        public static SolveResult Solve(LevelData data, int maxStates = DefaultMaxStates,
+            int maxDepth = DefaultMaxDepth) =>
             Solve(LevelRules.Compile(data), maxStates, maxDepth);
 
-        public static SolveResult Solve(LevelRules rules, int maxStates = DefaultMaxStates, int maxDepth = DefaultMaxDepth)
+        public static SolveResult Solve(LevelRules rules, int maxStates = DefaultMaxStates,
+            int maxDepth = DefaultMaxDepth)
         {
             var job = Begin(rules, maxStates, maxDepth);
             while (!job.Step(int.MaxValue))
@@ -78,7 +80,8 @@ namespace ShiftRegister.Core
         /// Starts a search that runs in slices, for places that cannot block (the web build has no threads).
         /// Call <see cref="SolveJob.Step"/> until it returns true; to cancel, just drop the job.
         /// </summary>
-        public static SolveJob Begin(LevelRules rules, int maxStates = DefaultMaxStates, int maxDepth = DefaultMaxDepth) =>
+        public static SolveJob Begin(LevelRules rules, int maxStates = DefaultMaxStates,
+            int maxDepth = DefaultMaxDepth) =>
             new SolveJob(rules, maxStates, maxDepth);
 
         /// <summary>
@@ -94,10 +97,10 @@ namespace ShiftRegister.Core
 
             // Node storage in BFS order; the queue is just an index into these lists.
             List<ulong> bits;
-            List<int> lost, parent, via, depth;
+            List<int> lost, parent, moveIndex, depth;
             HashSet<Key> seen;
             int head;
-            bool cut;
+            bool depthLimitHit;
 
             /// <summary>The answer, or null until <see cref="Step"/> has returned true.</summary>
             public SolveResult Result { get; private set; }
@@ -116,7 +119,7 @@ namespace ShiftRegister.Core
                 bits = new List<ulong> { rules.Start };
                 lost = new List<int> { 0 };
                 parent = new List<int> { -1 };
-                via = new List<int> { -1 };
+                moveIndex = new List<int> { -1 };
                 depth = new List<int> { 0 };
                 seen = new HashSet<Key> { new Key(rules.Start, 0) };
 
@@ -126,7 +129,9 @@ namespace ShiftRegister.Core
                 }
             }
 
-            /// <summary>Expands up to <paramref name="maxNodes"/> states. Returns true once <see cref="Result"/> is set.</summary>
+            /// <summary>
+            /// Expands up to <paramref name="maxNodes"/> states. Returns true once <see cref="Result"/> is set.
+            /// </summary>
             public bool Step(int maxNodes)
             {
                 if (Result != null)
@@ -139,14 +144,14 @@ namespace ShiftRegister.Core
                 {
                     if (head >= bits.Count)
                     {
-                        Finish(cut ? SolveStatus.LimitReached : SolveStatus.Unsolvable, null);
+                        Finish(depthLimitHit ? SolveStatus.LimitReached : SolveStatus.Unsolvable, null);
                         return true;
                     }
 
                     int node = head++;
                     if (depth[node] >= maxDepth)
                     {
-                        cut = true;
+                        depthLimitHit = true;
                         continue;
                     }
 
@@ -179,12 +184,12 @@ namespace ShiftRegister.Core
                         bits.Add(outcome.After);
                         lost.Add(newLost);
                         parent.Add(node);
-                        via.Add(i);
+                        moveIndex.Add(i);
                         depth.Add(depth[node] + 1);
 
                         if (rules.IsSolved(outcome.After, newLost))
                         {
-                            Finish(SolveStatus.Solved, BuildPath(bits.Count - 1, parent, via, moves));
+                            Finish(SolveStatus.Solved, BuildPath(bits.Count - 1, parent, moveIndex, moves));
                             return true;
                         }
 
@@ -202,7 +207,7 @@ namespace ShiftRegister.Core
                     return false;
                 }
 
-                Finish(cut ? SolveStatus.LimitReached : SolveStatus.Unsolvable, null);
+                Finish(depthLimitHit ? SolveStatus.LimitReached : SolveStatus.Unsolvable, null);
                 return true;
             }
 
@@ -211,7 +216,7 @@ namespace ShiftRegister.Core
                 Result = new SolveResult(status, solution, bits.Count);
                 // A search can hold hundreds of megabytes; the result needs none of it.
                 bits = null;
-                lost = parent = via = depth = null;
+                lost = parent = moveIndex = depth = null;
                 seen = null;
             }
         }
@@ -257,12 +262,12 @@ namespace ShiftRegister.Core
             return !rules.HasDestroyers && rules.LossRule != LossRule.Any && lost + surplus > rules.LossCount;
         }
 
-        static IReadOnlyList<Move> BuildPath(int node, List<int> parent, List<int> via, IReadOnlyList<Move> moves)
+        static IReadOnlyList<Move> BuildPath(int node, List<int> parent, List<int> moveIndex, IReadOnlyList<Move> moves)
         {
             var path = new List<Move>();
             for (int current = node; parent[current] >= 0; current = parent[current])
             {
-                path.Add(moves[via[current]]);
+                path.Add(moves[moveIndex[current]]);
             }
 
             path.Reverse();

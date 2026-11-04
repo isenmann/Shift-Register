@@ -57,7 +57,9 @@ namespace ShiftRegister.Game.View
         /// <summary>Raised when the orientation or the frame length changes: rearrange what depends on it.</summary>
         public static event Action LayoutChanged;
 
-        /// <summary>Called every frame by <see cref="CameraFit"/> with the size of the area the game draws into.</summary>
+        /// <summary>
+        /// Called every frame by <see cref="CameraFit"/> with the size of the area the game draws into.
+        /// </summary>
         public static void SetScreen(float width, float height)
         {
             if (width <= 0f || height <= 0f)
@@ -98,11 +100,15 @@ namespace ShiftRegister.Game.View
         /// </summary>
         public static float OuterShiftPx => ExtraPx / 2f;
 
-        public static float BoardScale => !Phone ? LandscapeBoardScale : Portrait ? PhonePortraitBoardScale : PhoneLandscapeBoardScale;
-        public static Vector2 BoardCenterPx => !Phone ? LandscapeBoardCenterPx : Portrait ? PhonePortraitBoardCenterPx : PhoneLandscapeBoardCenterPx;
+        public static float BoardScale =>
+            !Phone ? LandscapeBoardScale : Portrait ? PhonePortraitBoardScale : PhoneLandscapeBoardScale;
+        public static Vector2 BoardCenterPx =>
+            !Phone ? LandscapeBoardCenterPx : Portrait ? PhonePortraitBoardCenterPx : PhoneLandscapeBoardCenterPx;
         public static Vector2 BoardCenter => FromMockup(BoardCenterPx.x, BoardCenterPx.y);
 
-        /// <summary>Where lost bits land: the bit bucket card's centre (in an outer group, so it moves with it).</summary>
+        /// <summary>
+        /// Where lost bits land: the bit bucket card's centre (in an outer group, so it moves with it).
+        /// </summary>
         public static Vector2 BucketCenter => !Phone
             ? FromMockup(1144f + OuterShiftPx, 199f)
             : Portrait ? FromMockup(226f, 196f - OuterShiftPx) : FromMockup(858f + OuterShiftPx, 76f);

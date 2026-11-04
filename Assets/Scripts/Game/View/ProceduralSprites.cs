@@ -14,7 +14,7 @@ namespace ShiftRegister.Game.View
     {
         public const int Resolution = 128;
         const float Scale = Resolution / ScreenLayout.PxPerUnit;
-        const int Pad = 2;
+        const int Padding = 2;
         /// <summary>UI sprites: one mockup pixel = one canvas unit (Canvas reference pixels per unit is 100).</summary>
         const float UiPixelsPerUnit = Scale * 100f;
 
@@ -28,25 +28,33 @@ namespace ShiftRegister.Game.View
                 return new Color(1, 1, 1, Fill(distance));
             });
 
-        /// <summary>Filled rectangle rounding only its top-left and bottom-right corners (a gate's corner tab).</summary>
+        /// <summary>
+        /// Filled rectangle rounding only its top-left and bottom-right corners (a gate's corner tab).
+        /// </summary>
         public static Sprite CornerTab(float width, float height, float topLeftRadius, float bottomRightRadius) =>
-            Get($"tab {width} {height} {topLeftRadius} {bottomRightRadius}", width, height, false, (pixelX, pixelY, halfWidth, halfHeight) =>
+            Get($"tab {width} {height} {topLeftRadius} {bottomRightRadius}", width, height, false,
+            (pixelX, pixelY, halfWidth, halfHeight) =>
             {
-                float cornerRadius = pixelX < 0f && pixelY > 0f ? topLeftRadius : pixelX > 0f && pixelY < 0f ? bottomRightRadius : 0f;
+                float cornerRadius = pixelX < 0f && pixelY > 0f ? topLeftRadius : pixelX > 0f && pixelY < 0f
+                    ? bottomRightRadius
+                    : 0f;
                 float distance = RoundedRectDistance(pixelX, pixelY, halfWidth, halfHeight, cornerRadius * Scale);
                 return new Color(1, 1, 1, Fill(distance));
             });
 
         /// <summary>Rounded outline drawn inside the shape's edge; dash = 0 for a solid line.</summary>
-        public static Sprite RoundedOutline(float width, float height, float radius, float thickness, float dash = 0f, bool ui = false) =>
-            Get($"outline {width} {height} {radius} {thickness} {dash}", width, height, ui, (pixelX, pixelY, halfWidth, halfHeight) =>
+        public static Sprite RoundedOutline(float width, float height, float radius, float thickness, float dash = 0f,
+            bool ui = false) =>
+            Get($"outline {width} {height} {radius} {thickness} {dash}", width, height, ui,
+            (pixelX, pixelY, halfWidth, halfHeight) =>
             {
                 float distance = RoundedRectDistance(pixelX, pixelY, halfWidth, halfHeight, radius * Scale);
                 float alpha = Fill(distance) * Mathf.Clamp01(0.5f + distance + thickness * Scale);
                 if (dash > 0f && alpha > 0f)
                 {
                     // Position along the nearest edge; dashes are centred on each edge's midpoint.
-                    float edgePosition = Mathf.Abs(pixelX) / halfWidth > Mathf.Abs(pixelY) / halfHeight ? pixelY : pixelX;
+                    float edgePosition = Mathf.Abs(pixelX) / halfWidth > Mathf.Abs(pixelY) / halfHeight ? pixelY
+                        : pixelX;
                     float period = 2f * dash * Scale;
                     float phase = Mathf.Repeat(edgePosition + dash * Scale * 0.5f, period);
                     alpha *= phase < dash * Scale ? 1f : 0f;
@@ -73,13 +81,16 @@ namespace ShiftRegister.Game.View
             });
 
         /// <summary>Wall cell: diagonal hatching with a border, colours baked in.</summary>
-        public static Sprite Hatched(float size, float radius, float stripe, float border, Color32 ink, Color32 ground) =>
-            Get($"hatch {size} {radius} {stripe} {border} {ink} {ground}", size, size, false, (pixelX, pixelY, halfWidth, halfHeight) =>
+        public static Sprite Hatched(float size, float radius, float stripe, float border, Color32 ink,
+            Color32 ground) =>
+            Get($"hatch {size} {radius} {stripe} {border} {ink} {ground}", size, size, false,
+            (pixelX, pixelY, halfWidth, halfHeight) =>
             {
                 float distance = RoundedRectDistance(pixelX, pixelY, halfWidth, halfHeight, radius * Scale);
                 float alpha = Fill(distance);
                 bool edge = distance > -border * Scale;
-                bool line = Mathf.Repeat(pixelX - pixelY, 2f * stripe * Scale) < stripe * Scale; // "/" stripes, like the mockup
+                // "/" stripes, like the mockup
+                bool line = Mathf.Repeat(pixelX - pixelY, 2f * stripe * Scale) < stripe * Scale;
                 Color color = edge || line ? (Color)ink : (Color)ground;
                 color.a = alpha;
                 return color;
@@ -94,7 +105,8 @@ namespace ShiftRegister.Game.View
                 var left = new Vector2(-5f, -2.5f) * iconScale;
                 var tip = new Vector2(0f, 2.5f) * iconScale;
                 var right = new Vector2(5f, -2.5f) * iconScale;
-                float distance = Mathf.Min(SegmentDistance(point, left, tip), SegmentDistance(point, tip, right)) - stroke * 0.5f;
+                float distance = Mathf.Min(SegmentDistance(point, left, tip),
+                    SegmentDistance(point, tip, right)) - stroke * 0.5f;
                 return new Color(1, 1, 1, Fill(distance * Scale));
             });
 
@@ -103,7 +115,8 @@ namespace ShiftRegister.Game.View
             Get($"star {size} {thickness}", size, size, ui, (pixelX, pixelY, halfWidth, halfHeight) =>
             {
                 float outerRadius = halfWidth * 0.92f;
-                float distance = StarDistance(new Vector2(pixelX, pixelY + halfHeight * 0.06f), outerRadius, 0.45f) - outerRadius * 0.06f;
+                float distance = StarDistance(new Vector2(pixelX, pixelY + halfHeight * 0.06f), outerRadius,
+                    0.45f) - outerRadius * 0.06f;
                 float alpha = Fill(distance);
                 if (thickness > 0f)
                 {
@@ -135,9 +148,9 @@ namespace ShiftRegister.Game.View
             return (toPoint - segment * along).magnitude;
         }
 
-        delegate Color PixelFn(float pixelX, float pixelY, float halfWidth, float halfHeight);
+        delegate Color PixelFunction(float pixelX, float pixelY, float halfWidth, float halfHeight);
 
-        static Sprite Get(string key, float width, float height, bool ui, PixelFn shade)
+        static Sprite Get(string key, float width, float height, bool ui, PixelFunction shade)
         {
             if (ui)
             {
@@ -149,8 +162,8 @@ namespace ShiftRegister.Game.View
                 return sprite;
             }
 
-            int textureWidth = Mathf.CeilToInt(width * Scale) + 2 * Pad;
-            int textureHeight = Mathf.CeilToInt(height * Scale) + 2 * Pad;
+            int textureWidth = Mathf.CeilToInt(width * Scale) + 2 * Padding;
+            int textureHeight = Mathf.CeilToInt(height * Scale) + 2 * Padding;
             float halfWidth = width * Scale * 0.5f, halfHeight = height * Scale * 0.5f;
             var pixels = new Color[textureWidth * textureHeight];
             for (int y = 0; y < textureHeight; y++)
@@ -173,7 +186,9 @@ namespace ShiftRegister.Game.View
             texture.SetPixels(pixels);
             texture.Apply(true, true);
 
-            sprite = Sprite.Create(texture, new Rect(0, 0, textureWidth, textureHeight), new Vector2(0.5f, 0.5f), ui ? UiPixelsPerUnit : Resolution, 0, SpriteMeshType.FullRect);
+            sprite = Sprite.Create(texture, new Rect(0, 0, textureWidth, textureHeight), new Vector2(0.5f, 0.5f), ui
+                ? UiPixelsPerUnit
+                : Resolution, 0, SpriteMeshType.FullRect);
             sprite.name = key;
             sprite.hideFlags = HideFlags.DontSave;
             cache[key] = sprite;

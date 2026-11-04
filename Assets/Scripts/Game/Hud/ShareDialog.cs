@@ -12,7 +12,7 @@ namespace ShiftRegister.Game.Hud
     /// </summary>
     public sealed class ShareDialog : MonoBehaviour
     {
-        const float MaxWidth = 600f, H = 320f;
+        const float MaxWidth = 600f, DialogHeight = 320f;
         /// <summary>Longer than any code: the largest level with the longest solution.</summary>
         const int MaxCodeLength = 600;
 
@@ -25,27 +25,29 @@ namespace ShiftRegister.Game.Hud
 
         public bool IsOpen => gameObject.activeSelf;
 
-        public static ShareDialog Create(Transform parent, float frameW, float frameH, TMP_FontAsset display, TMP_FontAsset mono)
+        public static ShareDialog Create(Transform parent, float frameWidth, float frameHeight, TMP_FontAsset display,
+            TMP_FontAsset mono)
         {
-            var root = Ui.Rect(parent, "Share Dialog", 0, 0, frameW, frameH);
+            var root = Ui.Rect(parent, "Share Dialog", 0, 0, frameWidth, frameHeight);
             var dialog = root.gameObject.AddComponent<ShareDialog>();
-            dialog.Build(root, frameW, frameH, display, mono);
+            dialog.Build(root, frameWidth, frameHeight, display, mono);
             root.gameObject.SetActive(false);
             return dialog;
         }
 
-        void Build(RectTransform root, float frameW, float frameH, TMP_FontAsset display, TMP_FontAsset mono)
+        void Build(RectTransform root, float frameWidth, float frameHeight, TMP_FontAsset display, TMP_FontAsset mono)
         {
-            float dialogWidth = Mathf.Min(MaxWidth, frameW - 24f);
+            float dialogWidth = Mathf.Min(MaxWidth, frameWidth - 24f);
             // Wider than any window, so nothing behind it can be clicked or read through it.
-            var shade = Ui.Rect(root, "Shade", -2000f, -2000f, frameW + 4000f, frameH + 4000f).gameObject.AddComponent<Image>();
+            var shade = Ui.Rect(root, "Shade", -2000f, -2000f, frameWidth + 4000f,
+                frameHeight + 4000f).gameObject.AddComponent<Image>();
             var ground = (Color)Lcd.Background;
             ground.a = 0.9f;
             shade.color = ground;
 
-            float x = (frameW - dialogWidth) / 2f, y = (frameH - H) / 2f;
-            Ui.Box(root, "Panel", x, y, dialogWidth, H, 10f, Lcd.Card);
-            Ui.Frame(root, "Panel Frame", x, y, dialogWidth, H, 10f, 3f, Lcd.Ink);
+            float x = (frameWidth - dialogWidth) / 2f, y = (frameHeight - DialogHeight) / 2f;
+            Ui.Box(root, "Panel", x, y, dialogWidth, DialogHeight, 10f, Lcd.Card);
+            Ui.Frame(root, "Panel Frame", x, y, dialogWidth, DialogHeight, 10f, 3f, Lcd.Ink);
             title = Ui.Text(root, "Title", x + 24, y + 20, dialogWidth - 48, 26, display, 20, Lcd.Ink);
             hint = Ui.Text(root, "Hint", x + 24, y + 50, dialogWidth - 48, 20, mono, 13, Lcd.Text2);
 
@@ -57,13 +59,16 @@ namespace ShiftRegister.Game.Hud
                     Primary();
                 }
             });
-            message = Ui.Text(root, "Message", x + 24, y + 202, dialogWidth - 48, 34, mono, 13, Lcd.LossText, TextAlignmentOptions.TopLeft);
+            message = Ui.Text(root, "Message", x + 24, y + 202, dialogWidth - 48, 34, mono, 13, Lcd.LossText,
+                TextAlignmentOptions.TopLeft);
             message.textWrappingMode = TextWrappingModes.Normal;
 
-            float buttonY = y + H - 68f, buttonWidth = (dialogWidth - 48f - 16f) / 3f;
+            float buttonY = y + DialogHeight - 68f, buttonWidth = (dialogWidth - 48f - 16f) / 3f;
             primary = HudButton.CreateSolid(root, "COPY", x + 24, buttonY, buttonWidth, 44, display, 14, Primary);
-            paste = HudButton.Create(root, "PASTE", x + 24 + buttonWidth + 8f, buttonY, buttonWidth, 44, display, 14, Paste);
-            HudButton.Create(root, "CLOSE", x + 24 + 2f * (buttonWidth + 8f), buttonY, buttonWidth, 44, display, 14, () => Close());
+            paste = HudButton.Create(root, "PASTE", x + 24 + buttonWidth + 8f, buttonY, buttonWidth, 44, display, 14,
+                Paste);
+            HudButton.Create(root, "CLOSE", x + 24 + 2f * (buttonWidth + 8f), buttonY, buttonWidth, 44, display, 14,
+                () => Close());
         }
 
         static TMP_InputField CodeField(Transform root, float x, float y, float width, float height, TMP_FontAsset mono)
@@ -74,7 +79,8 @@ namespace ShiftRegister.Game.Hud
             Ui.Frame(rectTransform, "Frame", 0, 0, width, height, 6f, 2f, Lcd.Ink);
             var area = Ui.Rect(rectTransform, "Text Area", 10, 8, width - 20, height - 16);
             area.gameObject.AddComponent<RectMask2D>();
-            var text = Ui.Text(area, "Text", 0, 0, width - 20, height - 16, mono, 15, Lcd.Ink, TextAlignmentOptions.TopLeft);
+            var text = Ui.Text(area, "Text", 0, 0, width - 20, height - 16, mono, 15, Lcd.Ink,
+                TextAlignmentOptions.TopLeft);
             text.richText = false;
             text.textWrappingMode = TextWrappingModes.Normal;
 
@@ -90,7 +96,8 @@ namespace ShiftRegister.Game.Hud
             field.caretColor = Lcd.Ink;
             field.selectionColor = new Color(Lcd.Text3.r / 255f, Lcd.Text3.g / 255f, Lcd.Text3.b / 255f, 0.4f);
             // Share codes hold only these, so a stray space or line break from a paste never gets in.
-            field.onValidateInput = (_, __, character) => char.IsLetterOrDigit(character) && character < 128 || character == '-' || character == '_' ? character : '\0';
+            field.onValidateInput = (_, __, character) => char.IsLetterOrDigit(character) && character < 128
+                || character == '-' || character == '_' ? character : '\0';
             field.onEndEdit.AddListener(_ => Ui.NoteTypingEnded());
             return field;
         }
@@ -118,7 +125,8 @@ namespace ShiftRegister.Game.Hud
                 exportCode = "";
                 hint.text = "";
                 SetMessage(level.par > ShareCode.MaxSolutionMoves
-                    ? $"This solution is too long to share. Beat the level in at most {ShareCode.MaxSolutionMoves} moves."
+                    ? "This solution is too long to share. " +
+                        $"Beat the level in at most {ShareCode.MaxSolutionMoves} moves."
                     : reason);
                 primary.Disabled = true;
             }
@@ -203,7 +211,9 @@ namespace ShiftRegister.Game.Hud
             Clipboard.BeginPaste();
         }
 
-        /// <summary>A paste can bring line breaks and spaces with it; the field does not validate text set from code.</summary>
+        /// <summary>
+        /// A paste can bring line breaks and spaces with it; the field does not validate text set from code.
+        /// </summary>
         static string Clean(string text)
         {
             var kept = new System.Text.StringBuilder();

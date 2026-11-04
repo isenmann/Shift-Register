@@ -46,8 +46,8 @@ namespace ShiftRegister.Core
         sealed class Line
         {
             public byte[] Segments;
-            public byte[] SegStart;
-            public byte[] SegEnd;
+            public byte[] SegmentStart;
+            public byte[] SegmentEnd;
             public bool Locked;
             public bool Rotate;
             /// <summary>1-IN edge at index 0 (left / top): shifting toward the end feeds a 1 there.</summary>
@@ -91,7 +91,9 @@ namespace ShiftRegister.Core
         /// <summary>True if anything other than an edge or wall can remove bits (AND, XOR, NOT).</summary>
         public bool HasDestroyers { get; }
 
-        /// <summary>Every distinct legal move, ignoring the board state. Chains appear once, via their top row.</summary>
+        /// <summary>
+        /// Every distinct legal move, ignoring the board state. Chains appear once, via their top row.
+        /// </summary>
         public IReadOnlyList<Move> Moves => moves;
 
         public static List<string> Validate(LevelData level)
@@ -354,7 +356,8 @@ namespace ShiftRegister.Core
             for (int i = 0; i < BoardBits.Size; i++)
             {
                 rows[i] = BuildLine(wallRows[i], pinRows[i] != 0, rotate[i], fillLeft[i], fillRight[i]);
-                columns[i] = BuildLine(BoardBits.GetColumn(Walls, i), BoardBits.GetColumn(Pins, i) != 0, false, false, false);
+                columns[i] = BuildLine(BoardBits.GetColumn(Walls, i), BoardBits.GetColumn(Pins, i) != 0, false, false,
+                    false);
             }
 
             bool creators = Array.IndexOf(fillLeft, true) >= 0 || Array.IndexOf(fillRight, true) >= 0;
@@ -424,7 +427,7 @@ namespace ShiftRegister.Core
 
         static Line BuildLine(byte walls, bool locked, bool rotate, bool fillStart, bool fillEnd)
         {
-            var segs = new List<byte>();
+            var segments = new List<byte>();
             var starts = new List<byte>();
             var ends = new List<byte>();
             int current = 0, first = 0, last = 0;
@@ -435,7 +438,7 @@ namespace ShiftRegister.Core
                 {
                     if (current != 0)
                     {
-                        segs.Add((byte)current);
+                        segments.Add((byte)current);
                         starts.Add((byte)first);
                         ends.Add((byte)last);
                     }
@@ -455,16 +458,16 @@ namespace ShiftRegister.Core
 
             if (current != 0)
             {
-                segs.Add((byte)current);
+                segments.Add((byte)current);
                 starts.Add((byte)first);
                 ends.Add((byte)last);
             }
 
             return new Line
             {
-                Segments = segs.ToArray(),
-                SegStart = starts.ToArray(),
-                SegEnd = ends.ToArray(),
+                Segments = segments.ToArray(),
+                SegmentStart = starts.ToArray(),
+                SegmentEnd = ends.ToArray(),
                 Locked = locked,
                 Rotate = rotate,
                 FillStart = fillStart,
@@ -537,7 +540,9 @@ namespace ShiftRegister.Core
             return LossRule == LossRule.Exactly ? lost == LossCount : !IsBroken(lost);
         }
 
-        /// <summary>Applies a move to a board. Returns false (and leaves outcome default) if the move is illegal.</summary>
+        /// <summary>
+        /// Applies a move to a board. Returns false (and leaves outcome default) if the move is illegal.
+        /// </summary>
         public bool TryApply(ulong board, Move move, out MoveOutcome outcome)
         {
             if (!CanMove(move))
@@ -570,10 +575,10 @@ namespace ShiftRegister.Core
             }
 
             var columnLine = columns[move.Line];
-            byte colBits = BoardBits.GetColumn(board, move.Line);
-            byte newCol = ShiftLine(colBits, columnLine, move.Segment, move.TowardStart, out byte lostCol);
-            shifted = BoardBits.SetColumn(board, move.Line, newCol);
-            lostCells = BoardBits.ColumnToBoard(move.Line, lostCol);
+            byte columnBits = BoardBits.GetColumn(board, move.Line);
+            byte newColumn = ShiftLine(columnBits, columnLine, move.Segment, move.TowardStart, out byte lostColumn);
+            shifted = BoardBits.SetColumn(board, move.Line, newColumn);
+            lostCells = BoardBits.ColumnToBoard(move.Line, lostColumn);
 
             ulong after = shifted;
             if (gatesOnColumnMoves)
@@ -594,40 +599,40 @@ namespace ShiftRegister.Core
 
         static byte ShiftLine(byte value, Line line, int segment, bool towardStart, out byte lost)
         {
-            int seg = line.Segments[segment];
-            int inSeg = value & seg;
+            int segmentMask = line.Segments[segment];
+            int inSegment = value & segmentMask;
             int shifted, outBit;
             if (towardStart)
             {
-                outBit = inSeg & line.SegStart[segment];
-                shifted = (inSeg << 1) & seg;
+                outBit = inSegment & line.SegmentStart[segment];
+                shifted = (inSegment << 1) & segmentMask;
                 if (outBit != 0 && line.Rotate)
                 {
-                    shifted |= line.SegEnd[segment];
+                    shifted |= line.SegmentEnd[segment];
                 }
 
-                if (line.FillEnd && (seg & 0x01) != 0)
+                if (line.FillEnd && (segmentMask & 0x01) != 0)
                 {
                     shifted |= 0x01;
                 }
             }
             else
             {
-                outBit = inSeg & line.SegEnd[segment];
-                shifted = (inSeg >> 1) & seg;
+                outBit = inSegment & line.SegmentEnd[segment];
+                shifted = (inSegment >> 1) & segmentMask;
                 if (outBit != 0 && line.Rotate)
                 {
-                    shifted |= line.SegStart[segment];
+                    shifted |= line.SegmentStart[segment];
                 }
 
-                if (line.FillStart && (seg & 0x80) != 0)
+                if (line.FillStart && (segmentMask & 0x80) != 0)
                 {
                     shifted |= 0x80;
                 }
             }
 
             lost = line.Rotate ? (byte)0 : (byte)outBit;
-            return (byte)((value & ~seg) | shifted);
+            return (byte)((value & ~segmentMask) | shifted);
         }
 
         ulong ShiftChain(ulong board, int top, bool towardStart, out ulong lostCells)

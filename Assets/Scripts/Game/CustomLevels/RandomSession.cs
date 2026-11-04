@@ -16,7 +16,9 @@ namespace ShiftRegister.Game.CustomLevels
         /// <summary>The difficulty last asked for; NEXT RANDOM uses it again.</summary>
         public RandomDifficulty Difficulty { get; private set; } = RandomDifficulty.Easy;
         public bool IsGenerating => job != null;
-        /// <summary>The level from the latest <see cref="Tick"/> that finished; null if none, or if it failed.</summary>
+        /// <summary>
+        /// The level from the latest <see cref="Tick"/> that finished; null if none, or if it failed.
+        /// </summary>
         public CustomLevel Level { get; private set; }
         /// <summary>The last run gave up. Unlikely: every difficulty finds a level long before its limit.</summary>
         public bool Failed { get; private set; }

@@ -40,7 +40,8 @@ namespace ShiftRegister.Game.Hud
             button.fill = Ui.Box(rectTransform, "Fill", 0, 0, width, height, 6f, ink);
             button.fill.enabled = false;
             button.frame = Ui.Frame(rectTransform, "Frame", 0, 0, width, height, 6f, 2f, ink);
-            button.label = Ui.Text(rectTransform, "Label", 0, 0, width, height, font, size, ink, TextAlignmentOptions.Center, text);
+            button.label = Ui.Text(rectTransform, "Label", 0, 0, width, height, font, size, ink,
+                TextAlignmentOptions.Center, text);
             return button;
         }
 

@@ -98,7 +98,8 @@ namespace ShiftRegister.Tests
 
         /// <summary>One shift right solves Simple; these detours take three moves.</summary>
         static readonly Move[] Quick = { Move.Row(0, Direction.Right) };
-        static readonly Move[] Detour = { Move.Row(0, Direction.Left), Move.Row(0, Direction.Right), Move.Row(0, Direction.Right) };
+        static readonly Move[] Detour = { Move.Row(0, Direction.Left), Move.Row(0, Direction.Right),
+            Move.Row(0, Direction.Right) };
 
         [Test]
         public void ApplyWin_WorksOnAnEntryOutsideTheLibrary()
@@ -140,7 +141,8 @@ namespace ShiftRegister.Tests
                 library.Add(Simple(), LevelProof.Searched, i);
             }
 
-            Assert.That(library.SaveCopy(new CustomLevel { level = Simple(), proof = LevelProof.Searched }, 1), Is.Null);
+            Assert.That(library.SaveCopy(new CustomLevel { level = Simple(), proof = LevelProof.Searched }, 1),
+                Is.Null);
         }
 
         [Test]
@@ -367,7 +369,8 @@ namespace ShiftRegister.Tests
             badRules.level.pins[6] = 1;
             CustomLevelStore.Save(library, TestKey);
 
-            UnityEngine.TestTools.LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("damaged"));
+            UnityEngine.TestTools.LogAssert.Expect(LogType.Warning,
+                new System.Text.RegularExpressions.Regex("damaged"));
             Assert.That(CustomLevelStore.Load(TestKey).levels.Count, Is.EqualTo(1));
         }
 

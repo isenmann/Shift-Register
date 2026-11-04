@@ -27,7 +27,7 @@ namespace ShiftRegister.Game.Hud
 
         RectTransform helpRoot;
         HelpPanel helpWide, helpPhoneWide, helpPhoneTall;
-        HelpPanel HelpCur => !ScreenLayout.Phone ? helpWide : ScreenLayout.Portrait ? helpPhoneTall : helpPhoneWide;
+        HelpPanel HelpCurrent => !ScreenLayout.Phone ? helpWide : ScreenLayout.Portrait ? helpPhoneTall : helpPhoneWide;
         string helpCheckedLevel;
         bool questionTyped;
 
@@ -58,22 +58,25 @@ namespace ShiftRegister.Game.Hud
             Header(helpPhoneWide.Frame, "Board Header", 440, 60, "ON THIS BOARD", 13f);
             helpPhoneWide.Controls = Column(helpPhoneWide.Frame, "Controls", 16, 84, 400, 270);
             helpPhoneWide.Board = Column(helpPhoneWide.Frame, "Board Entries", 440, 84, 427, 270);
-            helpPhoneWide.CloseHint = Ui.Text(helpPhoneWide.Frame, "Close Hint", 16, 388 - 28, 851, 18, mono, 13, Lcd.Text3);
+            helpPhoneWide.CloseHint = Ui.Text(helpPhoneWide.Frame, "Close Hint", 16, 388 - 28, 851, 18, mono, 13,
+                Lcd.Text3);
 
             helpPhoneTall = HelpPanelFrame("Phone Portrait", 412, 915, 8, 40, 396, 835, phone: true);
             Header(helpPhoneTall.Frame, "Controls Header", 16, 66, "CONTROLS", 13f);
             helpPhoneTall.Controls = Column(helpPhoneTall.Frame, "Controls", 16, 90, 364, 250);
             Header(helpPhoneTall.Frame, "Board Header", 16, 352, "ON THIS BOARD", 13f);
             helpPhoneTall.Board = Column(helpPhoneTall.Frame, "Board Entries", 16, 376, 364, 420);
-            helpPhoneTall.CloseHint = Ui.Text(helpPhoneTall.Frame, "Close Hint", 16, 835 - 30, 364, 18, mono, 13, Lcd.Text3);
+            helpPhoneTall.CloseHint = Ui.Text(helpPhoneTall.Frame, "Close Hint", 16, 835 - 30, 364, 18, mono, 13,
+                Lcd.Text3);
 
             helpRoot.gameObject.SetActive(false);
         }
 
         /// <summary>A centred reference frame holding a card panel with title and CLOSE; returns the panel.</summary>
-        HelpPanel HelpPanelFrame(string name, float frameW, float frameH, float x, float y, float width, float height, bool phone = false)
+        HelpPanel HelpPanelFrame(string name, float frameWidth, float frameHeight, float x, float y, float width,
+            float height, bool phone = false)
         {
-            var frame = Ui.Rect(helpRoot, name, 0, 0, frameW, frameH);
+            var frame = Ui.Rect(helpRoot, name, 0, 0, frameWidth, frameHeight);
             frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(0.5f, 0.5f);
             frame.anchoredPosition = Vector2.zero;
             var panel = Ui.Rect(frame, "Panel", x, y, width, height);
@@ -82,7 +85,8 @@ namespace ShiftRegister.Game.Hud
             Ui.Frame(panel, "Border", 0, 0, width, height, 12f, 3f, Lcd.Ink);
             float pad = phone ? 16f : 32f, top = phone ? 12f : 24f;
             Ui.Text(panel, "Title", pad, top, 300, 40, displayBold, phone ? 24 : 28, Lcd.Ink, text: "HELP");
-            HudButton.Create(panel, "CLOSE", width - pad - (phone ? 96f : 110f), top, phone ? 96 : 110, phone ? 44 : 40, display, 14, CloseHelp);
+            HudButton.Create(panel, "CLOSE", width - pad - (phone ? 96f : 110f), top, phone ? 96 : 110, phone ? 44
+                : 40, display, 14, CloseHelp);
             return new HelpPanel { Frame = panel, TextSize = phone ? 14f : 13f };
         }
 
@@ -103,11 +107,13 @@ namespace ShiftRegister.Game.Hud
             return column;
         }
 
-        /// <summary>Fills the visible panel for the current level and device: controls, chapter, goal, mechanics.</summary>
+        /// <summary>
+        /// Fills the visible panel for the current level and device: controls, chapter, goal, mechanics.
+        /// </summary>
         void FillHelp()
         {
             bool mobile = DeviceMode.IsMobile;
-            var helpPanel = HelpCur;
+            var helpPanel = HelpCurrent;
             foreach (var panel in new[] { helpWide, helpPhoneWide, helpPhoneTall })
             {
                 panel.Frame.parent.gameObject.SetActive(panel == helpPanel);
@@ -125,7 +131,8 @@ namespace ShiftRegister.Game.Hud
                 }
 
                 Wrapped(helpPanel.Controls, controls[i].Title, mono, 15, Lcd.Ink, $"<b>{controls[i].Title}</b>");
-                Wrapped(helpPanel.Controls, controls[i].Title + " Text", mono, helpPanel.TextSize, Lcd.Text2, controls[i].Text);
+                Wrapped(helpPanel.Controls, controls[i].Title + " Text", mono, helpPanel.TextSize, Lcd.Text2,
+                    controls[i].Text);
             }
 
             var chapter = game.Chapter;
@@ -142,7 +149,8 @@ namespace ShiftRegister.Game.Hud
                 Wrapped(helpPanel.Board, entry.Title + " Text", mono, helpPanel.TextSize, Lcd.Text2, entry.Text);
             }
 
-            helpPanel.CloseHint.text = mobile ? "Tap CLOSE or outside the panel to go back" : "H, Esc, Enter or a click outside closes this panel";
+            helpPanel.CloseHint.text = mobile ? "Tap CLOSE or outside the panel to go back"
+                : "H, Esc, Enter or a click outside closes this panel";
         }
 
         static void Clear(Transform column)
@@ -154,9 +162,11 @@ namespace ShiftRegister.Game.Hud
         }
 
         /// <summary>A wrapped text in a column; the column's layout group sizes it.</summary>
-        static void Wrapped(RectTransform column, string name, TMP_FontAsset font, float size, Color32 color, string text)
+        static void Wrapped(RectTransform column, string name, TMP_FontAsset font, float size, Color32 color,
+            string text)
         {
-            var label = Ui.Text(column, name, 0, 0, column.sizeDelta.x, 20, font, size, color, TextAlignmentOptions.TopLeft, text);
+            var label = Ui.Text(column, name, 0, 0, column.sizeDelta.x, 20, font, size, color,
+                TextAlignmentOptions.TopLeft, text);
             label.textWrappingMode = TextWrappingModes.Normal;
         }
 
@@ -269,7 +279,9 @@ namespace ShiftRegister.Game.Hud
                 ToggleHelp();
                 Sfx.Play(Sound.Click);
             }
-            else if (HelpOpen && (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame))
+            else if (HelpOpen
+            && (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame
+            || keyboard.spaceKey.wasPressedThisFrame))
             {
                 CloseHelp();
                 Sfx.Play(Sound.Click);

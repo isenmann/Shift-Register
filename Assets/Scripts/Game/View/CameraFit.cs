@@ -13,13 +13,13 @@ namespace ShiftRegister.Game.View
     [RequireComponent(typeof(Camera))]
     public sealed class CameraFit : MonoBehaviour
     {
-        Camera cam, backdrop;
+        Camera targetCamera, backdrop;
 
         void LateUpdate()
         {
-            if (cam == null)
+            if (targetCamera == null)
             {
-                cam = GetComponent<Camera>();
+                targetCamera = GetComponent<Camera>();
             }
 
             if (Screen.width <= 0 || Screen.height <= 0)
@@ -28,7 +28,7 @@ namespace ShiftRegister.Game.View
             }
 
             var area = new Rect(0f, 0f, Screen.width, Screen.height);
-            if (Application.isPlaying && DeviceMode.IsMobile && cam.targetTexture == null)
+            if (Application.isPlaying && DeviceMode.IsMobile && targetCamera.targetTexture == null)
             {
                 area = Screen.safeArea;
                 bool inset = area.width < Screen.width || area.height < Screen.height;
@@ -43,15 +43,16 @@ namespace ShiftRegister.Game.View
                 }
             }
 
-            if (cam.targetTexture == null)
+            if (targetCamera.targetTexture == null)
             {
-                cam.rect = new Rect(area.x / Screen.width, area.y / Screen.height, area.width / Screen.width, area.height / Screen.height);
+                targetCamera.rect = new Rect(area.x / Screen.width, area.y / Screen.height, area.width / Screen.width,
+                    area.height / Screen.height);
             }
 
-            ScreenLayout.SetScreen(cam.pixelWidth, cam.pixelHeight);
+            ScreenLayout.SetScreen(targetCamera.pixelWidth, targetCamera.pixelHeight);
             var frame = ScreenLayout.FrameSize;
-            cam.orthographic = true;
-            cam.orthographicSize = Mathf.Max(frame.y * 0.5f, frame.x * 0.5f / cam.aspect);
+            targetCamera.orthographic = true;
+            targetCamera.orthographicSize = Mathf.Max(frame.y * 0.5f, frame.x * 0.5f / targetCamera.aspect);
         }
 
         /// <summary>A camera behind the main one that only clears the whole screen to the background colour.</summary>
@@ -65,9 +66,9 @@ namespace ShiftRegister.Game.View
             var gameObject = new GameObject("Backdrop Camera");
             gameObject.transform.SetParent(transform, false);
             backdrop = gameObject.AddComponent<Camera>();
-            backdrop.depth = cam.depth - 1f;
+            backdrop.depth = targetCamera.depth - 1f;
             backdrop.clearFlags = CameraClearFlags.SolidColor;
-            backdrop.backgroundColor = cam.backgroundColor;
+            backdrop.backgroundColor = targetCamera.backgroundColor;
             backdrop.cullingMask = 0;
             backdrop.orthographic = true;
             backdrop.rect = new Rect(0f, 0f, 1f, 1f);

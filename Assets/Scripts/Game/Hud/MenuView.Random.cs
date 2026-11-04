@@ -17,7 +17,8 @@ namespace ShiftRegister.Game.Hud
     {
         const double RandomBudgetMs = 8.0;
 
-        static readonly RandomDifficulty[] Difficulties = { RandomDifficulty.Easy, RandomDifficulty.Medium, RandomDifficulty.Hard };
+        static readonly RandomDifficulty[] Difficulties = { RandomDifficulty.Easy, RandomDifficulty.Medium,
+            RandomDifficulty.Hard };
 
         /// <summary>The RANDOM screen in one arrangement.</summary>
         sealed class RandomUi
@@ -29,13 +30,13 @@ namespace ShiftRegister.Game.Hud
         /// <summary>Where one arrangement puts things; all in its own mockup pixels.</summary>
         sealed class RandomLayout
         {
-            public float HeadingX, HeadingY, HeadingW, HeadingH, HeadingSize;
-            public float BackX, BackY, BackW, BackH;
-            public float ButtonX, ButtonY, ButtonW, ButtonH, ButtonSize, RowPitch;
+            public float HeadingX, HeadingY, HeadingWidth, HeadingHeight, HeadingSize;
+            public float BackX, BackY, BackWidth, BackHeight;
+            public float ButtonX, ButtonY, ButtonWidth, ButtonHeight, ButtonSize, RowPitch;
             /// <summary>Beside the button, or under it where the screen is narrow.</summary>
-            public float TextX, TextDy, TextW, TextH, TextSize;
-            public float NoteX, NoteY, NoteW, NoteH, NoteSize;
-            public float StatusY, StatusH, StatusSize;
+            public float TextX, TextOffsetY, TextWidth, TextHeight, TextSize;
+            public float NoteX, NoteY, NoteWidth, NoteHeight, NoteSize;
+            public float StatusY, StatusHeight, StatusSize;
             public bool Outer, Keys;
         }
 
@@ -48,31 +49,31 @@ namespace ShiftRegister.Game.Hud
             Keys = true,
             HeadingX = 56,
             HeadingY = 36,
-            HeadingW = 400,
-            HeadingH = 48,
+            HeadingWidth = 400,
+            HeadingHeight = 48,
             HeadingSize = 34,
             BackX = 1124,
             BackY = 38,
-            BackW = 100,
-            BackH = 44,
+            BackWidth = 100,
+            BackHeight = 44,
             ButtonX = 56,
             ButtonY = 130,
-            ButtonW = 200,
-            ButtonH = 72,
+            ButtonWidth = 200,
+            ButtonHeight = 72,
             ButtonSize = 20,
             RowPitch = 92,
             TextX = 280,
-            TextDy = 0,
-            TextW = 900,
-            TextH = 72,
+            TextOffsetY = 0,
+            TextWidth = 900,
+            TextHeight = 72,
             TextSize = 17,
             NoteX = 56,
             NoteY = 424,
-            NoteW = 1168,
-            NoteH = 52,
+            NoteWidth = 1168,
+            NoteHeight = 52,
             NoteSize = 15,
             StatusY = 490,
-            StatusH = 28,
+            StatusHeight = 28,
             StatusSize = 17
         };
 
@@ -81,31 +82,31 @@ namespace ShiftRegister.Game.Hud
             Outer = true,
             HeadingX = 16,
             HeadingY = 8,
-            HeadingW = 300,
-            HeadingH = 36,
+            HeadingWidth = 300,
+            HeadingHeight = 36,
             HeadingSize = 24,
             BackX = 815,
             BackY = 8,
-            BackW = 84,
-            BackH = 40,
+            BackWidth = 84,
+            BackHeight = 40,
             ButtonX = 16,
             ButtonY = 58,
-            ButtonW = 170,
-            ButtonH = 60,
+            ButtonWidth = 170,
+            ButtonHeight = 60,
             ButtonSize = 16,
             RowPitch = 70,
             TextX = 200,
-            TextDy = 0,
-            TextW = 699,
-            TextH = 60,
+            TextOffsetY = 0,
+            TextWidth = 699,
+            TextHeight = 60,
             TextSize = 15,
             NoteX = 16,
             NoteY = 272,
-            NoteW = 883,
-            NoteH = 44,
+            NoteWidth = 883,
+            NoteHeight = 44,
             NoteSize = 14,
             StatusY = 330,
-            StatusH = 28,
+            StatusHeight = 28,
             StatusSize = 16
         };
 
@@ -113,31 +114,31 @@ namespace ShiftRegister.Game.Hud
         {
             HeadingX = 16,
             HeadingY = 28,
-            HeadingW = 280,
-            HeadingH = 36,
+            HeadingWidth = 280,
+            HeadingHeight = 36,
             HeadingSize = 26,
             BackX = 312,
             BackY = 24,
-            BackW = 84,
-            BackH = 44,
+            BackWidth = 84,
+            BackHeight = 44,
             ButtonX = 16,
             ButtonY = 130,
-            ButtonW = 380,
-            ButtonH = 64,
+            ButtonWidth = 380,
+            ButtonHeight = 64,
             ButtonSize = 18,
             RowPitch = 144,
             TextX = 16,
-            TextDy = 70,
-            TextW = 380,
-            TextH = 66,
+            TextOffsetY = 70,
+            TextWidth = 380,
+            TextHeight = 66,
             TextSize = 15,
             NoteX = 16,
             NoteY = 570,
-            NoteW = 380,
-            NoteH = 88,
+            NoteWidth = 380,
+            NoteHeight = 88,
             NoteSize = 14,
             StatusY = 670,
-            StatusH = 28,
+            StatusHeight = 28,
             StatusSize = 16
         };
 
@@ -149,27 +150,36 @@ namespace ShiftRegister.Game.Hud
             var ui = new RandomUi();
             screens.RandomUi = ui;
 
-            Ui.Text(left, "Heading", layout.HeadingX, layout.HeadingY, layout.HeadingW, layout.HeadingH, displayBold, layout.HeadingSize, Lcd.Ink, text: "RANDOM");
-            HudButton.Create(right, "BACK", layout.BackX, layout.BackY, layout.BackW, layout.BackH, display, 14, () => flow.Show(GameScreen.Title));
+            Ui.Text(left, "Heading", layout.HeadingX, layout.HeadingY, layout.HeadingWidth, layout.HeadingHeight,
+                displayBold, layout.HeadingSize, Lcd.Ink, text: "RANDOM");
+            HudButton.Create(right, "BACK", layout.BackX, layout.BackY, layout.BackWidth, layout.BackHeight, display,
+                14, () => flow.Show(GameScreen.Title));
 
             for (int i = 0; i < Difficulties.Length; i++)
             {
                 int index = i;
                 float y = layout.ButtonY + i * layout.RowPitch;
-                ui.Buttons[i] = HudButton.Create(left, DifficultyName(Difficulties[i]), layout.ButtonX, y, layout.ButtonW, layout.ButtonH, display, layout.ButtonSize, () => MakeRandom(index));
-                var text = Ui.Text(left, "About", layout.TextX, y + layout.TextDy, layout.TextW, layout.TextH, mono, layout.TextSize, Lcd.Text2,
-                    layout.TextDy > 0f ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft, DifficultyText(Difficulties[i]));
+                ui.Buttons[i] = HudButton.Create(left, DifficultyName(Difficulties[i]), layout.ButtonX, y,
+                    layout.ButtonWidth, layout.ButtonHeight, display, layout.ButtonSize, () => MakeRandom(index));
+                var text = Ui.Text(left, "About", layout.TextX, y + layout.TextOffsetY, layout.TextWidth,
+                    layout.TextHeight, mono, layout.TextSize, Lcd.Text2,
+                    layout.TextOffsetY > 0f ? TextAlignmentOptions.TopLeft
+                    : TextAlignmentOptions.MidlineLeft, DifficultyText(Difficulties[i]));
                 text.textWrappingMode = TextWrappingModes.Normal;
             }
 
-            var note = Ui.Text(left, "Note", layout.NoteX, layout.NoteY, layout.NoteW, layout.NoteH, mono, layout.NoteSize, Lcd.Text3, TextAlignmentOptions.TopLeft,
-                "Every level is new and can be solved. They earn no stars and unlock nothing. After you beat one, SAVE keeps it in MY LEVELS; otherwise it is gone when you leave.");
+            var note = Ui.Text(left, "Note", layout.NoteX, layout.NoteY, layout.NoteWidth, layout.NoteHeight, mono,
+                layout.NoteSize, Lcd.Text3, TextAlignmentOptions.TopLeft,
+                "Every level is new and can be solved. They earn no stars and unlock nothing. " +
+                "After you beat one, SAVE keeps it in MY LEVELS; otherwise it is gone when you leave.");
             note.textWrappingMode = TextWrappingModes.Normal;
-            ui.Status = Ui.Text(left, "Status", layout.NoteX, layout.StatusY, layout.NoteW, layout.StatusH, mono, layout.StatusSize, Lcd.Ink);
+            ui.Status = Ui.Text(left, "Status", layout.NoteX, layout.StatusY, layout.NoteWidth, layout.StatusHeight,
+                mono, layout.StatusSize, Lcd.Ink);
 
             if (layout.Keys)
             {
-                Ui.Text(left, "Keys", 56, 690, 1168, 20, mono, 13, Lcd.Text3, text: "Up and down choose · Enter make a level · Esc back");
+                Ui.Text(left, "Keys", 56, 690, 1168, 20, mono, 13, Lcd.Text3,
+                    text: "Up and down choose · Enter make a level · Esc back");
             }
         }
 
@@ -195,7 +205,8 @@ namespace ShiftRegister.Game.Hud
                 case RandomDifficulty.Medium:
                     return "Walls, pins or wrapping rows. 5 to 7 moves.";
                 default:
-                    return "Longer, and rows may be chained. Par is often a known solve, not the shortest, so try to beat it.";
+                    return "Longer, and rows may be chained. " +
+                        "Par is often a known solve, not the shortest, so try to beat it.";
             }
         }
 
@@ -235,7 +246,8 @@ namespace ShiftRegister.Game.Hud
             {
                 StepRandom(1);
             }
-            else if (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame)
+            else if (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame
+            || keyboard.spaceKey.wasPressedThisFrame)
             {
                 Sfx.Play(Sound.Click);
                 MakeRandom(randomFocus);
@@ -298,7 +310,7 @@ namespace ShiftRegister.Game.Hud
                 : randomSession.Failed ? "No level came out this time. Try again."
                 : "";
 
-            foreach (var screens in Both)
+            foreach (var screens in AllScreens)
             {
                 var ui = screens.RandomUi;
                 ui.Status.text = status;

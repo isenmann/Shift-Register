@@ -95,8 +95,10 @@ namespace ShiftRegister.Game.LevelEditor
             int steps = Math.Max(Math.Abs(row - lastRow), Math.Abs(column - lastColumn));
             for (int i = 1; i <= steps; i++)
             {
-                int stepRow = lastRow + (int)Math.Round((row - lastRow) * (double)i / steps, MidpointRounding.AwayFromZero);
-                int stepColumn = lastColumn + (int)Math.Round((column - lastColumn) * (double)i / steps, MidpointRounding.AwayFromZero);
+                int stepRow = lastRow
+                    + (int)Math.Round((row - lastRow) * (double)i / steps, MidpointRounding.AwayFromZero);
+                int stepColumn = lastColumn
+                    + (int)Math.Round((column - lastColumn) * (double)i / steps, MidpointRounding.AwayFromZero);
                 Apply(stepRow, stepColumn);
             }
 

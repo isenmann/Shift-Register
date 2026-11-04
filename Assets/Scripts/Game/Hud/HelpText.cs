@@ -39,17 +39,21 @@ namespace ShiftRegister.Game.Hud
             new Entry("MENU · HELP · SOUND", "chapters · this help · mute")
         };
 
-        /// <summary>The goal, then one entry per mechanic on this board, in the order the chapters introduce them.</summary>
+        /// <summary>
+        /// The goal, then one entry per mechanic on this board, in the order the chapters introduce them.
+        /// </summary>
         public static List<Entry> Mechanics(LevelData level)
         {
             var list = new List<Entry>
             {
-                new Entry("GOAL", "Shift the bits until the board matches the target picture. Bits pushed off an edge are lost.")
+                new Entry("GOAL",
+                "Shift the bits until the board matches the target picture. Bits pushed off an edge are lost.")
             };
 
             if (Any(level.walls))
             {
-                list.Add(new Entry("WALLS", "Hatched cells hold no bits. They split a row or column into parts that shift on their own."));
+                list.Add(new Entry("WALLS",
+                    "Hatched cells hold no bits. They split a row or column into parts that shift on their own."));
             }
 
             if (Any(level.pins))
@@ -59,17 +63,21 @@ namespace ShiftRegister.Game.Hud
 
             if (level.rotateRows != null && level.rotateRows.Length > 0)
             {
-                list.Add(new Entry("WRAP BELT", "A row in a dashed belt wraps around: bits leaving one end come back at the other."));
+                list.Add(new Entry("WRAP BELT",
+                    "A row in a dashed belt wraps around: bits leaving one end come back at the other."));
             }
 
             if (level.chainTopRows != null && level.chainTopRows.Length > 0)
             {
-                list.Add(new Entry("CARRY BELT", "Two rows in one belt shift as one 16-bit register: bits carry over from one row into the other."));
+                list.Add(new Entry("CARRY BELT",
+                    "Two rows in one belt shift as one 16-bit register: bits carry over from one row into the other."));
             }
 
-            if ((level.fillLeftRows != null && level.fillLeftRows.Length > 0) || (level.fillRightRows != null && level.fillRightRows.Length > 0))
+            if ((level.fillLeftRows != null && level.fillLeftRows.Length > 0)
+                || (level.fillRightRows != null && level.fillRightRows.Length > 0))
             {
-                list.Add(new Entry("1-IN EDGE", "An end cell with an ink bar feeds in a 1 when its row shifts away from that edge."));
+                list.Add(new Entry("1-IN EDGE",
+                    "An end cell with an ink bar feeds in a 1 when its row shifts away from that edge."));
             }
 
             var gates = Gates(level);
@@ -122,7 +130,8 @@ namespace ShiftRegister.Game.Hud
                 case LossRule.AtMost:
                     return new Entry("BIT BUCKET", $"Lose at most {level.lossCount} bits.");
                 case LossRule.Exactly:
-                    return new Entry("BIT BUCKET", $"Lose exactly {level.lossCount} bits: the bucket is part of the goal.");
+                    return new Entry("BIT BUCKET",
+                        $"Lose exactly {level.lossCount} bits: the bucket is part of the goal.");
                 default:
                     return null;
             }

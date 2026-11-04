@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using ShiftRegister.Core;
 
-static class P
+static class Program
 {
-    const Direction L = Direction.Left, Rt = Direction.Right, U = Direction.Up, D = Direction.Down;
-    static Move R(int row, Direction direction, int segment = 0) => Move.Row(row, direction, segment);
-    static Move C(int column, Direction direction, int segment = 0) => Move.Column(column, direction, segment);
+    const Direction Left = Direction.Left, Right = Direction.Right, Up = Direction.Up, Down = Direction.Down;
+    static Move RowMove(int row, Direction direction, int segment = 0) => Move.Row(row, direction, segment);
+    static Move ColumnMove(int column, Direction direction, int segment = 0) => Move.Column(column, direction, segment);
 
     static LevelData Copy(LevelData level) => new LevelData
     {
@@ -27,11 +27,13 @@ static class P
         lossCount = level.lossCount
     };
 
-    /// <summary>Start = target after moveCount random lossless moves (invertible for walls/pins/rotate/chains).</summary>
-    static LevelData Scramble(LevelData tmpl, int moveCount, int seed, int junk = 0)
+    /// <summary>
+    /// Start = target after moveCount random lossless moves (invertible for walls/pins/rotate/chains).
+    /// </summary>
+    static LevelData Scramble(LevelData template, int moveCount, int seed, int junk = 0)
     {
         var random = new Random(seed);
-        var level = Copy(tmpl);
+        var level = Copy(template);
         level.start = (int[])level.target.Clone();
         var rules = LevelRules.Compile(level);
         ulong board = rules.Target;
@@ -40,7 +42,8 @@ static class P
         while (done < moveCount && guard++ < 1000)
         {
             var move = rules.Moves[random.Next(rules.Moves.Count)];
-            if (last.HasValue && last.Value.Axis == move.Axis && last.Value.Line == move.Line && last.Value.Segment == move.Segment && last.Value.TowardStart != move.TowardStart)
+            if (last.HasValue && last.Value.Axis == move.Axis && last.Value.Line == move.Line
+                && last.Value.Segment == move.Segment && last.Value.TowardStart != move.TowardStart)
             {
                 continue;
             }
@@ -73,9 +76,9 @@ static class P
     }
 
     /// <summary>Target = start after the given forward moves (for gates and other irreversible rules).</summary>
-    static LevelData Forward(LevelData tmpl, params Move[] moves)
+    static LevelData Forward(LevelData template, params Move[] moves)
     {
-        var level = Copy(tmpl);
+        var level = Copy(template);
         level.target = (int[])level.start.Clone();
         var rules = LevelRules.Compile(level);
         ulong board = rules.Start;
@@ -105,7 +108,7 @@ static class P
         return level;
     }
 
-    static bool Uses(LevelData level, SolveResult result, Func<LevelRules, MoveOutcome, bool> pred)
+    static bool Uses(LevelData level, SolveResult result, Func<LevelRules, MoveOutcome, bool> predicate)
     {
         var rules = LevelRules.Compile(level);
         ulong board = rules.Start;
@@ -113,7 +116,7 @@ static class P
         foreach (var move in result.Solution)
         {
             rules.TryApply(board, move, out var outcome);
-            if (pred(rules, outcome))
+            if (predicate(rules, outcome))
             {
                 any = true;
             }
@@ -125,7 +128,8 @@ static class P
     }
 
     // Mechanic checks on a solution step.
-    static bool SplitLine(LevelRules rules, MoveOutcome outcome) => rules.SegmentCount(outcome.Move.Axis, outcome.Move.Line) > 1;
+    static bool SplitLine(LevelRules rules, MoveOutcome outcome) =>
+        rules.SegmentCount(outcome.Move.Axis, outcome.Move.Line) > 1;
     static bool Wraps(LevelRules rules, MoveOutcome outcome)
     {
         if (outcome.Move.Axis != Axis.Row || !rules.IsRotating(outcome.Move.Line))
@@ -133,7 +137,8 @@ static class P
             return false;
         }
 
-        return BoardBits.PopCount(outcome.Before) == BoardBits.PopCount(outcome.AfterShift) && outcome.Before != outcome.AfterShift &&
+        return BoardBits.PopCount(outcome.Before) == BoardBits.PopCount(outcome.AfterShift)
+            && outcome.Before != outcome.AfterShift &&
                PlainShiftLoses(outcome);
     }
 
@@ -165,14 +170,14 @@ static class P
 
     static readonly List<LevelData> picked = new List<LevelData>();
 
-    static void Find(string id, string name, LevelData tmpl, int moveCount, int parMin, int parMax,
+    static void Find(string id, string name, LevelData template, int moveCount, int parMin, int parMax,
         Func<LevelData, SolveResult, bool> require = null, int junk = 0, int seeds = 300, int maxStates = 2_500_000)
     {
-        tmpl.id = id;
-        tmpl.name = name;
+        template.id = id;
+        template.name = name;
         for (int seed = 1; seed <= seeds; seed++)
         {
-            var level = Scramble(tmpl, moveCount, seed * 7919 + id.GetHashCode(), junk);
+            var level = Scramble(template, moveCount, seed * 7919 + id.GetHashCode(), junk);
             if (level.lossRule == LossRule.Exactly)
             {
                 level.lossCount = junk;
@@ -204,9 +209,9 @@ static class P
 
     static void Check(LevelData level, string note = "", int maxStates = 4_000_000)
     {
-        var errs = LevelRules.Validate(level);
-        if (errs.Count > 0)
-        { Console.WriteLine($"!! {level.id} INVALID: {string.Join("; ", errs)}"); return; }
+        var errors = LevelRules.Validate(level);
+        if (errors.Count > 0)
+        { Console.WriteLine($"!! {level.id} INVALID: {string.Join("; ", errors)}"); return; }
         var result = Solver.Solve(level, maxStates, 30);
         Report(level, result, note);
         if (result.Status == SolveStatus.Solved)
@@ -286,13 +291,16 @@ static class P
         }
 
         System.IO.File.WriteAllText($"picked{only}.txt", string.Join("\n", picked.Select(level =>
-            $"{level.id}|{level.name}|{string.Join(",", level.start)}|{string.Join(",", level.target)}|{string.Join(",", level.walls)}|{string.Join(",", level.pins)}|" +
-            $"{string.Join(",", level.rotateRows)}|{string.Join(",", level.chainTopRows)}|{string.Join(",", level.fillLeftRows)}|{string.Join(",", level.fillRightRows)}|" +
-            $"{string.Join(";", level.gates.Select(gate => $"{gate.row}:{(int)gate.op}:{gate.mask}"))}|{(level.gatesOnColumnMoves ? 1 : 0)}|{(int)level.lossRule}|{level.lossCount}")));
+            $"{level.id}|{level.name}|{string.Join(",", level.start)}|{string.Join(",", level.target)}|" +
+            $"{string.Join(",", level.walls)}|{string.Join(",", level.pins)}|" +
+            $"{string.Join(",", level.rotateRows)}|{string.Join(",", level.chainTopRows)}|" +
+            $"{string.Join(",", level.fillLeftRows)}|{string.Join(",", level.fillRightRows)}|" +
+            $"{string.Join(";", level.gates.Select(gate => $"{gate.row}:{(int)gate.op}:{gate.mask}"))}|" +
+            $"{(level.gatesOnColumnMoves ? 1 : 0)}|{(int)level.lossRule}|{level.lossCount}")));
     }
 
     /// <summary>'#' bit, 'X' wall, 'P' pinned bit, '.' empty.</summary>
-    static LevelData Pic(params string[] rows)
+    static LevelData Picture(params string[] rows)
     {
         var level = new LevelData();
         for (int row = 0; row < 8; row++)
@@ -320,12 +328,12 @@ static class P
         return level;
     }
 
-    static Func<LevelData, SolveResult, bool> Needs(params Func<LevelRules, MoveOutcome, bool>[] preds) =>
-        (level, result) => preds.All(predicate => Uses(level, result, predicate));
+    static Func<LevelData, SolveResult, bool> Needs(params Func<LevelRules, MoveOutcome, bool>[] predicates) =>
+        (level, result) => predicates.All(predicate => Uses(level, result, predicate));
 
     static void Chapter3()
     {
-        Find("3-1", "Box", Pic(
+        Find("3-1", "Box", Picture(
             "........",
             ".######.",
             ".#....#.",
@@ -334,7 +342,7 @@ static class P
             ".#....#.",
             ".######.",
             "........"), 4, 3, 5, Needs(SplitLine));
-        Find("3-2", "Cross", Pic(
+        Find("3-2", "Cross", Picture(
             "#..XX..#",
             ".#....#.",
             "..#..#..",
@@ -343,7 +351,7 @@ static class P
             "..#..#..",
             ".#....#.",
             "#..XX..#"), 5, 4, 6, Needs(SplitLine));
-        Find("3-3", "Key", Pic(
+        Find("3-3", "Key", Picture(
             "........",
             ".##.....",
             "#..#....",
@@ -352,7 +360,7 @@ static class P
             ".##.....",
             "........",
             "........"), 5, 4, 6);
-        Find("3-4", "Window", Pic(
+        Find("3-4", "Window", Picture(
             "........",
             ".######.",
             ".#X##X#.",
@@ -361,7 +369,7 @@ static class P
             ".P####P.",
             "........",
             "........"), 6, 4, 7, Needs(SplitLine));
-        var fortress = Pic(
+        var fortress = Picture(
             "#.#..#.#",
             "########",
             "#..XX..#",
@@ -376,19 +384,22 @@ static class P
 
     static void Chapter4()
     {
-        var stripes = Pic("#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#");
+        var stripes = Picture("#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#", "#.#.#.#.",
+            ".#.#.#.#");
         stripes.rotateRows = new[] { 0, 1, 2, 3, 4, 5, 6, 7 };
         Find("4-1", "Stripes", stripes, 4, 3, 5, Needs(Wraps));
 
-        var diamond = Pic("...##...", "..#..#..", ".#....#.", "#......#", "#......#", ".#....#.", "..#..#..", "...##...");
+        var diamond = Picture("...##...", "..#..#..", ".#....#.", "#......#", "#......#", ".#....#.", "..#..#..",
+            "...##...");
         diamond.rotateRows = new[] { 1, 2, 5, 6 };
         Find("4-2", "Diamond", diamond, 5, 4, 6, Needs(Wraps));
 
-        var spiral = Pic("########", ".......#", "######.#", "#....#.#", "#.##.#.#", "#......#", "########", "........");
+        var spiral = Picture("########", ".......#", "######.#", "#....#.#", "#.##.#.#", "#......#", "########",
+            "........");
         spiral.rotateRows = new[] { 2, 4, 5 };
         Find("4-3", "Spiral", spiral, 5, 4, 6, Needs(Wraps));
 
-        var gears = Pic(
+        var gears = Picture(
             "..####..",
             ".#.XX.#.",
             "#.#..#.#",
@@ -400,7 +411,7 @@ static class P
         gears.rotateRows = new[] { 1, 2, 5, 6 };
         Find("4-4", "Gears", gears, 6, 4, 7, Needs(Wraps, SplitLine));
 
-        var orbit = Pic(
+        var orbit = Picture(
             "P......P",
             ".##..##.",
             ".#.##.#.",
@@ -416,26 +427,31 @@ static class P
 
     static void Chapter5()
     {
-        var bridge = Pic("........", "........", "########", "#......#", "#......#", "........", "........", "........");
+        var bridge = Picture("........", "........", "########", "#......#", "#......#", "........", "........",
+            "........");
         bridge.chainTopRows = new[] { 3 };
         Find("5-1", "Bridge", bridge, 4, 3, 5, Needs(Carries));
 
-        var overflow = Pic("........", "........", "........", "########", "########", "........", "........", "........");
+        var overflow = Picture("........", "........", "........", "########", "########", "........", "........",
+            "........");
         overflow.chainTopRows = new[] { 3 };
         overflow.lossRule = LossRule.Exactly;
         Find("5-2", "Overflow", overflow, 3, 3, 6, Needs(Carries), junk: 2);
 
-        var ladder = Pic(".#....#.", ".######.", ".#....#.", ".#....#.", ".######.", ".#....#.", ".######.", ".#....#.");
+        var ladder = Picture(".#....#.", ".######.", ".#....#.", ".#....#.", ".######.", ".#....#.", ".######.",
+            ".#....#.");
         ladder.chainTopRows = new[] { 1, 4 };
         Find("5-3", "Ladder", ladder, 5, 4, 7, Needs(Carries));
 
-        var snake = Pic("........", "########", ".......#", "########", "#.......", "########", "........", "........");
+        var snake = Picture("........", "########", ".......#", "########", "#.......", "########", "........",
+            "........");
         snake.chainTopRows = new[] { 1, 4 };
         snake.rotateRows = new[] { 1, 2 };
         snake.lossRule = LossRule.Exactly;
         Find("5-4", "Snake", snake, 5, 4, 7, Needs(Carries), junk: 1);
 
-        var y2026 = Pic("........", "........", "........", ".....###", "###.#.#.", "........", "........", ".......P");
+        var y2026 = Picture("........", "........", "........", ".....###", "###.#.#.", "........", "........",
+            ".......P");
         y2026.chainTopRows = new[] { 3 };
         y2026.lossRule = LossRule.Exactly;
         Find("5-5", "2026", y2026, 6, 5, 9, Needs(Carries, Column), junk: 3);
@@ -451,7 +467,8 @@ static class P
             start = new[] { 0, 0, 0, 0x80, 0, 0x01, 0, 0 },
             gates = new[] { new RowGate(3, GateOp.Or, 0x80), new RowGate(5, GateOp.Or, 0x01) }
         };
-        Check(Forward(print, R(3, Rt), R(3, Rt), R(3, Rt), R(5, L), R(5, L)), "forward");
+        Check(Forward(print, RowMove(3, Right), RowMove(3, Right), RowMove(3, Right), RowMove(5, Left),
+            RowMove(5, Left)), "forward");
 
         Check(new LevelData
         {
@@ -459,7 +476,8 @@ static class P
             name = "Four Gates",
             start = new[] { 0, 192, 0, 48, 0, 255, 2, 0 },
             target = new[] { 0, 240, 0, 0, 0, 60, 254, 0 },
-            gates = new[] { new RowGate(1, GateOp.Or, 128), new RowGate(3, GateOp.Xor, 24), new RowGate(5, GateOp.And, 60), new RowGate(6, GateOp.Not, 1) }
+            gates = new[] { new RowGate(1, GateOp.Or, 128), new RowGate(3, GateOp.Xor, 24),
+            new RowGate(5, GateOp.And, 60), new RowGate(6, GateOp.Not, 1) }
         }, "existing");
 
         // 6-3 Cancel: XOR rows toggle; matching bits cancel, gaps turn into bits.
@@ -468,9 +486,11 @@ static class P
             id = "6-3",
             name = "Cancel",
             start = new[] { 0, 0x66, 0, 0x3C, 0x18, 0x3C, 0, 0 },
-            gates = new[] { new RowGate(1, GateOp.Xor, 0x18), new RowGate(3, GateOp.Xor, 0x42), new RowGate(5, GateOp.Xor, 0x24) }
+            gates = new[] { new RowGate(1, GateOp.Xor, 0x18), new RowGate(3, GateOp.Xor, 0x42),
+            new RowGate(5, GateOp.Xor, 0x24) }
         };
-        Check(Forward(cancel, R(1, Rt), C(3, U), R(3, L), R(5, Rt), R(1, L)), "forward");
+        Check(Forward(cancel, RowMove(1, Right), ColumnMove(3, Up), RowMove(3, Left), RowMove(5, Right),
+            RowMove(1, Left)), "forward");
 
         // 6-4 Invert: NOT pads flip a row; 1-IN edges feed new bits.
         var invert = new LevelData
@@ -481,7 +501,8 @@ static class P
             fillLeftRows = new[] { 5 },
             gates = new[] { new RowGate(1, GateOp.Not, 0x01), new RowGate(3, GateOp.Not, 0x80) }
         };
-        Check(Forward(invert, R(1, Rt), R(3, L), R(5, Rt), R(5, Rt), C(4, D)), "forward");
+        Check(Forward(invert, RowMove(1, Right), RowMove(3, Left), RowMove(5, Right), RowMove(5, Right),
+            ColumnMove(4, Down)), "forward");
 
         // 6-5 Circuit: gates also fire when a column passes through their row.
         var circuit = new LevelData
@@ -490,9 +511,11 @@ static class P
             name = "Circuit",
             gatesOnColumnMoves = true,
             start = new[] { 0x18, 0, 0x81, 0, 0x3C, 0, 0x18, 0 },
-            gates = new[] { new RowGate(1, GateOp.Or, 0x24), new RowGate(3, GateOp.Xor, 0x18), new RowGate(5, GateOp.And, 0x7E) }
+            gates = new[] { new RowGate(1, GateOp.Or, 0x24), new RowGate(3, GateOp.Xor, 0x18),
+            new RowGate(5, GateOp.And, 0x7E) }
         };
-        Check(Forward(circuit, C(3, D), R(2, Rt), C(4, D), R(4, L), C(2, D), R(6, L)), "forward");
+        Check(Forward(circuit, ColumnMove(3, Down), RowMove(2, Right), ColumnMove(4, Down), RowMove(4, Left),
+            ColumnMove(2, Down), RowMove(6, Left)), "forward");
     }
 
 }

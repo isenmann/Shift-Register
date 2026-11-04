@@ -34,7 +34,7 @@ namespace ShiftRegister.Game.Hud
             public MyLevelRow[] Rows;
             public RectTransform List;
             public float RowPitch;
-            public readonly Image[] Start = new Image[N * N], Target = new Image[N * N];
+            public readonly Image[] Start = new Image[BoardSize * BoardSize], Target = new Image[BoardSize * BoardSize];
             public TextMeshProUGUI Count, Name, Proof, Best, Empty, StartLabel, TargetLabel;
             public HudButton Play, Edit, Duplicate, Delete, New, Import, Export;
             public ShareDialog Share;
@@ -43,16 +43,16 @@ namespace ShiftRegister.Game.Hud
         /// <summary>Where one arrangement puts things; all in its own mockup pixels.</summary>
         sealed class MyLayout
         {
-            public float FrameW, FrameH;
-            public float HeadingX, HeadingY, HeadingW, HeadingH, HeadingSize;
-            public float CountX, CountY, CountW;
-            public float BackX, BackY, BackW, BackH;
-            public float ListX, ListY, ListW, RowH, RowPitch, RowNameW;
+            public float FrameWidth, FrameHeight;
+            public float HeadingX, HeadingY, HeadingWidth, HeadingHeight, HeadingSize;
+            public float CountX, CountY, CountWidth;
+            public float BackX, BackY, BackWidth, BackHeight;
+            public float ListX, ListY, ListWidth, RowHeight, RowPitch, RowNameWidth;
             public int Rows;
             public float RowNameSize = 16f, StatusSize = 13f;
-            public float PanelX, PanelW, NameY, NameH, NameSize, ProofY, BestY;
+            public float PanelX, PanelWidth, NameY, NameHeight, NameSize, ProofY, BestY;
             public float LabelY, ThumbY, Cell, ThumbGap, ThumbSpace;
-            public float PlayY, PlayH, Row2Y, Row3Y, ButtonH;
+            public float PlayY, PlayHeight, Row2Y, Row3Y, ButtonHeight;
             /// <summary>Desktop keeps NEW and IMPORT under the list; phones have them with the other buttons.</summary>
             public bool Desktop;
         }
@@ -61,38 +61,39 @@ namespace ShiftRegister.Game.Hud
         float deleteArmedUntil, myDragY;
         bool myDragging;
 
-        MyUi My => Cur.My;
+        MyUi CurrentMyLevels => Current.MyLevelsUi;
         CustomLevelLibrary Library => game.CustomLevels;
-        CustomLevel MySelected => mySelected >= 0 && mySelected < Library.levels.Count ? Library.levels[mySelected] : null;
+        CustomLevel MySelected =>
+            mySelected >= 0 && mySelected < Library.levels.Count ? Library.levels[mySelected] : null;
 
         static readonly MyLayout MyDesktop = new MyLayout
         {
             Desktop = true,
-            FrameW = 1280,
-            FrameH = 720,
+            FrameWidth = 1280,
+            FrameHeight = 720,
             HeadingX = 56,
             HeadingY = 36,
-            HeadingW = 400,
-            HeadingH = 48,
+            HeadingWidth = 400,
+            HeadingHeight = 48,
             HeadingSize = 34,
             CountX = 56,
             CountY = 80,
-            CountW = 640,
+            CountWidth = 640,
             BackX = 1124,
             BackY = 38,
-            BackW = 100,
-            BackH = 44,
+            BackWidth = 100,
+            BackHeight = 44,
             ListX = 56,
             ListY = 104,
-            ListW = 640,
-            RowH = 52,
+            ListWidth = 640,
+            RowHeight = 52,
             RowPitch = 58,
-            RowNameW = 340,
+            RowNameWidth = 340,
             Rows = 9,
             PanelX = 732,
-            PanelW = 492,
+            PanelWidth = 492,
             NameY = 104,
-            NameH = 36,
+            NameHeight = 36,
             NameSize = 26,
             ProofY = 144,
             BestY = 166,
@@ -102,41 +103,41 @@ namespace ShiftRegister.Game.Hud
             ThumbGap = 3,
             ThumbSpace = 40,
             PlayY = 440,
-            PlayH = 52,
+            PlayHeight = 52,
             Row2Y = 500,
             Row3Y = 552,
-            ButtonH = 44
+            ButtonHeight = 44
         };
 
         static readonly MyLayout MyPhoneLandscape = new MyLayout
         {
-            FrameW = 915,
-            FrameH = 412,
+            FrameWidth = 915,
+            FrameHeight = 412,
             HeadingX = 16,
             HeadingY = 8,
-            HeadingW = 220,
-            HeadingH = 32,
+            HeadingWidth = 220,
+            HeadingHeight = 32,
             HeadingSize = 22,
             CountX = 236,
             CountY = 14,
-            CountW = 190,
+            CountWidth = 190,
             BackX = 815,
             BackY = 8,
-            BackW = 84,
-            BackH = 40,
+            BackWidth = 84,
+            BackHeight = 40,
             ListX = 16,
             ListY = 48,
-            ListW = 410,
-            RowH = 52,
+            ListWidth = 410,
+            RowHeight = 52,
             RowPitch = 58,
-            RowNameW = 220,
+            RowNameWidth = 220,
             Rows = 6,
             RowNameSize = 14,
             StatusSize = 12,
             PanelX = 442,
-            PanelW = 457,
+            PanelWidth = 457,
             NameY = 10,
-            NameH = 26,
+            NameHeight = 26,
             NameSize = 18,
             ProofY = 36,
             BestY = 54,
@@ -146,41 +147,41 @@ namespace ShiftRegister.Game.Hud
             ThumbGap = 2,
             ThumbSpace = 24,
             PlayY = 218,
-            PlayH = 52,
+            PlayHeight = 52,
             Row2Y = 276,
             Row3Y = 330,
-            ButtonH = 48
+            ButtonHeight = 48
         };
 
         static readonly MyLayout MyPhonePortrait = new MyLayout
         {
-            FrameW = 412,
-            FrameH = 915,
+            FrameWidth = 412,
+            FrameHeight = 915,
             HeadingX = 16,
             HeadingY = 28,
-            HeadingW = 280,
-            HeadingH = 36,
+            HeadingWidth = 280,
+            HeadingHeight = 36,
             HeadingSize = 26,
             CountX = 16,
             CountY = 66,
-            CountW = 380,
+            CountWidth = 380,
             BackX = 312,
             BackY = 24,
-            BackW = 84,
-            BackH = 44,
+            BackWidth = 84,
+            BackHeight = 44,
             ListX = 16,
             ListY = 92,
-            ListW = 380,
-            RowH = 52,
+            ListWidth = 380,
+            RowHeight = 52,
             RowPitch = 58,
-            RowNameW = 210,
+            RowNameWidth = 210,
             Rows = 6,
             RowNameSize = 14,
             StatusSize = 12,
             PanelX = 16,
-            PanelW = 380,
+            PanelWidth = 380,
             NameY = 446,
-            NameH = 28,
+            NameHeight = 28,
             NameSize = 18,
             ProofY = 476,
             BestY = 494,
@@ -190,37 +191,45 @@ namespace ShiftRegister.Game.Hud
             ThumbGap = 2,
             ThumbSpace = 40,
             PlayY = 684,
-            PlayH = 60,
+            PlayHeight = 60,
             Row2Y = 752,
             Row3Y = 810,
-            ButtonH = 50
+            ButtonHeight = 50
         };
 
         void BuildMyLevels(Screens screens, MyLayout layout)
         {
             var root = screens.MyLevels;
-            var left = Outer(screens, root, "Left", layout.Desktop || layout.FrameW > layout.FrameH ? -1f : 0f, 0f);
-            var right = Outer(screens, root, "Right", layout.Desktop || layout.FrameW > layout.FrameH ? 1f : 0f, 0f);
+            var left = Outer(screens, root, "Left", layout.Desktop || layout.FrameWidth > layout.FrameHeight ? -1f
+                : 0f, 0f);
+            var right = Outer(screens, root, "Right", layout.Desktop || layout.FrameWidth > layout.FrameHeight ? 1f
+                : 0f, 0f);
             var ui = new MyUi { RowPitch = layout.RowPitch, Rows = new MyLevelRow[layout.Rows] };
-            screens.My = ui;
+            screens.MyLevelsUi = ui;
 
-            Ui.Text(left, "Heading", layout.HeadingX, layout.HeadingY, layout.HeadingW, layout.HeadingH, displayBold, layout.HeadingSize, Lcd.Ink, text: "MY LEVELS");
-            ui.Count = Ui.Text(left, "Count", layout.CountX, layout.CountY, layout.CountW, 18, mono, 13, Lcd.Text2);
-            HudButton.Create(right, "BACK", layout.BackX, layout.BackY, layout.BackW, layout.BackH, display, 14, () => flow.Show(GameScreen.Title));
+            Ui.Text(left, "Heading", layout.HeadingX, layout.HeadingY, layout.HeadingWidth, layout.HeadingHeight,
+                displayBold, layout.HeadingSize, Lcd.Ink, text: "MY LEVELS");
+            ui.Count = Ui.Text(left, "Count", layout.CountX, layout.CountY, layout.CountWidth, 18, mono, 13, Lcd.Text2);
+            HudButton.Create(right, "BACK", layout.BackX, layout.BackY, layout.BackWidth, layout.BackHeight, display,
+                14, () => flow.Show(GameScreen.Title));
 
-            ui.List = Ui.Rect(left, "List", layout.ListX, layout.ListY, layout.ListW, layout.Rows * layout.RowPitch);
+            ui.List = Ui.Rect(left, "List", layout.ListX, layout.ListY, layout.ListWidth,
+                layout.Rows * layout.RowPitch);
             for (int i = 0; i < layout.Rows; i++)
             {
                 int visible = i;
-                var rowRoot = Ui.Rect(ui.List, $"Row {i + 1}", 0, i * layout.RowPitch, layout.ListW, layout.RowH);
+                var rowRoot = Ui.Rect(ui.List, $"Row {i + 1}", 0, i * layout.RowPitch, layout.ListWidth,
+                    layout.RowHeight);
                 var row = new MyLevelRow
                 {
                     Root = rowRoot,
-                    Ground = Ui.Box(rowRoot, "Ground", 0, 0, layout.ListW, layout.RowH, 8f, Lcd.Cell),
-                    Name = Ui.Text(rowRoot, "Name", 14, 0, layout.RowNameW, layout.RowH, display, layout.RowNameSize, Lcd.Ink),
-                    Status = Ui.Text(rowRoot, "Status", layout.ListW - 200f, 0, 186f, layout.RowH, mono, layout.StatusSize, Lcd.Text2, TextAlignmentOptions.MidlineRight)
+                    Ground = Ui.Box(rowRoot, "Ground", 0, 0, layout.ListWidth, layout.RowHeight, 8f, Lcd.Cell),
+                    Name = Ui.Text(rowRoot, "Name", 14, 0, layout.RowNameWidth, layout.RowHeight, display,
+                    layout.RowNameSize, Lcd.Ink),
+                    Status = Ui.Text(rowRoot, "Status", layout.ListWidth - 200f, 0, 186f, layout.RowHeight, mono,
+                    layout.StatusSize, Lcd.Text2, TextAlignmentOptions.MidlineRight)
                 };
-                UiHotspot.Create(rowRoot, "Hotspot", 0, 0, layout.ListW, layout.RowH).Click = () =>
+                UiHotspot.Create(rowRoot, "Hotspot", 0, 0, layout.ListWidth, layout.RowHeight).Click = () =>
                 {
                     Sfx.Play(Sound.Tick);
                     SelectMyLevel(myTop + visible);
@@ -228,51 +237,69 @@ namespace ShiftRegister.Game.Hud
                 ui.Rows[i] = row;
             }
 
-            ui.Empty = Ui.Text(left, "Empty", layout.ListX, layout.ListY, layout.ListW, 60, mono, 15, Lcd.Text2, TextAlignmentOptions.TopLeft,
+            ui.Empty = Ui.Text(left, "Empty", layout.ListX, layout.ListY, layout.ListWidth, 60, mono, 15, Lcd.Text2,
+                TextAlignmentOptions.TopLeft,
                 "No levels yet. NEW starts one on an empty board.");
             ui.Empty.textWrappingMode = TextWrappingModes.Normal;
 
-            ui.Name = Ui.Text(right, "Name", layout.PanelX, layout.NameY, layout.PanelW, layout.NameH, display, layout.NameSize, Lcd.Ink);
-            ui.Proof = Ui.Text(right, "Proof", layout.PanelX, layout.ProofY, layout.PanelW, 18, mono, 13, Lcd.Text2);
-            ui.Best = Ui.Text(right, "Best", layout.PanelX, layout.BestY, layout.PanelW, 18, mono, 13, Lcd.Text2);
+            ui.Name = Ui.Text(right, "Name", layout.PanelX, layout.NameY, layout.PanelWidth, layout.NameHeight, display,
+                layout.NameSize, Lcd.Ink);
+            ui.Proof = Ui.Text(right, "Proof", layout.PanelX, layout.ProofY, layout.PanelWidth, 18, mono, 13,
+                Lcd.Text2);
+            ui.Best = Ui.Text(right, "Best", layout.PanelX, layout.BestY, layout.PanelWidth, 18, mono, 13, Lcd.Text2);
 
-            float thumbW = N * layout.Cell + (N - 1) * layout.ThumbGap;
-            ui.StartLabel = Ui.Text(right, "Start Label", layout.PanelX, layout.LabelY, thumbW, 18, display, 13, Lcd.Ink, text: "START");
-            ui.TargetLabel = Ui.Text(right, "Target Label", layout.PanelX + thumbW + layout.ThumbSpace, layout.LabelY, thumbW, 18, display, 13, Lcd.Ink, text: "TARGET");
+            float thumbWidth = BoardSize * layout.Cell + (BoardSize - 1) * layout.ThumbGap;
+            ui.StartLabel = Ui.Text(right, "Start Label", layout.PanelX, layout.LabelY, thumbWidth, 18, display, 13,
+                Lcd.Ink, text: "START");
+            ui.TargetLabel = Ui.Text(right, "Target Label", layout.PanelX + thumbWidth + layout.ThumbSpace,
+                layout.LabelY, thumbWidth, 18, display, 13, Lcd.Ink, text: "TARGET");
             float radius = Mathf.Min(4f, layout.Cell / 4f);
-            for (int row = 0; row < N; row++)
+            for (int row = 0; row < BoardSize; row++)
             {
-                for (int column = 0; column < N; column++)
+                for (int column = 0; column < BoardSize; column++)
                 {
                     float step = layout.Cell + layout.ThumbGap;
-                    ui.Start[row * N + column] = Ui.Box(right, $"Start {row + 1},{column + 1}", layout.PanelX + column * step, layout.ThumbY + row * step, layout.Cell, layout.Cell, radius, Lcd.Cell);
-                    ui.Target[row * N + column] = Ui.Box(right, $"Target {row + 1},{column + 1}", layout.PanelX + thumbW + layout.ThumbSpace + column * step, layout.ThumbY + row * step, layout.Cell, layout.Cell, radius, Lcd.Cell);
+                    ui.Start[row * BoardSize + column] = Ui.Box(right, $"Start {row + 1},{column + 1}",
+                        layout.PanelX + column * step, layout.ThumbY + row * step, layout.Cell, layout.Cell, radius,
+                        Lcd.Cell);
+                    ui.Target[row * BoardSize + column] = Ui.Box(right, $"Target {row + 1},{column + 1}",
+                        layout.PanelX + thumbWidth + layout.ThumbSpace + column * step, layout.ThumbY + row * step,
+                        layout.Cell, layout.Cell, radius, Lcd.Cell);
                 }
             }
 
-            ui.Play = HudButton.CreateSolid(right, "PLAY", layout.PanelX, layout.PlayY, layout.PanelW, layout.PlayH, display, 18, PlayMyLevel);
-            float third = (layout.PanelW - 16f) / 3f;
-            ui.Edit = HudButton.Create(right, "EDIT", layout.PanelX, layout.Row2Y, third, layout.ButtonH, display, 14, EditMyLevel);
-            ui.Duplicate = HudButton.Create(right, "COPY", layout.PanelX + third + 8f, layout.Row2Y, third, layout.ButtonH, display, 14, DuplicateMyLevel);
-            ui.Delete = HudButton.Create(right, "DELETE", layout.PanelX + 2f * (third + 8f), layout.Row2Y, third, layout.ButtonH, display, 14, DeleteMyLevel);
+            ui.Play = HudButton.CreateSolid(right, "PLAY", layout.PanelX, layout.PlayY, layout.PanelWidth,
+                layout.PlayHeight, display, 18, PlayMyLevel);
+            float third = (layout.PanelWidth - 16f) / 3f;
+            ui.Edit = HudButton.Create(right, "EDIT", layout.PanelX, layout.Row2Y, third, layout.ButtonHeight, display,
+                14, EditMyLevel);
+            ui.Duplicate = HudButton.Create(right, "COPY", layout.PanelX + third + 8f, layout.Row2Y, third,
+                layout.ButtonHeight, display, 14, DuplicateMyLevel);
+            ui.Delete = HudButton.Create(right, "DELETE", layout.PanelX + 2f * (third + 8f), layout.Row2Y, third,
+                layout.ButtonHeight, display, 14, DeleteMyLevel);
 
             if (layout.Desktop)
             {
-                ui.Export = HudButton.Create(right, "EXPORT", layout.PanelX, layout.Row3Y, layout.PanelW, layout.ButtonH, display, 14, ExportMyLevel);
+                ui.Export = HudButton.Create(right, "EXPORT", layout.PanelX, layout.Row3Y, layout.PanelWidth,
+                    layout.ButtonHeight, display, 14, ExportMyLevel);
                 ui.New = HudButton.CreateSolid(left, "NEW", layout.ListX, 636, 140, 44, display, 14, NewLevel);
-                ui.Import = HudButton.Create(left, "IMPORT", layout.ListX + 148, 636, 140, 44, display, 14, ImportLevel);
+                ui.Import = HudButton.Create(left, "IMPORT", layout.ListX + 148, 636, 140, 44, display, 14,
+                    ImportLevel);
                 Ui.Text(left, "Keys", layout.ListX, 688, 1168, 20, mono, 13, Lcd.Text3,
                     text: "Enter play · E edit · N new · I import · X export · D copy · Del delete · Esc back");
             }
             else
             {
-                ui.New = HudButton.Create(right, "NEW", layout.PanelX, layout.Row3Y, third, layout.ButtonH, display, 14, NewLevel);
-                ui.Import = HudButton.Create(right, "IMPORT", layout.PanelX + third + 8f, layout.Row3Y, third, layout.ButtonH, display, 14, ImportLevel);
-                ui.Export = HudButton.Create(right, "EXPORT", layout.PanelX + 2f * (third + 8f), layout.Row3Y, third, layout.ButtonH, display, 14, ExportMyLevel);
+                ui.New = HudButton.Create(right, "NEW", layout.PanelX, layout.Row3Y, third, layout.ButtonHeight,
+                    display, 14, NewLevel);
+                ui.Import = HudButton.Create(right, "IMPORT", layout.PanelX + third + 8f, layout.Row3Y, third,
+                    layout.ButtonHeight, display, 14, ImportLevel);
+                ui.Export = HudButton.Create(right, "EXPORT", layout.PanelX + 2f * (third + 8f), layout.Row3Y, third,
+                    layout.ButtonHeight, display, 14, ExportMyLevel);
             }
 
             // Last, so it covers the screen.
-            ui.Share = ShareDialog.Create(root, layout.FrameW, layout.FrameH, display, mono);
+            ui.Share = ShareDialog.Create(root, layout.FrameWidth, layout.FrameHeight, display, mono);
         }
 
         void EnterMyLevels(bool arriving)
@@ -281,7 +308,7 @@ namespace ShiftRegister.Game.Hud
             {
                 myEnteredFrame = Time.frameCount;
                 myDragging = false;
-                My.Share.Close();
+                CurrentMyLevels.Share.Close();
             }
 
             SelectMyLevel(mySelected);
@@ -289,7 +316,7 @@ namespace ShiftRegister.Game.Hud
 
         void UpdateMyLevels(Keyboard keyboard)
         {
-            if (My.Share.IsOpen)
+            if (CurrentMyLevels.Share.IsOpen)
             {
                 return;
             }
@@ -329,7 +356,8 @@ namespace ShiftRegister.Game.Hud
             {
                 StepMyLevel(1);
             }
-            else if (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame)
+            else if (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame
+            || keyboard.spaceKey.wasPressedThisFrame)
             {
                 PlayMyLevel();
             }
@@ -371,7 +399,8 @@ namespace ShiftRegister.Game.Hud
             float y = pointer.position.ReadValue().y;
             if (pointer.press.wasPressedThisFrame)
             {
-                myDragging = RectTransformUtility.RectangleContainsScreenPoint(My.List, pointer.position.ReadValue(), Camera.main);
+                myDragging = RectTransformUtility.RectangleContainsScreenPoint(CurrentMyLevels.List,
+                    pointer.position.ReadValue(), Camera.main);
                 myDragY = y;
             }
 
@@ -386,7 +415,7 @@ namespace ShiftRegister.Game.Hud
                 return;
             }
 
-            float pixelsPerRow = My.RowPitch * Screen.height / ScreenLayout.FrameHeightPx;
+            float pixelsPerRow = CurrentMyLevels.RowPitch * Screen.height / ScreenLayout.FrameHeightPx;
             int rows = (int)((y - myDragY) / pixelsPerRow);
             if (rows == 0)
             {
@@ -416,7 +445,7 @@ namespace ShiftRegister.Game.Hud
 
         void ScrollMyLevels(int delta)
         {
-            int maxTop = Mathf.Max(0, Library.levels.Count - My.Rows.Length);
+            int maxTop = Mathf.Max(0, Library.levels.Count - CurrentMyLevels.Rows.Length);
             myTop = Mathf.Clamp(myTop + delta, 0, maxTop);
             RefreshMyLevels();
         }
@@ -424,7 +453,7 @@ namespace ShiftRegister.Game.Hud
         void SelectMyLevel(int index)
         {
             int count = Library.levels.Count;
-            int visible = My.Rows.Length;
+            int visible = CurrentMyLevels.Rows.Length;
             mySelected = Mathf.Clamp(index, 0, Mathf.Max(0, count - 1));
             if (mySelected < myTop)
             {
@@ -442,7 +471,7 @@ namespace ShiftRegister.Game.Hud
         }
 
         /// <summary>Esc on the open share dialog closes it. False if it was not open.</summary>
-        public bool CloseShare() => built && My.Share.Close();
+        public bool CloseShare() => built && CurrentMyLevels.Share.Close();
 
         void ImportLevel()
         {
@@ -452,7 +481,7 @@ namespace ShiftRegister.Game.Hud
                 return;
             }
 
-            My.Share.OpenImport(code =>
+            CurrentMyLevels.Share.OpenImport(code =>
             {
                 var entry = Library.Import(code, DateTime.UtcNow.Ticks, out var error);
                 if (entry == null)
@@ -475,7 +504,7 @@ namespace ShiftRegister.Game.Hud
             }
             else
             {
-                My.Share.OpenExport(entry.level);
+                CurrentMyLevels.Share.OpenExport(entry.level);
             }
         }
 
@@ -505,7 +534,9 @@ namespace ShiftRegister.Game.Hud
             flow.PlayCustom(entry, GameScreen.MyLevels);
         }
 
-        /// <summary>A level whose start already is its target, or where nothing can move, has nothing to play.</summary>
+        /// <summary>
+        /// A level whose start already is its target, or where nothing can move, has nothing to play.
+        /// </summary>
         static bool IsPlayable(CustomLevel entry) => new LevelEdit(entry.level, entry.proof).Problems().Count == 0;
 
         void EditMyLevel()
@@ -548,8 +579,8 @@ namespace ShiftRegister.Game.Hud
             if (deleteArmedUntil <= 0f)
             {
                 deleteArmedUntil = Time.unscaledTime + DeleteConfirmTime;
-                My.Delete.Text = "SURE?";
-                My.Delete.Selected = true;
+                CurrentMyLevels.Delete.Text = "SURE?";
+                CurrentMyLevels.Delete.Selected = true;
                 return;
             }
 
@@ -561,13 +592,13 @@ namespace ShiftRegister.Game.Hud
         void DisarmDelete()
         {
             deleteArmedUntil = 0f;
-            My.Delete.Text = "DELETE";
-            My.Delete.Selected = false;
+            CurrentMyLevels.Delete.Text = "DELETE";
+            CurrentMyLevels.Delete.Selected = false;
         }
 
         void RefreshMyLevels()
         {
-            var ui = My;
+            var ui = CurrentMyLevels;
             var levels = Library.levels;
             int count = levels.Count, visible = ui.Rows.Length;
             string range = count > visible ? $" · {myTop + 1}–{Mathf.Min(myTop + visible, count)}" : "";
@@ -607,11 +638,11 @@ namespace ShiftRegister.Game.Hud
             ui.Proof.text = any ? ProofLine(entry) : "";
             ui.Best.text = any && entry.bestMoves > 0 ? $"your best: {Ui.Moves(entry.bestMoves)}" : "";
             ui.StartLabel.enabled = ui.TargetLabel.enabled = any;
-            for (int row = 0; row < N; row++)
+            for (int row = 0; row < BoardSize; row++)
             {
-                for (int column = 0; column < N; column++)
+                for (int column = 0; column < BoardSize; column++)
                 {
-                    int cellIndex = row * N + column;
+                    int cellIndex = row * BoardSize + column;
                     ui.Start[cellIndex].enabled = ui.Target[cellIndex].enabled = any;
                     if (!any)
                     {

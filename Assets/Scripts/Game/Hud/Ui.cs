@@ -37,7 +37,8 @@ namespace ShiftRegister.Game.Hud
         }
 
         public static TextMeshProUGUI Text(Transform parent, string name, float x, float y, float width, float height,
-            TMP_FontAsset font, float size, Color32 color, TextAlignmentOptions align = TextAlignmentOptions.MidlineLeft, string text = "")
+            TMP_FontAsset font, float size, Color32 color,
+            TextAlignmentOptions align = TextAlignmentOptions.MidlineLeft, string text = "")
         {
             var label = Rect(parent, name, x, y, width, height).gameObject.AddComponent<TextMeshProUGUI>();
             Style(label, font, size, color, align);
@@ -45,7 +46,8 @@ namespace ShiftRegister.Game.Hud
             return label;
         }
 
-        public static void Style(TextMeshProUGUI label, TMP_FontAsset font, float size, Color32 color, TextAlignmentOptions align)
+        public static void Style(TextMeshProUGUI label, TMP_FontAsset font, float size, Color32 color,
+            TextAlignmentOptions align)
         {
             label.font = font;
             label.fontSize = size;
@@ -57,7 +59,8 @@ namespace ShiftRegister.Game.Hud
         }
 
         /// <summary>A procedural UI sprite centred on the given mockup rect.</summary>
-        public static Image Shape(Transform parent, string name, float x, float y, float width, float height, Sprite sprite, Color color)
+        public static Image Shape(Transform parent, string name, float x, float y, float width, float height,
+            Sprite sprite, Color color)
         {
             var gameObject = new GameObject(name, typeof(RectTransform));
             var rectTransform = (RectTransform)gameObject.transform;
@@ -73,12 +76,16 @@ namespace ShiftRegister.Game.Hud
             return image;
         }
 
-        public static Image Box(Transform parent, string name, float x, float y, float width, float height, float radius, Color color) =>
-            Shape(parent, name, x, y, width, height, ProceduralSprites.RoundedRect(width, height, radius, ui: true), color);
+        public static Image Box(Transform parent, string name, float x, float y, float width, float height,
+            float radius, Color color) =>
+            Shape(parent, name, x, y, width, height, ProceduralSprites.RoundedRect(width, height, radius, ui: true),
+            color);
 
-        public static Image Frame(Transform parent, string name, float x, float y, float width, float height, float radius,
+        public static Image Frame(Transform parent, string name, float x, float y, float width, float height,
+            float radius,
             float thickness, Color color, float dash = 0f) =>
-            Shape(parent, name, x, y, width, height, ProceduralSprites.RoundedOutline(width, height, radius, thickness, dash, ui: true), color);
+            Shape(parent, name, x, y, width, height,
+            ProceduralSprites.RoundedOutline(width, height, radius, thickness, dash, ui: true), color);
 
         /// <summary>
         /// Draws a canvas through the main camera instead of over the whole screen, so it follows the

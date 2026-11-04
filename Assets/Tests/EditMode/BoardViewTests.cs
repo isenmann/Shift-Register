@@ -7,21 +7,21 @@ namespace ShiftRegister.Tests
 {
     public class BoardViewTests
     {
-        GameObject go;
+        GameObject gameObject;
 
         [TearDown]
-        public void TearDown() => Object.DestroyImmediate(go);
+        public void TearDown() => Object.DestroyImmediate(gameObject);
 
         [Test]
         public void Show_MatchesBoardBits_AndMarksTargetGhosts()
         {
             var board = new Board(TestLevels.Heart());
-            go = new GameObject("Board");
-            var view = go.AddComponent<BoardView>();
+            gameObject = new GameObject("Board");
+            var view = gameObject.AddComponent<BoardView>();
             view.Build(board.Rules);
             view.Show(board.Bits);
 
-            Assert.That(go.transform.Find("Cells").childCount, Is.EqualTo(64));
+            Assert.That(gameObject.transform.Find("Cells").childCount, Is.EqualTo(64));
             for (int row = 0; row < 8; row++)
             {
                 for (int column = 0; column < 8; column++)
@@ -43,7 +43,8 @@ namespace ShiftRegister.Tests
         public void CellCenter_RowZeroIsTop_PitchMatchesMockup()
         {
             Assert.That(BoardView.CellCenter(0, 0).y, Is.GreaterThan(BoardView.CellCenter(7, 0).y));
-            Assert.That(BoardView.CellCenter(0, 1).x - BoardView.CellCenter(0, 0).x, Is.EqualTo(53f / 46f).Within(1e-5), "46 px cells, 7 px gaps (layout A scales the board to 52 px cells)");
+            Assert.That(BoardView.CellCenter(0, 1).x - BoardView.CellCenter(0, 0).x, Is.EqualTo(53f / 46f).Within(1e-5),
+                "46 px cells, 7 px gaps (layout A scales the board to 52 px cells)");
         }
     }
 }

@@ -37,7 +37,8 @@ namespace ShiftRegister.Editor
                 .ToList();
             if (catalogs.Count == 0)
             {
-                Debug.LogError("No LevelCatalog asset found. Create one via Assets > Create > Shift Register > Level Catalog.");
+                Debug.LogError(
+                    "No LevelCatalog asset found. Create one via Assets > Create > Shift Register > Level Catalog.");
                 return;
             }
 
@@ -45,7 +46,8 @@ namespace ShiftRegister.Editor
             int ok = 0, updated = 0, failed = 0;
             var seenIds = new Dictionary<string, string>();
             var referenced = new HashSet<string>();
-            var entries = catalogs.SelectMany(catalog => catalog.AllLevels().Select(entry => (catalog: catalog, entry.chapter, entry.level, entry.file))).ToList();
+            var entries = catalogs.SelectMany(catalog => catalog.AllLevels()
+                .Select(entry => (catalog: catalog, entry.chapter, entry.level, entry.file))).ToList();
 
             try
             {
@@ -109,7 +111,8 @@ namespace ShiftRegister.Editor
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 if (path.EndsWith(".json") && !referenced.Contains(path))
                 {
-                    Debug.LogWarning($"{path} is not in any level catalog.", AssetDatabase.LoadAssetAtPath<TextAsset>(path));
+                    Debug.LogWarning($"{path} is not in any level catalog.",
+                        AssetDatabase.LoadAssetAtPath<TextAsset>(path));
                 }
             }
 
@@ -177,7 +180,9 @@ namespace ShiftRegister.Editor
             };
         }
 
-        /// <summary>Sets a top-level number or string field in JSON text, keeping the rest of the text as written.</summary>
+        /// <summary>
+        /// Sets a top-level number or string field in JSON text, keeping the rest of the text as written.
+        /// </summary>
         public static string SetField(string json, string key, string valueLiteral)
         {
             var regex = new Regex("(\"" + Regex.Escape(key) + "\"\\s*:\\s*)(\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d+)");

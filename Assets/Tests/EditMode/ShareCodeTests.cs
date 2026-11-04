@@ -97,7 +97,8 @@ namespace ShiftRegister.Tests
             string code = ShareCode.Encode(Simple());
             for (int length = ShareCode.Prefix.Length; length < code.Length; length++)
             {
-                Assert.That(ShareCode.TryDecode(code.Substring(0, length), out _), Is.Not.EqualTo(ShareCodeError.None), $"length {length}");
+                Assert.That(ShareCode.TryDecode(code.Substring(0, length), out _), Is.Not.EqualTo(ShareCodeError.None),
+                    $"length {length}");
             }
         }
 

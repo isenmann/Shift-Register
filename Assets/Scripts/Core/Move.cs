@@ -66,7 +66,9 @@ namespace ShiftRegister.Core
         public static Move FromByte(byte value) =>
             new Move((Direction)(value >> 6), (value >> 3) & 7, value & 7);
 
-        /// <summary>Reads a space-separated list in the notation of <see cref="ToString"/>, e.g. "R5← C4↑ R2.2→".</summary>
+        /// <summary>
+        /// Reads a space-separated list in the notation of <see cref="ToString"/>, e.g. "R5← C4↑ R2.2→".
+        /// </summary>
         public static bool TryParseList(string text, out List<Move> moves)
         {
             moves = new List<Move>();
@@ -152,7 +154,8 @@ namespace ShiftRegister.Core
             return true;
         }
 
-        public bool Equals(Move other) => Direction == other.Direction && Line == other.Line && Segment == other.Segment;
+        public bool Equals(Move other) =>
+            Direction == other.Direction && Line == other.Line && Segment == other.Segment;
         public override bool Equals(object obj) => obj is Move move && Equals(move);
         public override int GetHashCode() => ((int)Direction << 16) | (Line << 8) | Segment;
         public static bool operator ==(Move left, Move right) => left.Equals(right);

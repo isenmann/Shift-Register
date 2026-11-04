@@ -18,7 +18,7 @@ namespace ShiftRegister.Game.Hud
         sealed class TitleBit
         {
             public int Column;
-            public Image Body, EyeL, EyeR;
+            public Image Body, LeftEye, RightEye;
         }
 
         readonly List<TitleBit> titleBits = new List<TitleBit>();
@@ -64,13 +64,13 @@ namespace ShiftRegister.Game.Hud
             introRunning = true;
             reveal.enabled = true;
             const float start = 0.35f, step = 0.09f, pop = 0.2f, blink = 0.08f;
-            float eyes = start + N * step + 0.3f, blinkAt = eyes + 0.6f, end = blinkAt + blink;
+            float eyes = start + BoardSize * step + 0.3f, blinkAt = eyes + 0.6f, end = blinkAt + blink;
             int noted = -1;
             bool awake = false;
             for (float elapsed = 0f; elapsed < end; elapsed += Time.unscaledDeltaTime)
             {
                 reveal.color = new Color(0f, 0f, 0f, 1f - Mathf.Clamp01(elapsed / RevealTime));
-                int column = Mathf.Min(Mathf.FloorToInt((elapsed - start) / step), N - 1);
+                int column = Mathf.Min(Mathf.FloorToInt((elapsed - start) / step), BoardSize - 1);
                 while (noted < column)
                 {
                     noted++;
@@ -84,7 +84,8 @@ namespace ShiftRegister.Game.Hud
                 {
                     float popProgress = Mathf.Clamp01((elapsed - start - titleBit.Column * step) / pop);
                     titleBit.Body.color = popProgress > 0f ? Lcd.Ink : Lcd.Background;
-                    titleBit.Body.rectTransform.localScale = Vector3.one * (popProgress > 0f ? EaseOutBack(popProgress) : 1f);
+                    titleBit.Body.rectTransform.localScale = Vector3.one * (popProgress > 0f ? EaseOutBack(popProgress)
+                        : 1f);
                 }
 
                 if (elapsed >= eyes && !awake)
@@ -129,7 +130,7 @@ namespace ShiftRegister.Game.Hud
         {
             foreach (var titleBit in titleBits)
             {
-                titleBit.EyeL.enabled = titleBit.EyeR.enabled = open;
+                titleBit.LeftEye.enabled = titleBit.RightEye.enabled = open;
             }
         }
 

@@ -19,11 +19,31 @@ namespace ShiftRegister.Game.Audio
         public float Vibrato;
         public float VibratoHz;
 
-        public static Note Of(Wave wave, float frequency, float start, float duration, float volume = 1f, float duty = 0.5f) =>
-            new Note { Wave = wave, FromHz = frequency, ToHz = frequency, Start = start, Duration = duration, Volume = volume, Duty = duty };
+        public static Note Of(Wave wave, float frequency, float start, float duration, float volume = 1f,
+            float duty = 0.5f) =>
+            new Note
+            {
+                Wave = wave,
+                FromHz = frequency,
+                ToHz = frequency,
+                Start = start,
+                Duration = duration,
+                Volume = volume,
+                Duty = duty
+            };
 
-        public static Note Glide(Wave wave, float fromHz, float toHz, float start, float duration, float volume = 1f, float duty = 0.5f) =>
-            new Note { Wave = wave, FromHz = fromHz, ToHz = toHz, Start = start, Duration = duration, Volume = volume, Duty = duty };
+        public static Note Glide(Wave wave, float fromHz, float toHz, float start, float duration, float volume = 1f,
+            float duty = 0.5f) =>
+            new Note
+            {
+                Wave = wave,
+                FromHz = fromHz,
+                ToHz = toHz,
+                Start = start,
+                Duration = duration,
+                Volume = volume,
+                Duty = duty
+            };
     }
 
     /// <summary>

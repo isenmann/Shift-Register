@@ -9,7 +9,8 @@ namespace ShiftRegister.Tests
         static LevelEdit Blank() => LevelEdit.Blank("Test");
 
         static void AssertValid(LevelEdit edit) =>
-            Assert.That(LevelEdit.AuthoredErrors(edit.Level), Is.Empty, string.Join("; ", LevelEdit.AuthoredErrors(edit.Level)));
+            Assert.That(LevelEdit.AuthoredErrors(edit.Level), Is.Empty,
+            string.Join("; ", LevelEdit.AuthoredErrors(edit.Level)));
 
         [Test]
         public void Wall_ClearsWhatIsUnderIt()

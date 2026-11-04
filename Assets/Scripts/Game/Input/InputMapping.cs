@@ -5,7 +5,8 @@ namespace ShiftRegister.Game.Input
     /// <summary>Turns player intents (cursor + direction, edge arrow buttons) into moves.</summary>
     public static class InputMapping
     {
-        public static Axis AxisOf(Direction direction) => direction == Direction.Left || direction == Direction.Right ? Axis.Row : Axis.Column;
+        public static Axis AxisOf(Direction direction) =>
+            direction == Direction.Left || direction == Direction.Right ? Axis.Row : Axis.Column;
 
         /// <summary>Shift the line part under the cursor cell. False on a wall cell or a locked line.</summary>
         public static bool TryCursorMove(LevelRules rules, int row, int column, Direction direction, out Move move)

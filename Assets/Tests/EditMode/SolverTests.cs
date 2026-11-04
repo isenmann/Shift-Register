@@ -97,7 +97,8 @@ namespace ShiftRegister.Tests
                 Assert.That(job.Result.Par, Is.EqualTo(whole.Par));
                 Assert.That(job.Result.StatesVisited, Is.EqualTo(whole.StatesVisited));
                 Assert.That(job.Result.Solution, Is.EqualTo(whole.Solution));
-                Assert.That(job.StatesVisited, Is.EqualTo(whole.StatesVisited), "still readable after the job frees its memory");
+                Assert.That(job.StatesVisited, Is.EqualTo(whole.StatesVisited),
+                    "still readable after the job frees its memory");
             }
         }
 
@@ -165,9 +166,9 @@ namespace ShiftRegister.Tests
             {
                 for (int line = 0; line < 8; line++)
                 {
-                    for (int seg = 0; seg < 8; seg++)
+                    for (int segment = 0; segment < 8; segment++)
                     {
-                        var move = new Move(direction, line, seg);
+                        var move = new Move(direction, line, segment);
                         Assert.That(Move.FromByte(move.ToByte()), Is.EqualTo(move));
                     }
                 }
@@ -177,7 +178,8 @@ namespace ShiftRegister.Tests
         [Test]
         public void MoveNotation_RoundTrips()
         {
-            var moves = new[] { Move.Row(4, Direction.Left), Move.Column(3, Direction.Up), Move.Row(1, Direction.Right, 1) };
+            var moves = new[] { Move.Row(4, Direction.Left), Move.Column(3, Direction.Up),
+                Move.Row(1, Direction.Right, 1) };
             Assert.That(Move.TryParseList(string.Join(" ", moves), out var back), Is.True);
             Assert.That(back, Is.EqualTo(moves));
             Assert.That(Move.TryParseList("", out var none), Is.True);

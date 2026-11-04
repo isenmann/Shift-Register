@@ -13,7 +13,9 @@ namespace ShiftRegister.Core
         Hard = 2
     }
 
-    /// <summary>A finished random level. <see cref="Level"/> has no id; a library gives it one when it is saved.</summary>
+    /// <summary>
+    /// A finished random level. <see cref="Level"/> has no id; a library gives it one when it is saved.
+    /// </summary>
     public sealed class GeneratedLevel
     {
         public LevelData Level { get; }
@@ -50,7 +52,9 @@ namespace ShiftRegister.Core
             public string Name;
             public int Scramble, ParMin, ParMax, StampsMin, StampsMax;
             public Mechanic[] Mixes;
-            /// <summary>A search that runs out proves the level is deep, so the scramble's solution can be its par.</summary>
+            /// <summary>
+            /// A search that runs out proves the level is deep, so the scramble's solution can be its par.
+            /// </summary>
             public bool AcceptUnsearched;
         }
 
@@ -73,7 +77,8 @@ namespace ShiftRegister.Core
             ParMax = 7,
             StampsMin = 3,
             StampsMax = 5,
-            Mixes = new[] { Mechanic.Walls, Mechanic.Rotate, Mechanic.Walls | Mechanic.Rotate, Mechanic.Pin | Mechanic.Walls, Mechanic.Pin | Mechanic.Rotate }
+            Mixes = new[] { Mechanic.Walls, Mechanic.Rotate, Mechanic.Walls | Mechanic.Rotate,
+            Mechanic.Pin | Mechanic.Walls, Mechanic.Pin | Mechanic.Rotate }
         };
 
         static readonly Tier Hard = new Tier
@@ -85,7 +90,8 @@ namespace ShiftRegister.Core
             StampsMin = 4,
             StampsMax = 6,
             AcceptUnsearched = true,
-            Mixes = new[] { Mechanic.Chain, Mechanic.Chain | Mechanic.Walls, Mechanic.Chain | Mechanic.Rotate, Mechanic.Walls | Mechanic.Rotate, Mechanic.Pin | Mechanic.Walls | Mechanic.Rotate }
+            Mixes = new[] { Mechanic.Chain, Mechanic.Chain | Mechanic.Walls, Mechanic.Chain | Mechanic.Rotate,
+            Mechanic.Walls | Mechanic.Rotate, Mechanic.Pin | Mechanic.Walls | Mechanic.Rotate }
         };
 
         static Tier TierOf(RandomDifficulty difficulty)
@@ -107,7 +113,8 @@ namespace ShiftRegister.Core
         /// Starts making a level, in slices, for places that cannot block (the web build has no threads).
         /// Call <see cref="GeneratorJob.Step"/> until it returns true; to cancel, just drop the job.
         /// </summary>
-        public static GeneratorJob Begin(RandomDifficulty difficulty, int seed) => new GeneratorJob(TierOf(difficulty), seed);
+        public static GeneratorJob Begin(RandomDifficulty difficulty, int seed) =>
+            new GeneratorJob(TierOf(difficulty), seed);
 
         /// <summary>Makes a level in one go. Null in the unlikely case every attempt failed.</summary>
         public static GeneratedLevel Generate(RandomDifficulty difficulty, int seed)
@@ -120,11 +127,13 @@ namespace ShiftRegister.Core
             return job.Result;
         }
 
-        /// <summary>One level being made. Tries candidates until one passes or <see cref="MaxAttempts"/> run out.</summary>
+        /// <summary>
+        /// One level being made. Tries candidates until one passes or <see cref="MaxAttempts"/> run out.
+        /// </summary>
         public sealed class GeneratorJob
         {
             readonly Tier tier;
-            readonly Random rng;
+            readonly Random random;
 
             // The candidate being searched; null between attempts.
             LevelData candidate;
@@ -133,7 +142,9 @@ namespace ShiftRegister.Core
             Mechanic mix;
             Solver.SolveJob search;
 
-            /// <summary>The level, or null until <see cref="Step"/> has returned true; still null if every attempt failed.</summary>
+            /// <summary>
+            /// The level, or null until <see cref="Step"/> has returned true; still null if every attempt failed.
+            /// </summary>
             public GeneratedLevel Result { get; private set; }
             public bool IsDone { get; private set; }
             /// <summary>Candidates tried so far.</summary>
@@ -142,10 +153,12 @@ namespace ShiftRegister.Core
             internal GeneratorJob(Tier tier, int seed)
             {
                 this.tier = tier;
-                rng = new Random(seed);
+                random = new Random(seed);
             }
 
-            /// <summary>Expands up to <paramref name="maxNodes"/> search states. Returns true once the job is done.</summary>
+            /// <summary>
+            /// Expands up to <paramref name="maxNodes"/> search states. Returns true once the job is done.
+            /// </summary>
             public bool Step(int maxNodes)
             {
                 if (IsDone)
@@ -174,12 +187,14 @@ namespace ShiftRegister.Core
                 return IsDone;
             }
 
-            /// <summary>Starts the search of a new candidate, or leaves <see cref="search"/> null if it is no good.</summary>
+            /// <summary>
+            /// Starts the search of a new candidate, or leaves <see cref="search"/> null if it is no good.
+            /// </summary>
             void NextCandidate()
             {
                 Attempts++;
-                mix = tier.Mixes[rng.Next(tier.Mixes.Length)];
-                candidate = BuildRules(rng, tier, mix);
+                mix = tier.Mixes[random.Next(tier.Mixes.Length)];
+                candidate = BuildRules(random, tier, mix);
                 if (candidate == null)
                 {
                     return;
@@ -187,7 +202,7 @@ namespace ShiftRegister.Core
 
                 // The rules are fixed now, only the start is still the target.
                 rules = LevelRules.Compile(candidate);
-                scrambleSolution = Scramble(rules, rng, tier.Scramble, out ulong start);
+                scrambleSolution = Scramble(rules, random, tier.Scramble, out ulong start);
                 if (scrambleSolution == null)
                 {
                     return;
@@ -224,7 +239,8 @@ namespace ShiftRegister.Core
 
                     Finish(found.Solution, LevelProof.Searched);
                 }
-                else if (found.Status == SolveStatus.LimitReached && tier.AcceptUnsearched && Solver.Replays(rules, scrambleSolution))
+                else if (found.Status == SolveStatus.LimitReached && tier.AcceptUnsearched
+                && Solver.Replays(rules, scrambleSolution))
                 {
                     Finish(scrambleSolution, LevelProof.Replayed);
                 }
@@ -234,7 +250,7 @@ namespace ShiftRegister.Core
             {
                 candidate.par = solution.Count;
                 candidate.solution = string.Join(" ", solution);
-                candidate.name = $"{tier.Name} {rng.Next(0x1000, 0x10000):X4}";
+                candidate.name = $"{tier.Name} {random.Next(0x1000, 0x10000):X4}";
                 Result = new GeneratedLevel(candidate, proof, Attempts);
                 IsDone = true;
             }
@@ -333,7 +349,9 @@ namespace ShiftRegister.Core
                 int column = random.Next(BoardBits.Size - (across ? length - 1 : 0));
                 for (int step = 0; step < length; step++)
                 {
-                    foreach (var (imageRow, imageColumn) in Images(symmetry, across ? row : row + step, across ? column + step : column))
+                    foreach (var (imageRow, imageColumn) in Images(symmetry, across ? row : row + step, across
+                        ? column + step
+                        : column))
                     {
                         rows[imageRow] |= 0x80 >> imageColumn;
                     }
@@ -479,7 +497,9 @@ namespace ShiftRegister.Core
 
         // ----- Is every rule doing something? -----
 
-        /// <summary>Whether a solution relies on walls, wraps and chains; a pin blocks lines just by standing there.</summary>
+        /// <summary>
+        /// Whether a solution relies on walls, wraps and chains; a pin blocks lines just by standing there.
+        /// </summary>
         static bool UsesEverything(LevelRules rules, IReadOnlyList<Move> solution, Mechanic mix)
         {
             bool split = false, wrap = false, carry = false;
@@ -508,7 +528,8 @@ namespace ShiftRegister.Core
                     int top = rules.ChainTopOf(move.Line);
                     if (top >= 0)
                     {
-                        int crossing = move.TowardStart ? BoardBits.GetRow(board, top + 1) & 0x80 : BoardBits.GetRow(board, top) & 0x01;
+                        int crossing = move.TowardStart ? BoardBits.GetRow(board, top + 1) & 0x80
+                            : BoardBits.GetRow(board, top) & 0x01;
                         if (crossing != 0)
                         {
                             carry = true;

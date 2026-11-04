@@ -59,7 +59,8 @@ namespace ShiftRegister.Game.Audio
                 {
                     for (int up = 0; up < 2; up++)
                     {
-                        shiftClips[axis, line, up] = Clip($"Shift {axis}-{line}-{up}", SoundBank.Shift((Axis)axis, line, up == 1));
+                        shiftClips[axis, line, up] = Clip($"Shift {axis}-{line}-{up}",
+                            SoundBank.Shift((Axis)axis, line, up == 1));
                     }
                 }
             }

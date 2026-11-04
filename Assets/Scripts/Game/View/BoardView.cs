@@ -12,7 +12,7 @@ namespace ShiftRegister.Game.View
     {
         // Shapes in mockup pixels (a cell is 46 px).
         const float CellPx = 46f, RadiusPx = 8f;
-        const float EyeW = 6f, EyeH = 8f, EyeRadius = 2f, EyeX = 8f, EyeY = 5f;
+        const float EyeWidth = 6f, EyeHeight = 8f, EyeRadius = 2f, EyeX = 8f, EyeY = 5f;
 
         enum Layer { Ground = 0, Ghost = 1, Bit = 2, Eyes = 3, Pin = 4 }
 
@@ -54,7 +54,7 @@ namespace ShiftRegister.Game.View
             var wall = ProceduralSprites.Hatched(CellPx, RadiusPx, 4f, 2f, Lcd.Text3, Lcd.Card);
             var ghost = ProceduralSprites.RoundedOutline(CellPx, CellPx, RadiusPx, 2f, 5f);
             var pin = ProceduralSprites.RoundedOutline(CellPx - 6f, CellPx - 6f, RadiusPx - 3f, 3f);
-            var eye = ProceduralSprites.RoundedRect(EyeW, EyeH, EyeRadius);
+            var eye = ProceduralSprites.RoundedRect(EyeWidth, EyeHeight, EyeRadius);
 
             cells = new Cell[BoardBits.Size, BoardBits.Size];
             for (int row = 0; row < BoardBits.Size; row++)
@@ -68,14 +68,17 @@ namespace ShiftRegister.Game.View
                     bool isWall = rules.IsWall(row, column);
                     var cell = new Cell
                     {
-                        Ground = Renderer(root, "Ground", isWall ? wall : ground, isWall ? Color.white : (Color)Lcd.Cell, Layer.Ground),
+                        Ground = Renderer(root, "Ground", isWall ? wall : ground, isWall ? Color.white
+                        : (Color)Lcd.Cell, Layer.Ground),
                         Ghost = Renderer(root, "Ghost", ghost, Lcd.Text3, Layer.Ghost)
                     };
 
                     var bit = Renderer(root, "Bit", ground, Lcd.Ink, Layer.Bit);
                     cell.Bit = bit.gameObject;
-                    Renderer(bit.transform, "Eye L", eye, Lcd.Light, Layer.Eyes).transform.localPosition = new Vector2(-EyeX, EyeY) / CellPx;
-                    Renderer(bit.transform, "Eye R", eye, Lcd.Light, Layer.Eyes).transform.localPosition = new Vector2(EyeX, EyeY) / CellPx;
+                    Renderer(bit.transform, "Eye L", eye, Lcd.Light,
+                        Layer.Eyes).transform.localPosition = new Vector2(-EyeX, EyeY) / CellPx;
+                    Renderer(bit.transform, "Eye R", eye, Lcd.Light,
+                        Layer.Eyes).transform.localPosition = new Vector2(EyeX, EyeY) / CellPx;
 
                     cell.Pin = Renderer(root, "Pin", pin, Lcd.Light, Layer.Pin);
                     cell.Pin.enabled = rules.IsPinned(row, column);
@@ -86,7 +89,9 @@ namespace ShiftRegister.Game.View
             BuildOverlays();
         }
 
-        /// <summary>Shows a board state at once (stopping any animation); empty target cells get a dashed ghost.</summary>
+        /// <summary>
+        /// Shows a board state at once (stopping any animation); empty target cells get a dashed ghost.
+        /// </summary>
         public void Show(ulong bits)
         {
             StopAnimation();
@@ -94,7 +99,9 @@ namespace ShiftRegister.Game.View
             ShowNow(bits, bits);
         }
 
-        /// <summary>Static bits for <paramref name="bits"/>, ghosts computed from <paramref name="ghostsFrom"/>.</summary>
+        /// <summary>
+        /// Static bits for <paramref name="bits"/>, ghosts computed from <paramref name="ghostsFrom"/>.
+        /// </summary>
         void ShowNow(ulong bits, ulong ghostsFrom)
         {
             if (cells == null)
@@ -110,7 +117,8 @@ namespace ShiftRegister.Game.View
                     cell.Bit.SetActive(BoardBits.GetCell(bits, row, column));
                     cell.Bit.transform.localPosition = Vector3.zero;
                     cell.Bit.transform.localScale = Vector3.one;
-                    cell.Ghost.enabled = !BoardBits.GetCell(ghostsFrom, row, column) && BoardBits.GetCell(rules.Target, row, column);
+                    cell.Ghost.enabled = !BoardBits.GetCell(ghostsFrom, row, column)
+                        && BoardBits.GetCell(rules.Target, row, column);
                 }
             }
 

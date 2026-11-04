@@ -163,7 +163,8 @@ namespace ShiftRegister.Game.CustomLevels
         {
             justProved = false;
             var level = entry.level;
-            if (Solver.Replays(LevelRules.Compile(level), moves) && (entry.proof == LevelProof.None || (entry.proof == LevelProof.Replayed && moves.Count < level.par)))
+            if (Solver.Replays(LevelRules.Compile(level), moves)
+                && (entry.proof == LevelProof.None || (entry.proof == LevelProof.Replayed && moves.Count < level.par)))
             {
                 justProved = entry.proof == LevelProof.None;
                 level.par = moves.Count;
@@ -181,7 +182,9 @@ namespace ShiftRegister.Game.CustomLevels
             return new LevelResult(moves.Count, level.par, Scoring.Stars(moves.Count, level.par), better, previous);
         }
 
-        /// <summary>Keeps a random level: a copy under a new id, with its best moves. Returns null if the library is full.</summary>
+        /// <summary>
+        /// Keeps a random level: a copy under a new id, with its best moves. Returns null if the library is full.
+        /// </summary>
         public CustomLevel SaveCopy(CustomLevel entry, long nowTicks)
         {
             var copy = Add(entry.level, entry.proof, nowTicks);

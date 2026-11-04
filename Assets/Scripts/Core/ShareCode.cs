@@ -146,7 +146,9 @@ namespace ShiftRegister.Core
             return Prefix + ToBase64Url(bytes.ToArray());
         }
 
-        /// <summary>False, with the reason, if this level cannot be shared: invalid, or without a replaying solution.</summary>
+        /// <summary>
+        /// False, with the reason, if this level cannot be shared: invalid, or without a replaying solution.
+        /// </summary>
         public static bool CanEncode(LevelData level, out string reason)
         {
             reason = "";
@@ -301,22 +303,22 @@ namespace ShiftRegister.Core
         {
             readonly byte[] bytes;
             readonly int end;
-            int at;
+            int position;
             public Reader(byte[] bytes, int end)
             {
                 this.bytes = bytes;
                 this.end = end;
             }
 
-            public bool AtEnd => at == end;
+            public bool AtEnd => position == end;
             public byte Next()
             {
-                if (at >= end)
+                if (position >= end)
                 {
                     throw new IndexOutOfRangeException();
                 }
 
-                return bytes[at++];
+                return bytes[position++];
             }
         }
 
@@ -431,7 +433,8 @@ namespace ShiftRegister.Core
                 return false;
             }
 
-            string padded = text.Replace('-', '+').Replace('_', '/').PadRight(text.Length + (4 - text.Length % 4) % 4, '=');
+            string padded = text.Replace('-', '+').Replace('_', '/')
+                .PadRight(text.Length + (4 - text.Length % 4) % 4, '=');
             try
             {
                 bytes = Convert.FromBase64String(padded);

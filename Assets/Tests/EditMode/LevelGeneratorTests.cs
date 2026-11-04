@@ -9,7 +9,8 @@ namespace ShiftRegister.Tests
         /// <summary>Few on purpose: searching is slow in the editor, and every test here makes levels.</summary>
         const int Seeds = 5;
 
-        static readonly RandomDifficulty[] All = { RandomDifficulty.Easy, RandomDifficulty.Medium, RandomDifficulty.Hard };
+        static readonly RandomDifficulty[] All = { RandomDifficulty.Easy, RandomDifficulty.Medium,
+            RandomDifficulty.Hard };
 
         static GeneratedLevel Make(RandomDifficulty difficulty, int seed)
         {
@@ -19,7 +20,8 @@ namespace ShiftRegister.Tests
         }
 
         [Test]
-        public void EveryLevel_PassesTheEditorsRules_AndHasSomethingToPlay([ValueSource(nameof(All))] RandomDifficulty difficulty)
+        public void EveryLevel_PassesTheEditorsRules_AndHasSomethingToPlay(
+        [ValueSource(nameof(All))] RandomDifficulty difficulty)
         {
             for (int seed = 1; seed <= Seeds; seed++)
             {
@@ -31,14 +33,17 @@ namespace ShiftRegister.Tests
         }
 
         [Test]
-        public void EveryLevel_IsSolvedByItsOwnSolution_InParMoves([ValueSource(nameof(All))] RandomDifficulty difficulty)
+        public void EveryLevel_IsSolvedByItsOwnSolution_InParMoves(
+        [ValueSource(nameof(All))] RandomDifficulty difficulty)
         {
             for (int seed = 1; seed <= Seeds; seed++)
             {
                 var level = Make(difficulty, seed).Level;
-                Assert.That(Move.TryParseList(level.solution, out var moves), Is.True, $"seed {seed}: {level.solution}");
+                Assert.That(Move.TryParseList(level.solution, out var moves), Is.True,
+                    $"seed {seed}: {level.solution}");
                 Assert.That(moves.Count, Is.EqualTo(level.par), $"seed {seed}");
-                Assert.That(Solver.Replays(LevelRules.Compile(level), moves), Is.True, $"seed {seed}: {level.solution}");
+                Assert.That(Solver.Replays(LevelRules.Compile(level), moves), Is.True,
+                    $"seed {seed}: {level.solution}");
             }
         }
 
@@ -49,13 +54,15 @@ namespace ShiftRegister.Tests
             {
                 var level = Make(difficulty, seed).Level;
                 Assert.That(ShareCode.CanEncode(level, out string reason), Is.True, $"seed {seed}: {reason}");
-                Assert.That(ShareCode.TryDecode(ShareCode.Encode(level), out var back), Is.EqualTo(ShareCodeError.None), $"seed {seed}");
+                Assert.That(ShareCode.TryDecode(ShareCode.Encode(level), out var back), Is.EqualTo(ShareCodeError.None),
+                    $"seed {seed}");
                 Assert.That(LevelEdit.SamePuzzle(level, back), Is.True, $"seed {seed}");
             }
         }
 
         [Test]
-        public void EasyAndMedium_ParIsTheTrueMinimum([Values(RandomDifficulty.Easy, RandomDifficulty.Medium)] RandomDifficulty difficulty)
+        public void EasyAndMedium_ParIsTheTrueMinimum(
+        [Values(RandomDifficulty.Easy, RandomDifficulty.Medium)] RandomDifficulty difficulty)
         {
             for (int seed = 1; seed <= Seeds; seed++)
             {

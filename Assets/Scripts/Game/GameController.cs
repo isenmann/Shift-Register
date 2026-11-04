@@ -50,10 +50,14 @@ namespace ShiftRegister.Game
         /// <summary>The result of the latest solve of the current level, if it is solved.</summary>
         public LevelResult? LastResult { get; private set; }
 
-        /// <summary>A custom level's "next" is leaving it (see <see cref="LeaveCustom"/>); a random level's is another one.</summary>
+        /// <summary>
+        /// A custom level's "next" is leaving it (see <see cref="LeaveCustom"/>); a random level's is another one.
+        /// </summary>
         public bool HasNextLevel => IsCustom || catalog.TryNext(ChapterIndex, LevelIndex, out _, out _);
 
-        /// <summary>The player's own levels; kept apart from <see cref="Progress"/>, so they never earn stars or unlocks.</summary>
+        /// <summary>
+        /// The player's own levels; kept apart from <see cref="Progress"/>, so they never earn stars or unlocks.
+        /// </summary>
         public CustomLevelLibrary CustomLevels { get; private set; }
 
         /// <summary>The custom level being played, or null.</summary>
@@ -63,13 +67,17 @@ namespace ShiftRegister.Game
         /// <summary>True while playing a random level. It is also custom: <see cref="CustomEntry"/> holds it.</summary>
         public bool IsRandom { get; private set; }
 
-        /// <summary>True once this random level was saved: <see cref="CustomEntry"/> is then its library entry.</summary>
+        /// <summary>
+        /// True once this random level was saved: <see cref="CustomEntry"/> is then its library entry.
+        /// </summary>
         public bool RandomSaved { get; private set; }
 
         /// <summary>True if the latest solve gave this custom level its first proof.</summary>
         public bool JustProved { get; private set; }
 
-        /// <summary>Raised when "next" is asked for on a solved custom level: go back where it was opened from.</summary>
+        /// <summary>
+        /// Raised when "next" is asked for on a solved custom level: go back where it was opened from.
+        /// </summary>
         public event Action LeaveCustom;
 
         /// <summary>Raised when "next" is asked for on a solved random level: make another one.</summary>
@@ -84,7 +92,9 @@ namespace ShiftRegister.Game
         /// <summary>Raised when a move solves the level (already recorded in <see cref="Progress"/>).</summary>
         public event Action<LevelResult> Solved;
 
-        /// <summary>Raised when a move was asked for but cannot happen (locked line, wall, broken or solved board).</summary>
+        /// <summary>
+        /// Raised when a move was asked for but cannot happen (locked line, wall, broken or solved board).
+        /// </summary>
         public event Action Blocked;
 
         /// <summary>Raised after an undo that took a move back.</summary>
@@ -126,7 +136,13 @@ namespace ShiftRegister.Game
             {
                 if (file != null)
                 {
-                    levels.Add(new LevelEntry { Chapter = chapter, Index = level, Order = levels.Count, Data = LevelJson.Parse(file) });
+                    levels.Add(new LevelEntry
+                    {
+                        Chapter = chapter,
+                        Index = level,
+                        Order = levels.Count,
+                        Data = LevelJson.Parse(file)
+                    });
                 }
             }
         }
@@ -152,7 +168,8 @@ namespace ShiftRegister.Game
         /// <summary>Loads the inspector's test level (see <see cref="StartsInLevel"/>).</summary>
         public void LoadStartLevel() => Load(startChapter, startLevel);
 
-        public LevelEntry Entry(int chapter, int level) => levels.Find(levelEntry => levelEntry.Chapter == chapter && levelEntry.Index == level);
+        public LevelEntry Entry(int chapter, int level) =>
+            levels.Find(levelEntry => levelEntry.Chapter == chapter && levelEntry.Index == level);
 
         public bool IsUnlocked(int chapter, int level)
         {
@@ -171,7 +188,9 @@ namespace ShiftRegister.Game
             return Unlocks.IsUnlocked(solved, entry.Order);
         }
 
-        /// <summary>Where PLAY goes: the last level played, else the first unsolved open level, else the first.</summary>
+        /// <summary>
+        /// Where PLAY goes: the last level played, else the first unsolved open level, else the first.
+        /// </summary>
         public (int chapter, int level) ResumeTarget()
         {
             var last = levels.Find(levelEntry => levelEntry.Data.id == Progress.lastLevelId);
@@ -220,7 +239,9 @@ namespace ShiftRegister.Game
             Show(data);
         }
 
-        /// <summary>Plays one of the player's own levels. Keeps the current chapter for the menus; a win goes to the library.</summary>
+        /// <summary>
+        /// Plays one of the player's own levels. Keeps the current chapter for the menus; a win goes to the library.
+        /// </summary>
         public void PlayCustom(CustomLevel entry)
         {
             previewing = true;
@@ -237,7 +258,9 @@ namespace ShiftRegister.Game
             IsRandom = true;
         }
 
-        /// <summary>Keeps the random level being played in MY LEVELS. False if it cannot, as the library is full.</summary>
+        /// <summary>
+        /// Keeps the random level being played in MY LEVELS. False if it cannot, as the library is full.
+        /// </summary>
         public bool SaveRandom()
         {
             if (!IsRandom || RandomSaved)
@@ -375,7 +398,8 @@ namespace ShiftRegister.Game
                 {
                     result = Progress != null && !previewing
                         ? Progress.Record(Level.id, Board.MoveCount, Level.par)
-                        : new LevelResult(Board.MoveCount, Level.par, Scoring.Stars(Board.MoveCount, Level.par), true, 0);
+                        : new LevelResult(Board.MoveCount, Level.par, Scoring.Stars(Board.MoveCount, Level.par), true,
+                        0);
                     if (Progress != null && !previewing)
                     {
                         ProgressStore.Save(Progress);

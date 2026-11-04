@@ -33,7 +33,8 @@ namespace ShiftRegister.Editor
             // project settings, so set it here for every machine.
             if (target == BuildTarget.WebGL)
             {
-                UnityEditor.WebGL.UserBuildSettings.codeOptimization = UnityEditor.WebGL.WasmCodeOptimization.DiskSizeLTO;
+                UnityEditor.WebGL.UserBuildSettings.codeOptimization =
+                    UnityEditor.WebGL.WasmCodeOptimization.DiskSizeLTO;
             }
             // Web-only engine types (WebGLInput) are missing from the scripts' references while another
             // target is active, so a web build right after an Android build would not compile.
@@ -65,8 +66,10 @@ namespace ShiftRegister.Editor
 
             var summary = report.summary;
             string where = Path.GetFullPath(target == BuildTarget.WebGL ? path : Path.GetDirectoryName(path));
-            string line = $"{target} build {summary.result}: {summary.totalSize / (1024f * 1024f):F1} MB in {summary.totalTime.TotalSeconds:F0} s, " +
-                          $"{summary.totalErrors} errors, {summary.totalWarnings} warnings → {where}";
+            string line =
+                $"{target} build {summary.result}: {summary.totalSize / (1024f * 1024f):F1} MB " +
+                $"in {summary.totalTime.TotalSeconds:F0} s, " +
+                $"{summary.totalErrors} errors, {summary.totalWarnings} warnings → {where}";
             if (summary.result == BuildResult.Succeeded)
             {
                 Debug.Log(line);

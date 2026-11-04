@@ -308,7 +308,9 @@ namespace ShiftRegister.Core
 
         public bool HasFill(int row, bool left) => Contains(left ? Level.fillLeftRows : Level.fillRightRows, row);
 
-        /// <summary>A 1-IN edge takes back its end cell's wall and gate cell, rotation, and a chain it would sit inside.</summary>
+        /// <summary>
+        /// A 1-IN edge takes back its end cell's wall and gate cell, rotation, and a chain it would sit inside.
+        /// </summary>
         public void SetFill(int row, bool left, bool on) => Edit(() =>
         {
             if (!on)
@@ -394,7 +396,8 @@ namespace ShiftRegister.Core
             }
         });
 
-        public void RemoveGate(int row) => Edit(() => Level.gates = Array.FindAll(Level.gates, gate => gate.row != row));
+        public void RemoveGate(int row) =>
+            Edit(() => Level.gates = Array.FindAll(Level.gates, gate => gate.row != row));
 
         // ----- Level settings -----
 
@@ -514,8 +517,10 @@ namespace ShiftRegister.Core
 
         /// <summary>The characters a level name may hold.</summary>
         public static bool IsNameChar(char character) =>
-            (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9')
-            || character == ' ' || character == '-' || character == '.' || character == '!' || character == '?' || character == '\'';
+            (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z')
+            || (character >= '0' && character <= '9')
+            || character == ' ' || character == '-' || character == '.' || character == '!' || character == '?'
+            || character == '\'';
 
         // ----- Copies -----
 
@@ -531,7 +536,8 @@ namespace ShiftRegister.Core
             chainTopRows = (int[])(level.chainTopRows ?? Array.Empty<int>()).Clone(),
             fillLeftRows = (int[])(level.fillLeftRows ?? Array.Empty<int>()).Clone(),
             fillRightRows = (int[])(level.fillRightRows ?? Array.Empty<int>()).Clone(),
-            gates = Array.ConvertAll(level.gates ?? Array.Empty<RowGate>(), gate => new RowGate(gate.row, gate.op, gate.mask)),
+            gates = Array.ConvertAll(level.gates ?? Array.Empty<RowGate>(),
+            gate => new RowGate(gate.row, gate.op, gate.mask)),
             gatesOnColumnMoves = level.gatesOnColumnMoves,
             lossRule = level.lossRule,
             lossCount = level.lossCount,
@@ -540,7 +546,8 @@ namespace ShiftRegister.Core
         };
 
         /// <summary>True if both have the same name and rules; par and solution do not count.</summary>
-        public static bool SameLevel(LevelData first, LevelData second) => first.name == second.name && SamePuzzle(first, second);
+        public static bool SameLevel(LevelData first, LevelData second) =>
+            first.name == second.name && SamePuzzle(first, second);
 
         /// <summary>True if both have the same rules, whatever their names, par and solution.</summary>
         public static bool SamePuzzle(LevelData first, LevelData second)
@@ -570,7 +577,8 @@ namespace ShiftRegister.Core
                 return false;
             }
 
-            if (!SameSet(first.fillLeftRows, second.fillLeftRows) || !SameSet(first.fillRightRows, second.fillRightRows))
+            if (!SameSet(first.fillLeftRows, second.fillLeftRows)
+                || !SameSet(first.fillRightRows, second.fillRightRows))
             {
                 return false;
             }
@@ -584,7 +592,8 @@ namespace ShiftRegister.Core
 
             for (int i = 0; i < firstGates.Length; i++)
             {
-                if (firstGates[i].row != secondGates[i].row || firstGates[i].op != secondGates[i].op || firstGates[i].mask != secondGates[i].mask)
+                if (firstGates[i].row != secondGates[i].row || firstGates[i].op != secondGates[i].op
+                    || firstGates[i].mask != secondGates[i].mask)
                 {
                     return false;
                 }

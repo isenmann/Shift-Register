@@ -30,7 +30,7 @@ namespace ShiftRegister.Game.Hud
         [Tooltip("JetBrains Mono Regular (its weight table maps <b> to the Bold asset).")]
         [SerializeField] TMP_FontAsset mono;
 
-        const int N = BoardBits.Size;
+        const int BoardSize = BoardBits.Size;
         const float RowBox = 84f;
         // Move log rows, newest first; the last ones fade out instead of counting what is hidden.
         const int LogRows = 7;
@@ -43,13 +43,13 @@ namespace ShiftRegister.Game.Hud
             public RectTransform Root;
             public TextMeshProUGUI ChapterLabel, Rule, LevelName, LevelId, Moves, Par, Outlook;
             public readonly Image[] OutlookStars = new Image[Scoring.MaxStars];
-            public readonly Image[] Thumb = new Image[N * N];
-            public readonly TextMeshProUGUI[] RowBits = new TextMeshProUGUI[N];
-            public readonly TextMeshProUGUI[] RowFrom = new TextMeshProUGUI[N];
-            public readonly TextMeshProUGUI[] RowArrow = new TextMeshProUGUI[N];
-            public readonly TextMeshProUGUI[] RowTo = new TextMeshProUGUI[N];
-            public readonly TextMeshProUGUI[] RowTag = new TextMeshProUGUI[N];
-            public readonly Image[] RowTagBox = new Image[N];
+            public readonly Image[] Thumb = new Image[BoardSize * BoardSize];
+            public readonly TextMeshProUGUI[] RowBits = new TextMeshProUGUI[BoardSize];
+            public readonly TextMeshProUGUI[] RowFrom = new TextMeshProUGUI[BoardSize];
+            public readonly TextMeshProUGUI[] RowArrow = new TextMeshProUGUI[BoardSize];
+            public readonly TextMeshProUGUI[] RowTo = new TextMeshProUGUI[BoardSize];
+            public readonly TextMeshProUGUI[] RowTag = new TextMeshProUGUI[BoardSize];
+            public readonly Image[] RowTagBox = new Image[BoardSize];
             public Image BucketFrame;
             public TextMeshProUGUI BucketCount, BucketText, LogEmpty;
             public TextMeshProUGUI[] LogIndex, LogMove;
@@ -59,8 +59,11 @@ namespace ShiftRegister.Game.Hud
             public TextMeshProUGUI ReadRow, ReadOk, ReadBits, ReadFrom, ReadArrow, ReadTo, ReadTag;
             /// <summary>Landscape only: the key caps (desktop) or the swipe hint (mobile).</summary>
             public GameObject Keys, SwipeHint;
-            /// <summary>Outer groups that move out into the extra length: landscape left/right rails, portrait top/bottom blocks.</summary>
-            public RectTransform A, B;
+            /// <summary>
+            /// Outer groups that move out into the extra length: landscape left/right rails, portrait top/bottom
+            /// blocks.
+            /// </summary>
+            public RectTransform FirstOuterGroup, SecondOuterGroup;
         }
 
         Layout landscape, phoneLandscape, phonePortrait;
@@ -201,12 +204,12 @@ namespace ShiftRegister.Game.Hud
             float shift = ScreenLayout.OuterShiftPx;
             foreach (var layout in new[] { landscape, phoneLandscape })
             {
-                layout.A.anchoredPosition = new Vector2(-shift, 0f);
-                layout.B.anchoredPosition = new Vector2(shift, 0f);
+                layout.FirstOuterGroup.anchoredPosition = new Vector2(-shift, 0f);
+                layout.SecondOuterGroup.anchoredPosition = new Vector2(shift, 0f);
             }
 
-            phonePortrait.A.anchoredPosition = new Vector2(0f, shift);
-            phonePortrait.B.anchoredPosition = new Vector2(0f, -shift);
+            phonePortrait.FirstOuterGroup.anchoredPosition = new Vector2(0f, shift);
+            phonePortrait.SecondOuterGroup.anchoredPosition = new Vector2(0f, -shift);
 
             bannerFrame.sizeDelta = new Vector2(ScreenLayout.BaseWidthPx, ScreenLayout.BaseHeightPx);
             Vector2 centre = ScreenLayout.BoardCenterPx;
@@ -237,7 +240,8 @@ namespace ShiftRegister.Game.Hud
         }
 
         /// <summary>A frame-sized child holding one outer group; moving it moves the whole group.</summary>
-        static RectTransform Group(Transform frame, string name, float width, float height) => Ui.Rect(frame, name, 0, 0, width, height);
+        static RectTransform Group(Transform frame, string name, float width, float height) =>
+            Ui.Rect(frame, name, 0, 0, width, height);
 
         static RectTransform Frame(RectTransform canvas, string name, float width, float height)
         {
@@ -247,16 +251,19 @@ namespace ShiftRegister.Game.Hud
             return frame;
         }
 
-        /// <summary>Layout A3b, 1280×720: left rail, row tags, right rail aligned to the board (cells y 124–596).</summary>
+        /// <summary>
+        /// Layout A3b, 1280×720: left rail, row tags, right rail aligned to the board (cells y 124–596).
+        /// </summary>
         void BuildLandscape(Layout layout)
         {
             var frame = layout.Root;
-            var left = layout.A = Group(frame, "Left Rail", 1280, 720);
-            var right = layout.B = Group(frame, "Right Rail", 1280, 720);
+            var left = layout.FirstOuterGroup = Group(frame, "Left Rail", 1280, 720);
+            var right = layout.SecondOuterGroup = Group(frame, "Right Rail", 1280, 720);
             const float x = 48f, width = 232f;
             layout.ChapterLabel = Ui.Text(left, "Chapter", x, 56, width, 18, mono, 13, Lcd.Text3);
             layout.ChapterLabel.characterSpacing = 10;
-            layout.Rule = Ui.Text(left, "Chapter Rule", x, 78, width, 54, mono, 12, Lcd.Text2, TextAlignmentOptions.TopLeft);
+            layout.Rule = Ui.Text(left, "Chapter Rule", x, 78, width, 54, mono, 12, Lcd.Text2,
+                TextAlignmentOptions.TopLeft);
             layout.Rule.textWrappingMode = TextWrappingModes.Normal;
             layout.Rule.lineSpacing = 4;
             layout.LevelName = LevelName(left, x, 134, width, 46, 44);
@@ -264,19 +271,23 @@ namespace ShiftRegister.Game.Hud
 
             TargetCard(layout, left, x, 212, width, 237, 20f, 23f);
 
-            const float tileY = 465f, tileW = 110f, tileH = 50f, parX = x + tileW + 12f;
-            Ui.Box(left, "Moves Tile", x, tileY, tileW, tileH, 10f, Lcd.Cell);
-            Ui.Text(left, "Moves Label", x + 14, tileY, 60, tileH, mono, 12, Lcd.Text3, text: "MOVES").characterSpacing = 10;
-            layout.Moves = Ui.Text(left, "Moves", x + 14, tileY, tileW - 28, tileH, display, 30, Lcd.Ink, TextAlignmentOptions.MidlineRight);
-            Ui.Frame(left, "Par Tile", parX, tileY, tileW, tileH, 10f, 2f, Lcd.Ink);
-            Ui.Text(left, "Par Label", parX + 14, tileY, 60, tileH, mono, 12, Lcd.Text3, text: "PAR").characterSpacing = 10;
-            layout.Par = Ui.Text(left, "Par", parX + 14, tileY, tileW - 28, tileH, display, 30, Lcd.Ink, TextAlignmentOptions.MidlineRight);
+            const float tileY = 465f, tileWidth = 110f, tileHeight = 50f, parX = x + tileWidth + 12f;
+            Ui.Box(left, "Moves Tile", x, tileY, tileWidth, tileHeight, 10f, Lcd.Cell);
+            Ui.Text(left, "Moves Label", x + 14, tileY, 60, tileHeight, mono, 12, Lcd.Text3,
+                text: "MOVES").characterSpacing = 10;
+            layout.Moves = Ui.Text(left, "Moves", x + 14, tileY, tileWidth - 28, tileHeight, display, 30, Lcd.Ink,
+                TextAlignmentOptions.MidlineRight);
+            Ui.Frame(left, "Par Tile", parX, tileY, tileWidth, tileHeight, 10f, 2f, Lcd.Ink);
+            Ui.Text(left, "Par Label", parX + 14, tileY, 60, tileHeight, mono, 12, Lcd.Text3,
+                text: "PAR").characterSpacing = 10;
+            layout.Par = Ui.Text(left, "Par", parX + 14, tileY, tileWidth - 28, tileHeight, display, 30, Lcd.Ink,
+                TextAlignmentOptions.MidlineRight);
 
             Outlook(layout, left, x, 531, 20f);
 
             // Bottom edge level with the board's down-arrow row (mockup y 644).
-            HudButton.CreateSolid(left, "UNDO", x, 592, tileW, 52, display, 15, () => game.Undo());
-            HudButton.Create(left, "RESET", parX, 592, tileW, 52, display, 15, () => game.ResetLevel());
+            HudButton.CreateSolid(left, "UNDO", x, 592, tileWidth, 52, display, 15, () => game.Undo());
+            HudButton.Create(left, "RESET", parX, 592, tileWidth, 52, display, 15, () => game.ResetLevel());
 
             RowTags(layout, frame, 892f, ScreenLayout.LandscapeBoardCenterPx.y, ScreenLayout.LandscapeBoardScale);
 
@@ -300,7 +311,8 @@ namespace ShiftRegister.Game.Hud
             keyX = KeyLabel(keys, "help", keyX + 6f, keyRow3, 40f);
             keyX = KeyCap(keys, "M", keyX + 8f, keyRow3, 26f);
             KeyLabel(keys, "mute", keyX + 6f, keyRow3, 50f);
-            var swipe = Ui.Text(right, "Swipe Hint", railX, 504, railWidth, 90, mono, 13, Lcd.Text3, TextAlignmentOptions.TopLeft,
+            var swipe = Ui.Text(right, "Swipe Hint", railX, 504, railWidth, 90, mono, 13, Lcd.Text3,
+                TextAlignmentOptions.TopLeft,
                 "Swipe a row or column to shift it. Tap a cell to select it.");
             swipe.textWrappingMode = TextWrappingModes.Normal;
             swipe.lineSpacing = 6;
@@ -320,8 +332,8 @@ namespace ShiftRegister.Game.Hud
         void BuildPhonePortrait(Layout layout)
         {
             var frame = layout.Root;
-            var top = layout.A = Group(frame, "Top", 412, 915);
-            var bottom = layout.B = Group(frame, "Bottom", 412, 915);
+            var top = layout.FirstOuterGroup = Group(frame, "Top", 412, 915);
+            var bottom = layout.SecondOuterGroup = Group(frame, "Bottom", 412, 915);
             layout.ChapterLabel = Ui.Text(top, "Chapter", 12, 20, 236, 16, mono, 13, Lcd.Text3);
             layout.LevelName = LevelName(top, 12, 38, 236, 32, 30);
             PhoneTile(top, "Moves", 250, 20, 70, 56, true, out layout.Moves);
@@ -351,8 +363,8 @@ namespace ShiftRegister.Game.Hud
         void BuildPhoneLandscape(Layout layout)
         {
             var frame = layout.Root;
-            var left = layout.A = Group(frame, "Left Rail", 915, 412);
-            var right = layout.B = Group(frame, "Right Rail", 915, 412);
+            var left = layout.FirstOuterGroup = Group(frame, "Left Rail", 915, 412);
+            var right = layout.SecondOuterGroup = Group(frame, "Right Rail", 915, 412);
             layout.ChapterLabel = Ui.Text(left, "Chapter", 16, 20, 206, 16, mono, 13, Lcd.Text3);
             layout.LevelName = LevelName(left, 16, 38, 206, 30, 28);
             PhoneTile(left, "Moves", 16, 84, 99, 54, true, out layout.Moves);
@@ -362,7 +374,8 @@ namespace ShiftRegister.Game.Hud
             HudButton.CreateSolid(left, "UNDO", 16, 336, 99, 56, display, 18, () => game.Undo());
             HudButton.Create(left, "RESET", 123, 336, 99, 56, display, 18, () => game.ResetLevel());
 
-            CompactRowTags(layout, frame, 618f, ScreenLayout.PhoneLandscapeBoardCenterPx.y, ScreenLayout.PhoneLandscapeBoardScale);
+            CompactRowTags(layout, frame, 618f, ScreenLayout.PhoneLandscapeBoardCenterPx.y,
+                ScreenLayout.PhoneLandscapeBoardScale);
 
             // Target and bucket cards side by side, as in portrait, narrower.
             TargetCard(layout, right, 716, 20, 93, 112, 9f, 10f, 7f, 13f, 26f, 6f);
@@ -374,7 +387,8 @@ namespace ShiftRegister.Game.Hud
         }
 
         /// <summary>A MOVES (filled) or PAR (outlined) tile with its label over a large value.</summary>
-        void PhoneTile(Transform frame, string label, float x, float y, float width, float height, bool filled, out TextMeshProUGUI value)
+        void PhoneTile(Transform frame, string label, float x, float y, float width, float height, bool filled,
+            out TextMeshProUGUI value)
         {
             if (filled)
             {
@@ -385,12 +399,16 @@ namespace ShiftRegister.Game.Hud
                 Ui.Frame(frame, label + " Tile", x, y, width, height, 8f, 2f, Lcd.Ink);
             }
 
-            Ui.Text(frame, label + " Label", x + 10, y + 6, width - 20, 14, mono, 12, Lcd.Text3, text: label.ToUpperInvariant());
+            Ui.Text(frame, label + " Label", x + 10, y + 6, width - 20, 14, mono, 12, Lcd.Text3,
+                text: label.ToUpperInvariant());
             value = Ui.Text(frame, label, x + 10, y + 22, width - 20, height - 26, display, 24, Lcd.Ink);
         }
 
-        /// <summary>Bucket card for phones: title, a big count and (in portrait) one short line about the rule.</summary>
-        void PhoneBucket(Layout layout, Transform frame, float x, float y, float width, float height, bool withText = true)
+        /// <summary>
+        /// Bucket card for phones: title, a big count and (in portrait) one short line about the rule.
+        /// </summary>
+        void PhoneBucket(Layout layout, Transform frame, float x, float y, float width, float height,
+            bool withText = true)
         {
             layout.BucketFrame = Ui.Frame(frame, "Bucket Frame", x, y, width, height, 10f, 3f, Lcd.Ink, 8f);
             Ui.Text(frame, "Bucket Title", x + 10, y + 10, width - 20, 16, display, 13, Lcd.Ink, text: "BUCKET");
@@ -400,7 +418,8 @@ namespace ShiftRegister.Game.Hud
                 return;
             }
 
-            layout.BucketText = Ui.Text(frame, "Bucket Text", x + 10, y + 84, width - 20, height - 92, mono, 13, Lcd.Text2, TextAlignmentOptions.TopLeft);
+            layout.BucketText = Ui.Text(frame, "Bucket Text", x + 10, y + 84, width - 20, height - 92, mono, 13,
+                Lcd.Text2, TextAlignmentOptions.TopLeft);
             layout.BucketText.textWrappingMode = TextWrappingModes.Normal;
         }
 
@@ -408,11 +427,12 @@ namespace ShiftRegister.Game.Hud
         /// The selected row, large: "ROW n" and how many rows match, the bits spread across the
         /// readout, "now → target" pinned to the same edges, and the tag (OK, ×2, a label).
         /// </summary>
-        void Readout(Layout layout, Transform frame, float x, float y, float width, float height, float bitSize, float numberSize, float tagSize)
+        void Readout(Layout layout, Transform frame, float x, float y, float width, float height, float bitSize,
+            float numberSize, float tagSize)
         {
             Ui.Frame(frame, "Readout Frame", x, y, width, height, 10f, 2f, Lcd.Ink);
             bool wide = width > 300f;
-            float inner = wide ? x + 98 : x + 12, innerW = wide ? width - 170 : width - 76;
+            float inner = wide ? x + 98 : x + 12, innerWidth = wide ? width - 170 : width - 76;
             if (wide)
             {
                 layout.ReadRow = Ui.Text(frame, "Readout Row", x + 14, y + 12, 80, 18, mono, 13, Lcd.Text3);
@@ -421,17 +441,23 @@ namespace ShiftRegister.Game.Hud
             else
             {
                 layout.ReadRow = Ui.Text(frame, "Readout Row", x + 12, y + 8, 90, 16, mono, 13, Lcd.Text3);
-                layout.ReadOk = Ui.Text(frame, "Readout OK", x + width - 102, y + 8, 90, 16, mono, 13, Lcd.Text3, TextAlignmentOptions.MidlineRight);
+                layout.ReadOk = Ui.Text(frame, "Readout OK", x + width - 102, y + 8, 90, 16, mono, 13, Lcd.Text3,
+                    TextAlignmentOptions.MidlineRight);
             }
 
             float bitsY = wide ? y + 8 : y + 28, numbersY = bitsY + bitSize + 6;
-            layout.ReadBits = Ui.Text(frame, "Readout Bits", inner, bitsY, innerW + 10, bitSize + 4, mono, bitSize, Lcd.Text3);
-            layout.ReadBits.characterSpacing = (innerW - 8f * 0.6f * bitSize) / 7f / bitSize * 100f;
-            layout.ReadFrom = Ui.Text(frame, "Readout Now", inner, numbersY, innerW, numberSize + 4, mono, numberSize, Lcd.Ink);
-            layout.ReadArrow = Ui.Text(frame, "Readout Arrow", inner, numbersY, innerW, numberSize + 4, mono, numberSize, Lcd.Text3, TextAlignmentOptions.Center, "→");
-            layout.ReadTo = Ui.Text(frame, "Readout Target", inner, numbersY, innerW, numberSize + 4, mono, numberSize, Lcd.Text3, TextAlignmentOptions.MidlineRight);
-            float tagW = wide ? 56f : 52f;
-            layout.ReadTag = Ui.Text(frame, "Readout Tag", x + width - tagW - 10, wide ? y + (height - 32) / 2 : y + 36, tagW, 32, mono, tagSize, Lcd.LossText, TextAlignmentOptions.MidlineRight);
+            layout.ReadBits = Ui.Text(frame, "Readout Bits", inner, bitsY, innerWidth + 10, bitSize + 4, mono, bitSize,
+                Lcd.Text3);
+            layout.ReadBits.characterSpacing = (innerWidth - 8f * 0.6f * bitSize) / 7f / bitSize * 100f;
+            layout.ReadFrom = Ui.Text(frame, "Readout Now", inner, numbersY, innerWidth, numberSize + 4, mono,
+                numberSize, Lcd.Ink);
+            layout.ReadArrow = Ui.Text(frame, "Readout Arrow", inner, numbersY, innerWidth, numberSize + 4, mono,
+                numberSize, Lcd.Text3, TextAlignmentOptions.Center, "→");
+            layout.ReadTo = Ui.Text(frame, "Readout Target", inner, numbersY, innerWidth, numberSize + 4, mono,
+                numberSize, Lcd.Text3, TextAlignmentOptions.MidlineRight);
+            float tagWidth = wide ? 56f : 52f;
+            layout.ReadTag = Ui.Text(frame, "Readout Tag", x + width - tagWidth - 10, wide ? y + (height - 32) / 2
+                : y + 36, tagWidth, 32, mono, tagSize, Lcd.LossText, TextAlignmentOptions.MidlineRight);
             layout.ReadTag.fontStyle = FontStyles.Bold;
         }
 
@@ -441,14 +467,19 @@ namespace ShiftRegister.Game.Hud
             float pitch = ScreenLayout.Pitch * ScreenLayout.PxPerUnit * scale;
             float firstCenter = boardCenterY - 3.5f * pitch;
             const float width = 86f;
-            for (int row = 0; row < N; row++)
+            for (int row = 0; row < BoardSize; row++)
             {
                 float centerY = firstCenter + row * pitch;
-                layout.RowFrom[row] = Ui.Text(frame, $"Row {row + 1} Now", x, centerY - 17, width, 16, mono, 13, Lcd.Ink);
-                layout.RowArrow[row] = Ui.Text(frame, $"Row {row + 1} Arrow", x, centerY - 17, width, 16, mono, 13, Lcd.Text3, TextAlignmentOptions.Center, "→");
-                layout.RowTo[row] = Ui.Text(frame, $"Row {row + 1} Target", x, centerY - 17, width, 16, mono, 13, Lcd.Text3, TextAlignmentOptions.MidlineRight);
-                layout.RowTagBox[row] = Ui.Box(frame, $"Row {row + 1} Tag Box", x + width - 30, centerY + 1, 30, 16, 3f, Lcd.Ink);
-                layout.RowTag[row] = Ui.Text(frame, $"Row {row + 1} Tag", x + width - 30, centerY + 1, 30, 16, mono, 13, Lcd.Light, TextAlignmentOptions.MidlineRight);
+                layout.RowFrom[row] = Ui.Text(frame, $"Row {row + 1} Now", x, centerY - 17, width, 16, mono, 13,
+                    Lcd.Ink);
+                layout.RowArrow[row] = Ui.Text(frame, $"Row {row + 1} Arrow", x, centerY - 17, width, 16, mono, 13,
+                    Lcd.Text3, TextAlignmentOptions.Center, "→");
+                layout.RowTo[row] = Ui.Text(frame, $"Row {row + 1} Target", x, centerY - 17, width, 16, mono, 13,
+                    Lcd.Text3, TextAlignmentOptions.MidlineRight);
+                layout.RowTagBox[row] = Ui.Box(frame, $"Row {row + 1} Tag Box", x + width - 30, centerY + 1, 30, 16, 3f,
+                    Lcd.Ink);
+                layout.RowTag[row] = Ui.Text(frame, $"Row {row + 1} Tag", x + width - 30, centerY + 1, 30, 16, mono, 13,
+                    Lcd.Light, TextAlignmentOptions.MidlineRight);
             }
         }
 
@@ -463,16 +494,18 @@ namespace ShiftRegister.Game.Hud
             return label;
         }
 
-        void TargetCard(Layout layout, Transform frame, float x, float y, float width, float height, float cell, float pitch,
+        void TargetCard(Layout layout, Transform frame, float x, float y, float width, float height, float cell,
+            float pitch,
             float pad = 16f, float titleSize = 14f, float gridTop = 42f, float titleTop = 12f)
         {
             Ui.Box(frame, "Target Card", x, y, width, height, 10f, Lcd.Cell);
             Ui.Text(frame, "Target Title", x + pad, y + titleTop, 160, 18, display, titleSize, Lcd.Ink, text: "TARGET");
-            for (int row = 0; row < N; row++)
+            for (int row = 0; row < BoardSize; row++)
             {
-                for (int column = 0; column < N; column++)
+                for (int column = 0; column < BoardSize; column++)
                 {
-                    layout.Thumb[row * N + column] = Ui.Box(frame, $"Thumb {row + 1},{column + 1}", x + pad + column * pitch, y + gridTop + row * pitch, cell, cell, 2f, Lcd.Background);
+                    layout.Thumb[row * BoardSize + column] = Ui.Box(frame, $"Thumb {row + 1},{column + 1}",
+                        x + pad + column * pitch, y + gridTop + row * pitch, cell, cell, 2f, Lcd.Background);
                 }
             }
         }
@@ -482,11 +515,14 @@ namespace ShiftRegister.Game.Hud
             for (int i = 0; i < Scoring.MaxStars; i++)
             {
                 float starX = x + i * (star + 6f);
-                Ui.Shape(frame, $"Outlook Star {i + 1} Outline", starX, y, star, star, ProceduralSprites.Star(star, 1.6f, ui: true), Lcd.Ink);
-                layout.OutlookStars[i] = Ui.Shape(frame, $"Outlook Star {i + 1}", starX, y, star, star, ProceduralSprites.Star(star, ui: true), Lcd.Ink);
+                Ui.Shape(frame, $"Outlook Star {i + 1} Outline", starX, y, star, star,
+                    ProceduralSprites.Star(star, 1.6f, ui: true), Lcd.Ink);
+                layout.OutlookStars[i] = Ui.Shape(frame, $"Outlook Star {i + 1}", starX, y, star, star,
+                    ProceduralSprites.Star(star, ui: true), Lcd.Ink);
             }
 
-            layout.Outlook = Ui.Text(frame, "Outlook", x + Scoring.MaxStars * (star + 6f) + 4f, y - 1, 200, star + 2, mono, textSize, Lcd.Text2);
+            layout.Outlook = Ui.Text(frame, "Outlook", x + Scoring.MaxStars * (star + 6f) + 4f, y - 1, 200, star + 2,
+                mono, textSize, Lcd.Text2);
         }
 
         /// <summary>
@@ -501,17 +537,22 @@ namespace ShiftRegister.Game.Hud
             // JetBrains Mono advances 0.6 em; spread 8 glyphs so the first and last touch the box edges.
             const float bitSize = 13f;
             float spacingPx = (RowBox - 8f * 0.6f * bitSize) / 7f;
-            for (int row = 0; row < N; row++)
+            for (int row = 0; row < BoardSize; row++)
             {
                 float centerY = firstCenter + row * pitch;
-                layout.RowBits[row] = Ui.Text(frame, $"Row {row + 1} Bits", x, centerY - 20, RowBox + 8, 18, mono, bitSize, Lcd.Text3);
+                layout.RowBits[row] = Ui.Text(frame, $"Row {row + 1} Bits", x, centerY - 20, RowBox + 8, 18, mono,
+                    bitSize, Lcd.Text3);
                 layout.RowBits[row].characterSpacing = spacingPx / bitSize * 100f;
                 layout.RowFrom[row] = Ui.Text(frame, $"Row {row + 1} Now", x, centerY, RowBox, 20, mono, 14, Lcd.Ink);
-                layout.RowArrow[row] = Ui.Text(frame, $"Row {row + 1} Arrow", x, centerY, RowBox, 20, mono, 14, Lcd.Text3, TextAlignmentOptions.Center, "→");
-                layout.RowTo[row] = Ui.Text(frame, $"Row {row + 1} Target", x, centerY, RowBox, 20, mono, 14, Lcd.Text3, TextAlignmentOptions.MidlineRight);
+                layout.RowArrow[row] = Ui.Text(frame, $"Row {row + 1} Arrow", x, centerY, RowBox, 20, mono, 14,
+                    Lcd.Text3, TextAlignmentOptions.Center, "→");
+                layout.RowTo[row] = Ui.Text(frame, $"Row {row + 1} Target", x, centerY, RowBox, 20, mono, 14, Lcd.Text3,
+                    TextAlignmentOptions.MidlineRight);
                 float tagX = x + RowBox + 10f;
-                layout.RowTagBox[row] = Ui.Box(frame, $"Row {row + 1} Tag Box", tagX, centerY - 10, 34, 20, 4f, Lcd.Ink);
-                layout.RowTag[row] = Ui.Text(frame, $"Row {row + 1} Tag", tagX, centerY - 10, 34, 20, mono, 13, Lcd.Light, TextAlignmentOptions.Center);
+                layout.RowTagBox[row] = Ui.Box(frame, $"Row {row + 1} Tag Box", tagX, centerY - 10, 34, 20, 4f,
+                    Lcd.Ink);
+                layout.RowTag[row] = Ui.Text(frame, $"Row {row + 1} Tag", tagX, centerY - 10, 34, 20, mono, 13,
+                    Lcd.Light, TextAlignmentOptions.Center);
             }
         }
 
@@ -520,29 +561,35 @@ namespace ShiftRegister.Game.Hud
             const float pad = 16f;
             layout.BucketFrame = Ui.Frame(frame, "Bucket Frame", x, y, width, height, 10f, 3f, Lcd.Ink, 8f);
             Ui.Text(frame, "Bucket Title", x + pad, y + 18, 120, 18, display, 14, Lcd.Ink, text: "BIT BUCKET");
-            layout.BucketCount = Ui.Text(frame, "Bucket Count", x + pad, y + 10, width - 2 * pad, 34, display, 28, Lcd.Ink, TextAlignmentOptions.MidlineRight);
-            layout.BucketText = Ui.Text(frame, "Bucket Text", x + pad, y + 52, width - 2 * pad, height - 62, mono, 12, Lcd.Text2, TextAlignmentOptions.TopLeft);
+            layout.BucketCount = Ui.Text(frame, "Bucket Count", x + pad, y + 10, width - 2 * pad, 34, display, 28,
+                Lcd.Ink, TextAlignmentOptions.MidlineRight);
+            layout.BucketText = Ui.Text(frame, "Bucket Text", x + pad, y + 52, width - 2 * pad, height - 62, mono, 12,
+                Lcd.Text2, TextAlignmentOptions.TopLeft);
             layout.BucketText.textWrappingMode = TextWrappingModes.Normal;
             layout.BucketText.lineSpacing = 4;
         }
 
         /// <summary>Move log: a light counterweight; newest move first.</summary>
-        void MoveLog(Layout layout, Transform frame, float x, float y, float width, int rows = LogRows, float size = 13f,
+        void MoveLog(Layout layout, Transform frame, float x, float y, float width, int rows = LogRows,
+            float size = 13f,
             string title = "MOVES SO FAR", float firstRow = 36f)
         {
             const float row = 22f;
             layout.LogIndex = new TextMeshProUGUI[rows];
             layout.LogMove = new TextMeshProUGUI[rows];
             Ui.Box(frame, "Log Rule", x, y, width, 2, 0f, Lcd.Cell);
-            Ui.Text(frame, "Log Title", x, y + 10, width, 16, mono, layout.Phone ? 13 : 12, Lcd.Text3, text: title).characterSpacing = layout.Phone ? 4 : 10;
+            Ui.Text(frame, "Log Title", x, y + 10, width, 16, mono, layout.Phone ? 13
+                : 12, Lcd.Text3, text: title).characterSpacing = layout.Phone ? 4 : 10;
             for (int i = 0; i < rows; i++)
             {
                 float rowY = y + firstRow + i * row;
                 layout.LogIndex[i] = Ui.Text(frame, $"Log {i + 1} Index", x, rowY, 40, row, mono, size, Lcd.Text3);
-                layout.LogMove[i] = Ui.Text(frame, $"Log {i + 1} Move", x + 40, rowY, width - 40, row, mono, size, Lcd.Text3, TextAlignmentOptions.MidlineRight);
+                layout.LogMove[i] = Ui.Text(frame, $"Log {i + 1} Move", x + 40, rowY, width - 40, row, mono, size,
+                    Lcd.Text3, TextAlignmentOptions.MidlineRight);
             }
 
-            layout.LogEmpty = Ui.Text(frame, "Log Empty", x, y + firstRow, width, row, mono, size, Lcd.Cell, text: "no moves yet");
+            layout.LogEmpty = Ui.Text(frame, "Log Empty", x, y + firstRow, width, row, mono, size, Lcd.Cell,
+                text: "no moves yet");
         }
 
         /// <summary>An outlined key cap; returns its right edge.</summary>
@@ -565,33 +612,45 @@ namespace ShiftRegister.Game.Hud
             const float width = 340f;
             solvedBanner = BannerRoot(frame, "Solved Banner", width, 196f);
             Ui.Box(solvedBanner, "Box", 0, 0, width, 196f, 10f, Lcd.Ink);
-            Ui.Text(solvedBanner, "Title", 16, 16, width - 32, 44, displayBold, 40, Lcd.Light, TextAlignmentOptions.Center, "SOLVED");
-            solvedText = Ui.Text(solvedBanner, "Text", 0, 62, width, 22, mono, 15, Lcd.Light, TextAlignmentOptions.Center);
+            Ui.Text(solvedBanner, "Title", 16, 16, width - 32, 44, displayBold, 40, Lcd.Light,
+                TextAlignmentOptions.Center, "SOLVED");
+            solvedText = Ui.Text(solvedBanner, "Text", 0, 62, width, 22, mono, 15, Lcd.Light,
+                TextAlignmentOptions.Center);
             const float star = 30f, gap = 10f;
             float starsX = (width - (Scoring.MaxStars * star + (Scoring.MaxStars - 1) * gap)) / 2f;
             for (int i = 0; i < Scoring.MaxStars; i++)
             {
                 float starX = starsX + i * (star + gap);
-                Ui.Shape(solvedBanner, $"Star {i + 1} Outline", starX, 94, star, star, ProceduralSprites.Star(star, 2f, ui: true), Lcd.Light);
-                stars[i] = Ui.Shape(solvedBanner, $"Star {i + 1}", starX, 94, star, star, ProceduralSprites.Star(star, ui: true), Lcd.Light);
+                Ui.Shape(solvedBanner, $"Star {i + 1} Outline", starX, 94, star, star,
+                    ProceduralSprites.Star(star, 2f, ui: true), Lcd.Light);
+                stars[i] = Ui.Shape(solvedBanner, $"Star {i + 1}", starX, 94, star, star,
+                    ProceduralSprites.Star(star, ui: true), Lcd.Light);
             }
 
-            nextButton = HudButton.Create(solvedBanner, "NEXT →", (width - 150f) / 2f, 140, 150, 40, display, 15, Lcd.Light, Lcd.Ink, () => game.NextLevel());
-            nextRandomButton = HudButton.Create(solvedBanner, "NEXT RANDOM", 16, 140, 188, 40, display, 15, Lcd.Light, Lcd.Ink, () => game.NextLevel());
-            saveRandomButton = HudButton.Create(solvedBanner, "SAVE", 212, 140, 112, 40, display, 15, Lcd.Light, Lcd.Ink, () => game.SaveRandom());
-            lastLevelText = Ui.Text(solvedBanner, "Last Level", 0, 140, width, 40, mono, 13, Lcd.Light, TextAlignmentOptions.Center,
+            nextButton = HudButton.Create(solvedBanner, "NEXT →", (width - 150f) / 2f, 140, 150, 40, display, 15,
+                Lcd.Light, Lcd.Ink, () => game.NextLevel());
+            nextRandomButton = HudButton.Create(solvedBanner, "NEXT RANDOM", 16, 140, 188, 40, display, 15, Lcd.Light,
+                Lcd.Ink, () => game.NextLevel());
+            saveRandomButton = HudButton.Create(solvedBanner, "SAVE", 212, 140, 112, 40, display, 15, Lcd.Light,
+                Lcd.Ink, () => game.SaveRandom());
+            lastLevelText = Ui.Text(solvedBanner, "Last Level", 0, 140, width, 40, mono, 13, Lcd.Light,
+                TextAlignmentOptions.Center,
                 "That's every level so far.");
 
             brokenBanner = BannerRoot(frame, "Broken Banner", width, 110f);
             Ui.Box(brokenBanner, "Box", 0, 0, width, 110f, 10f, Lcd.Loss);
-            var title = Ui.Text(brokenBanner, "Title", 16, 18, width - 32, 44, displayBold, 40, Lcd.Light, TextAlignmentOptions.Center, "RULE BROKEN");
+            var title = Ui.Text(brokenBanner, "Title", 16, 18, width - 32, 44, displayBold, 40, Lcd.Light,
+                TextAlignmentOptions.Center, "RULE BROKEN");
             title.enableAutoSizing = true;
             title.fontSizeMin = 20;
             title.fontSizeMax = 40;
-            Ui.Text(brokenBanner, "Text", 0, 68, width, 24, mono, 15, Lcd.Light, TextAlignmentOptions.Center, "Undo to continue");
+            Ui.Text(brokenBanner, "Text", 0, 68, width, 24, mono, 15, Lcd.Light, TextAlignmentOptions.Center,
+                "Undo to continue");
         }
 
-        /// <summary>A hidden banner scaled about its centre; <see cref="ApplyOrientation"/> puts it over the board.</summary>
+        /// <summary>
+        /// A hidden banner scaled about its centre; <see cref="ApplyOrientation"/> puts it over the board.
+        /// </summary>
         static RectTransform BannerRoot(Transform frame, string name, float width, float height)
         {
             var rectTransform = Ui.Rect(frame, name, 0, 0, width, height);
@@ -602,14 +661,16 @@ namespace ShiftRegister.Game.Hud
 
         // ------------------------------------------------------------------ refresh
 
-        /// <summary>What one board row shows: bits, "now → target" (carry chains read as one 16-bit number), and its tag.</summary>
+        /// <summary>
+        /// What one board row shows: bits, "now → target" (carry chains read as one 16-bit number), and its tag.
+        /// </summary>
         struct RowInfo
         {
             public string Bits, From, Arrow, To, Tag;
             public bool Ok, Hint;
         }
 
-        readonly RowInfo[] rowInfo = new RowInfo[N];
+        readonly RowInfo[] rowInfo = new RowInfo[BoardSize];
         int rowsOk;
 
         void RefreshBoard()
@@ -620,7 +681,7 @@ namespace ShiftRegister.Game.Hud
             bool arithmetic = RowHint.ArithmeticHintsApply(rules);
 
             rowsOk = 0;
-            for (int row = 0; row < N; row++)
+            for (int row = 0; row < BoardSize; row++)
             {
                 int now = board.GetRow(row);
                 int target = BoardBits.GetRow(rules.Target, row);
@@ -638,7 +699,8 @@ namespace ShiftRegister.Game.Hud
                 {
                     // A carry chain reads as one 16-bit number: "now" on its top row, "→ target" below.
                     now = (board.GetRow(chainTop) << 8) | board.GetRow(chainTop + 1);
-                    target = (BoardBits.GetRow(rules.Target, chainTop) << 8) | BoardBits.GetRow(rules.Target, chainTop + 1);
+                    target = (BoardBits.GetRow(rules.Target, chainTop) << 8) | BoardBits.GetRow(rules.Target,
+                        chainTop + 1);
                 }
 
                 info.From = chainBottom ? "" : $"<b>{now}</b>";
@@ -685,7 +747,7 @@ namespace ShiftRegister.Game.Hud
                 RefreshOutlook(layout, board.MoveCount, level.par);
                 RefreshLog(layout);
 
-                for (int row = 0; row < N; row++)
+                for (int row = 0; row < BoardSize; row++)
                 {
                     if (layout.RowFrom[row] == null)
                     {
@@ -705,15 +767,18 @@ namespace ShiftRegister.Game.Hud
                     layout.RowTag[row].color = info.Ok ? Lcd.Light : info.Hint ? Lcd.LossText : Lcd.Text3;
                     layout.RowTag[row].fontStyle = info.Hint && !info.Ok ? FontStyles.Bold : FontStyles.Normal;
                     layout.RowTag[row].fontSize = info.Ok ? (layout.Phone ? 12 : 11) : 13;
-                    layout.RowTag[row].alignment = info.Ok || !layout.Phone ? TextAlignmentOptions.Center : TextAlignmentOptions.MidlineRight;
+                    layout.RowTag[row].alignment = info.Ok || !layout.Phone ? TextAlignmentOptions.Center
+                        : TextAlignmentOptions.MidlineRight;
                     layout.RowTagBox[row].enabled = info.Ok;
                 }
 
-                for (int row = 0; row < N; row++)
+                for (int row = 0; row < BoardSize; row++)
                 {
-                    for (int column = 0; column < N; column++)
+                    for (int column = 0; column < BoardSize; column++)
                     {
-                        layout.Thumb[row * N + column].color = BoardBits.GetCell(rules.Target, row, column) ? Lcd.Ink : Lcd.Background;
+                        layout.Thumb[row * BoardSize + column].color = BoardBits.GetCell(rules.Target, row, column)
+                            ? Lcd.Ink
+                            : Lcd.Background;
                     }
                 }
             }
@@ -746,7 +811,7 @@ namespace ShiftRegister.Game.Hud
                 }
 
                 layout.ReadRow.text = $"ROW {row + 1}";
-                layout.ReadOk.text = $"{rowsOk}/{N} OK";
+                layout.ReadOk.text = $"{rowsOk}/{BoardSize} OK";
                 layout.ReadBits.text = info.Bits;
                 layout.ReadFrom.text = info.From;
                 layout.ReadArrow.text = info.Arrow;
@@ -836,7 +901,8 @@ namespace ShiftRegister.Game.Hud
                 if (game.IsRandom)
                 {
                     bool full = !game.RandomSaved && game.CustomLevels.IsFull;
-                    saveRandomButton.Text = game.RandomSaved ? "SAVED" : full ? "FULL" : DeviceMode.IsMobile ? "SAVE" : "SAVE (K)";
+                    saveRandomButton.Text = game.RandomSaved ? "SAVED" : full ? "FULL" : DeviceMode.IsMobile ? "SAVE"
+                        : "SAVE (K)";
                     saveRandomButton.Disabled = game.RandomSaved || full;
                 }
             }
@@ -867,7 +933,8 @@ namespace ShiftRegister.Game.Hud
             for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
             {
                 float progress = elapsed / duration;
-                float scale = progress < 0.6f ? Mathf.Lerp(0.6f, 1.08f, progress / 0.6f) : Mathf.Lerp(1.08f, 1f, (progress - 0.6f) / 0.4f);
+                float scale = progress < 0.6f ? Mathf.Lerp(0.6f, 1.08f, progress / 0.6f)
+                    : Mathf.Lerp(1.08f, 1f, (progress - 0.6f) / 0.4f);
                 rectTransform.localScale = Vector3.one * scale;
                 yield return null;
             }
@@ -933,8 +1000,8 @@ namespace ShiftRegister.Game.Hud
         /// <summary>Binary row with walls shown as '#'.</summary>
         static string RowString(LevelRules rules, int value, int row)
         {
-            var builder = new StringBuilder(N);
-            for (int column = 0; column < N; column++)
+            var builder = new StringBuilder(BoardSize);
+            for (int column = 0; column < BoardSize; column++)
             {
                 builder.Append(rules.IsWall(row, column) ? '#' : ((value >> (7 - column)) & 1) != 0 ? '1' : '0');
             }

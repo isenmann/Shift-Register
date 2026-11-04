@@ -95,7 +95,8 @@ namespace ShiftRegister.Game
             {
                 LeaveLevel();
             }
-            else if (Current == GameScreen.Chapters || Current == GameScreen.Options || Current == GameScreen.MyLevels || Current == GameScreen.Random)
+            else if (Current == GameScreen.Chapters || Current == GameScreen.Options || Current == GameScreen.MyLevels
+            || Current == GameScreen.Random)
             {
                 Show(GameScreen.Title);
             }
@@ -114,7 +115,9 @@ namespace ShiftRegister.Game
             Show(GameScreen.Playing);
         }
 
-        /// <summary>Leaves the level being played: a custom one to where it came from, any other to chapter select.</summary>
+        /// <summary>
+        /// Leaves the level being played: a custom one to where it came from, any other to chapter select.
+        /// </summary>
         public void LeaveLevel() => Show(game.IsCustom ? customReturn : GameScreen.Chapters);
 
         /// <summary>Plays one of the player's own levels; leaving it returns to <paramref name="returnTo"/>.</summary>
@@ -152,7 +155,8 @@ namespace ShiftRegister.Game
         /// or a phone app is left by the browser or the system instead.
         /// </summary>
         public static bool CanQuit =>
-            Application.platform != RuntimePlatform.WebGLPlayer && !Application.isMobilePlatform && !DeviceMode.IsMobile;
+            Application.platform != RuntimePlatform.WebGLPlayer && !Application.isMobilePlatform
+            && !DeviceMode.IsMobile;
 
         /// <summary>QUIT on the title screen. Progress is already saved after every solved level.</summary>
         public void Quit()

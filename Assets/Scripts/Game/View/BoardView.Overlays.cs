@@ -17,7 +17,7 @@ namespace ShiftRegister.Game.View
 
         const int OverlayFrameOrder = 5, OverlaySymbolOrder = 6;
         /// <summary>Gate tab in mockup pixels: sits in the cell's bottom-right corner, below the bit's eyes.</summary>
-        const float TabW = 21f, TabH = 19f, TabRadius = 6.5f;
+        const float TabWidth = 21f, TabHeight = 19f, TabRadius = 6.5f;
 
         sealed class Overlay
         {
@@ -27,7 +27,7 @@ namespace ShiftRegister.Game.View
             public SpriteRenderer Tab;
             public TextMeshPro Symbol;
             /// <summary>The symbol without rich-text tags.</summary>
-            public string Raw;
+            public string SymbolText;
         }
 
         Overlay[,] overlays;
@@ -43,7 +43,7 @@ namespace ShiftRegister.Game.View
         /// <summary>True if the cell shows a gate or 1-IN overlay (for tests).</summary>
         public bool HasOverlay(int row, int column) => overlays?[row, column] != null;
 
-        public string OverlaySymbol(int row, int column) => overlays?[row, column]?.Raw;
+        public string OverlaySymbol(int row, int column) => overlays?[row, column]?.SymbolText;
 
         void BuildOverlays()
         {
@@ -86,22 +86,26 @@ namespace ShiftRegister.Game.View
             cells[row, column].Ground.color = Lcd.Light;
             var overlay = new Overlay
             {
-                Frame = Renderer(root, "Gate Frame", ProceduralSprites.RoundedOutline(38f, 38f, 5f, 2f, 4f), Lcd.Ink, Layer.Bit)
+                Frame = Renderer(root, "Gate Frame", ProceduralSprites.RoundedOutline(38f, 38f, 5f, 2f, 4f), Lcd.Ink,
+                Layer.Bit)
             };
             overlay.Frame.sortingOrder = OverlayFrameOrder;
 
             if (barSide != 0)
             {
-                overlay.Bar = Renderer(root, "Edge Bar", ProceduralSprites.RoundedRect(4f, 30f, 2f), Lcd.Ink, Layer.Bit);
+                overlay.Bar = Renderer(root, "Edge Bar", ProceduralSprites.RoundedRect(4f, 30f, 2f), Lcd.Ink,
+                    Layer.Bit);
                 overlay.Bar.sortingOrder = OverlayFrameOrder;
                 overlay.Bar.transform.localPosition = new Vector3(barSide * 20f / CellPx, 0f, 0f);
             }
 
             float side = barSide == 1 ? -1f : 1f;
-            overlay.Tab = Renderer(root, "Gate Tab", ProceduralSprites.CornerTab(TabW, TabH, TabRadius, RadiusPx), Lcd.Ink, Layer.Bit);
+            overlay.Tab = Renderer(root, "Gate Tab",
+                ProceduralSprites.CornerTab(TabWidth, TabHeight, TabRadius, RadiusPx), Lcd.Ink, Layer.Bit);
             overlay.Tab.sortingOrder = OverlayFrameOrder;
             overlay.Tab.flipX = side < 0f;
-            var centre = new Vector3(side * (CellPx - TabW) * 0.5f / CellPx, -(CellPx - TabH) * 0.5f / CellPx, 0f);
+            var centre = new Vector3(side * (CellPx - TabWidth) * 0.5f / CellPx, -(CellPx - TabHeight) * 0.5f / CellPx,
+                0f);
             overlay.Tab.transform.localPosition = centre;
 
             // Centred on the glyph's own shape, then tuned per symbol in mockup pixels: the flat '^' and
@@ -127,10 +131,10 @@ namespace ShiftRegister.Game.View
             }
 
             var label = CreateSymbol(root, symbol, size, TextAlignmentOptions.CenterGeoAligned);
-            label.rectTransform.sizeDelta = new Vector2(TabW, TabH) / CellPx;
+            label.rectTransform.sizeDelta = new Vector2(TabWidth, TabHeight) / CellPx;
             label.transform.localPosition = centre + new Vector3(0f, -drop / CellPx, 0f);
             overlay.Symbol = label;
-            overlay.Raw = symbol;
+            overlay.SymbolText = symbol;
             return overlay;
         }
 

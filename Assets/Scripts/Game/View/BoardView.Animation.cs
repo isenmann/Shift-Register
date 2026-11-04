@@ -26,7 +26,7 @@ namespace ShiftRegister.Game.View
 
         sealed class Floater
         {
-            public Transform T;
+            public Transform Transform;
             public SpriteRenderer Body;
             public SpriteRenderer[] Eyes;
             public SpriteRenderer[] FlatEyes;
@@ -34,13 +34,13 @@ namespace ShiftRegister.Game.View
 
         readonly struct Slide
         {
-            public readonly Floater F;
+            public readonly Floater Floater;
             public readonly Vector2 From, To;
             public readonly float AlphaFrom, AlphaTo;
 
             public Slide(Floater floater, Vector2 from, Vector2 to, float alphaFrom = 1f, float alphaTo = 1f)
             {
-                F = floater;
+                Floater = floater;
                 From = from;
                 To = to;
                 AlphaFrom = alphaFrom;
@@ -115,7 +115,7 @@ namespace ShiftRegister.Game.View
             StopAllCoroutines();
             foreach (var floater in live)
             {
-                floater.T.gameObject.SetActive(false);
+                floater.Transform.gameObject.SetActive(false);
             }
 
             pool.AddRange(live);
@@ -202,13 +202,13 @@ namespace ShiftRegister.Game.View
                 float eased = EaseOutCubic(progress);
                 foreach (var slide in slides)
                 {
-                    slide.F.T.localPosition = Vector2.Lerp(slide.From, slide.To, eased);
-                    SetAlpha(slide.F, Mathf.Lerp(slide.AlphaFrom, slide.AlphaTo, progress));
+                    slide.Floater.Transform.localPosition = Vector2.Lerp(slide.From, slide.To, eased);
+                    SetAlpha(slide.Floater, Mathf.Lerp(slide.AlphaFrom, slide.AlphaTo, progress));
                 }
             });
             foreach (var slide in slides)
             {
-                Release(slide.F);
+                Release(slide.Floater);
             }
 
             // Bits that came from nowhere (a 1-IN edge) pop in.
@@ -252,7 +252,9 @@ namespace ShiftRegister.Game.View
             }
         }
 
-        /// <summary>Static bits in <paramref name="appear"/> grow in; floaters at <paramref name="vanish"/> shrink away.</summary>
+        /// <summary>
+        /// Static bits in <paramref name="appear"/> grow in; floaters at <paramref name="vanish"/> shrink away.
+        /// </summary>
         IEnumerator Pop(ulong appear, ulong vanish, float duration)
         {
             var shrinking = new List<Floater>();
@@ -288,7 +290,7 @@ namespace ShiftRegister.Game.View
 
                 foreach (var floater in shrinking)
                 {
-                    floater.T.localScale = Vector3.one * (1f - EaseOutCubic(progress));
+                    floater.Transform.localScale = Vector3.one * (1f - EaseOutCubic(progress));
                 }
             });
             foreach (var floater in shrinking)
@@ -300,7 +302,8 @@ namespace ShiftRegister.Game.View
         IEnumerator FlyToBucket(Floater floater, Vector2 from, Vector2 edge)
         {
             flights++;
-            yield return Tween(shiftTime, progress => floater.T.localPosition = Vector2.Lerp(from, edge, EaseOutCubic(progress)));
+            yield return Tween(shiftTime,
+                progress => floater.Transform.localPosition = Vector2.Lerp(from, edge, EaseOutCubic(progress)));
 
             SetLost(floater, true);
             Vector3 bucketWorld = ScreenLayout.BucketCenter;
@@ -309,8 +312,8 @@ namespace ShiftRegister.Game.View
             yield return Tween(flyTime, progress =>
             {
                 float eased = EaseInOutQuad(progress);
-                floater.T.localPosition = Bezier(edge, control, target, eased);
-                floater.T.localScale = Vector3.one * Mathf.Lerp(1f, 0.55f, eased);
+                floater.Transform.localPosition = Bezier(edge, control, target, eased);
+                floater.Transform.localScale = Vector3.one * Mathf.Lerp(1f, 0.55f, eased);
                 SetAlpha(floater, progress < 0.8f ? 1f : 1f - (progress - 0.8f) / 0.2f);
             });
             Release(floater);
@@ -375,8 +378,8 @@ namespace ShiftRegister.Game.View
                 return mask;
             }
 
-            var (top2, bottom) = InputMapping.SegmentRange(rules, Axis.Column, move.Line, move.Segment);
-            for (int row = top2; row <= bottom; row++)
+            var (segmentTop, bottom) = InputMapping.SegmentRange(rules, Axis.Column, move.Line, move.Segment);
+            for (int row = segmentTop; row <= bottom; row++)
             {
                 mask |= BoardBits.CellMask(row, move.Line);
             }
@@ -384,7 +387,9 @@ namespace ShiftRegister.Game.View
             return mask;
         }
 
-        /// <summary>Where a (not lost) bit of the moved part ends up; wrap = it leaves one end and enters elsewhere.</summary>
+        /// <summary>
+        /// Where a (not lost) bit of the moved part ends up; wrap = it leaves one end and enters elsewhere.
+        /// </summary>
         (int row, int column, bool wrap) Destination(Move move, int row, int column)
         {
             int step = move.TowardStart ? -1 : 1;
@@ -425,19 +430,19 @@ namespace ShiftRegister.Game.View
                 return (row, next, false);
             }
 
-            var (top2, bottom) = InputMapping.SegmentRange(rules, Axis.Column, column, move.Segment);
-            int nrow = row + step;
-            if (nrow < top2)
+            var (segmentTop, bottom) = InputMapping.SegmentRange(rules, Axis.Column, column, move.Segment);
+            int nextRow = row + step;
+            if (nextRow < segmentTop)
             {
                 return (bottom, column, true);
             }
 
-            if (nrow > bottom)
+            if (nextRow > bottom)
             {
-                return (top2, column, true);
+                return (segmentTop, column, true);
             }
 
-            return (nrow, column, false);
+            return (nextRow, column, false);
         }
 
         static Vector2 StepVector(Direction direction) => direction switch
@@ -461,9 +466,9 @@ namespace ShiftRegister.Game.View
                 floater = CreateFloater();
             }
 
-            floater.T.gameObject.SetActive(true);
-            floater.T.localPosition = localPosition;
-            floater.T.localScale = Vector3.one;
+            floater.Transform.gameObject.SetActive(true);
+            floater.Transform.localPosition = localPosition;
+            floater.Transform.localScale = Vector3.one;
             SetLost(floater, false);
             SetAlpha(floater, 1f);
             live.Add(floater);
@@ -477,7 +482,7 @@ namespace ShiftRegister.Game.View
                 return;
             }
 
-            floater.T.gameObject.SetActive(false);
+            floater.Transform.gameObject.SetActive(false);
             pool.Add(floater);
         }
 
@@ -487,11 +492,11 @@ namespace ShiftRegister.Game.View
             var parent = gameObject.transform;
             parent.SetParent(cellsRoot, false);
             var body = ProceduralSprites.RoundedRect(CellPx, CellPx, RadiusPx);
-            var eye = ProceduralSprites.RoundedRect(EyeW, EyeH, EyeRadius);
+            var eye = ProceduralSprites.RoundedRect(EyeWidth, EyeHeight, EyeRadius);
             var flat = ProceduralSprites.RoundedRect(8f, 3f, 1f);
             var floater = new Floater
             {
-                T = parent,
+                Transform = parent,
                 Body = Renderer(parent, "Body", body, Lcd.Ink, Layer.Bit),
                 Eyes = new[]
                 {
@@ -505,8 +510,10 @@ namespace ShiftRegister.Game.View
                 }
             };
             floater.Body.sortingOrder = FloatBodyOrder;
-            floater.Eyes[0].transform.localPosition = floater.FlatEyes[0].transform.localPosition = new Vector2(-EyeX, EyeY) / CellPx;
-            floater.Eyes[1].transform.localPosition = floater.FlatEyes[1].transform.localPosition = new Vector2(EyeX, EyeY) / CellPx;
+            floater.Eyes[0].transform.localPosition = floater.FlatEyes[0].transform.localPosition = new Vector2(-EyeX,
+                EyeY) / CellPx;
+            floater.Eyes[1].transform.localPosition = floater.FlatEyes[1].transform.localPosition = new Vector2(EyeX,
+                EyeY) / CellPx;
             floater.FlatEyes[0].transform.localPosition += new Vector3(0f, -1.5f / CellPx, 0f);
             floater.FlatEyes[1].transform.localPosition += new Vector3(0f, -1.5f / CellPx, 0f);
             foreach (var eyeRenderer in floater.Eyes)
@@ -571,7 +578,8 @@ namespace ShiftRegister.Game.View
             Vector2.Lerp(Vector2.Lerp(start, control, progress), Vector2.Lerp(control, end, progress), progress);
 
         static float EaseOutCubic(float progress) => 1f - Mathf.Pow(1f - progress, 3f);
-        static float EaseInOutQuad(float progress) => progress < 0.5f ? 2f * progress * progress : 1f - Mathf.Pow(-2f * progress + 2f, 2f) / 2f;
+        static float EaseInOutQuad(float progress) =>
+            progress < 0.5f ? 2f * progress * progress : 1f - Mathf.Pow(-2f * progress + 2f, 2f) / 2f;
 
         static float EaseOutBack(float progress)
         {
