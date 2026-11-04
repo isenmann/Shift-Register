@@ -20,6 +20,24 @@ body {
 }
 .page { max-width: 1168px; margin: 0 auto; display: grid; gap: 20px; }
 button { font: inherit; color: inherit; cursor: pointer; }
+
+.banner { display: block; width: 100%; height: auto; }
+.banner.narrow { display: none; }
+.kicker { font: 400 15px var(--mono); letter-spacing: .22em; fill: var(--text3); }
+.title { font: 700 76px var(--display); letter-spacing: .04em; fill: var(--ink); }
+.title.small { font-size: 54px; }
+.tagline { font: 400 18px var(--mono); fill: var(--text3); }
+.tagline.small { font-size: 13px; }
+.digit { font: 400 22px var(--mono); fill: var(--text3); }
+.digit .set { fill: var(--ink); }
+.tray { fill: var(--cell); }
+.slot { fill: var(--bg); }
+.ink { fill: var(--ink); }
+.eye { fill: var(--light); }
+.lost { fill: #A2402A; }
+.key { fill: none; stroke: var(--ink); stroke-width: 2; }
+.key-label { font: 400 18px var(--mono); fill: var(--ink); }
+.lost-label { font: 400 19px var(--mono); fill: var(--loss); }
 :focus-visible { outline: 3px solid var(--loss); outline-offset: 2px; }
 
 header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px 20px; }
@@ -102,4 +120,9 @@ footer { color: var(--text3); font-size: 13px; }
   .row .status { font-size: 12px; }
   .boards { gap: 16px; }
   .upload .btn { flex: 1 1 100%; }
+}
+
+@media (max-width: 600px) {
+  .banner.wide { display: none; }
+  .banner.narrow { display: block; }
 }

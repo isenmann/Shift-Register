@@ -12,6 +12,67 @@
 </head>
 <body>
   <div class="page">
+    <!-- The itch banner (Marketing/itch/source/art.html) as SVG. The second layout is for narrow screens. -->
+    <svg hidden>
+      <symbol id="bit" viewBox="0 0 100 100">
+        <rect class="ink" width="100" height="100" rx="16"/>
+        <rect class="eye" x="30" y="27" width="12" height="17" rx="2"/>
+        <rect class="eye" x="58" y="27" width="12" height="17" rx="2"/>
+      </symbol>
+      <symbol id="lost-bit" viewBox="0 0 100 100">
+        <rect class="lost" width="100" height="100" rx="16"/>
+        <rect class="eye" x="30" y="34" width="12" height="6" rx="1"/>
+        <rect class="eye" x="58" y="34" width="12" height="6" rx="1"/>
+      </symbol>
+      <symbol id="register" viewBox="0 0 497.6 113.6">
+        <g class="digit" text-anchor="middle">
+          <text x="38.8" y="20">0</text>
+          <text class="set" x="98.8" y="20">1</text>
+          <text class="set" x="158.8" y="20">1</text>
+          <text class="set" x="218.8" y="20">1</text>
+          <text class="set" x="278.8" y="20">1</text>
+          <text x="338.8" y="20">0</text>
+          <text x="398.8" y="20">0</text>
+          <text x="458.8" y="20">0</text>
+        </g>
+        <rect class="tray" y="36" width="497.6" height="77.6" rx="11"/>
+        <g class="slot">
+          <rect x="12.8" y="48.8" width="52" height="52" rx="7"/>
+          <rect x="312.8" y="48.8" width="52" height="52" rx="7"/>
+          <rect x="372.8" y="48.8" width="52" height="52" rx="7"/>
+          <rect x="432.8" y="48.8" width="52" height="52" rx="7"/>
+        </g>
+        <use href="#bit" x="72.8" y="48.8" width="52" height="52"/>
+        <use href="#bit" x="132.8" y="48.8" width="52" height="52"/>
+        <use href="#bit" x="192.8" y="48.8" width="52" height="52"/>
+        <use href="#bit" x="252.8" y="48.8" width="52" height="52"/>
+      </symbol>
+    </svg>
+
+    <svg class="banner wide" viewBox="0 0 1168 204" role="img" aria-label="Shift Register, a puzzle about moving bits. Slide rows of bits. Whatever falls off the edge is gone.">
+      <text class="kicker" y="14">A PUZZLE ABOUT MOVING BITS · GAME OFF 2026</text>
+      <text class="title" y="84">SHIFT</text>
+      <text class="title" y="154">REGISTER</text>
+      <text class="tagline" y="196">Slide rows of bits. Whatever falls off the edge is gone.</text>
+      <use href="#register" x="670.4" y="10" width="497.6" height="113.6"/>
+      <use href="#lost-bit" width="52" height="52" transform="translate(606 108) rotate(-22 26 26)"/>
+      <rect class="key" x="683.2" y="146" width="108" height="40" rx="7"/>
+      <text class="key-label" x="737.2" y="172" text-anchor="middle">⇧ Shift</text>
+      <text class="key-label" x="808" y="172" text-anchor="middle">+</text>
+      <rect class="key" x="825" y="146" width="50" height="40" rx="7"/>
+      <text class="key-label" x="850" y="172" text-anchor="middle">←</text>
+      <text class="lost-label" x="895" y="172">1 bit lost</text>
+    </svg>
+
+    <svg class="banner narrow" viewBox="0 18 358 234" role="img" aria-label="Shift Register, a puzzle about moving bits. Slide rows of bits. Whatever falls off the edge is gone.">
+      <text class="title small" y="62">SHIFT</text>
+      <text class="title small" y="112">REGISTER</text>
+      <use href="#lost-bit" width="38" height="38" transform="translate(250 24) rotate(-22 19 19)"/>
+      <use href="#register" y="126" width="358" height="81.7"/>
+      <text class="tagline small" y="228">Slide rows of bits.</text>
+      <text class="tagline small" y="246">Whatever falls off the edge is gone.</text>
+    </svg>
+
     <header>
       <div>
         <h1>SHARED LEVELS</h1>
