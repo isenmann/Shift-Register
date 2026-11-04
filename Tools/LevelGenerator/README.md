@@ -1,7 +1,8 @@
 # Level generator
 
 Design harness for Shift Register levels. It compiles the game's core (`Assets/Scripts/Core`)
-outside Unity and prints candidate levels with their solver par and solution.
+outside Unity and prints candidate levels with their solver par and solution. It is separate from
+the RANDOM levels in the game, which `Assets/Scripts/Core/LevelGenerator.cs` makes at run time.
 
 ```
 cd Tools/LevelGenerator

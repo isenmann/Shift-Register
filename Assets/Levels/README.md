@@ -24,10 +24,11 @@ Only `start` and `target` are required; everything else defaults to off.
 
 ## Player levels
 
-Levels from the in-game editor (MY LEVELS) use the same format but are not files here. They live in
-PlayerPrefs under `ShiftRegister.CustomLevels.v1` with ids starting `custom-`, and never count toward
-stars or unlocks. A level is proven either by the solver (par is the true minimum) or by beating it in
-test play (par is the best solve so far).
+Levels from the in-game editor (MY LEVELS) and saved random levels use the same format but are not
+files here. They live in PlayerPrefs under `ShiftRegister.CustomLevels.v1` with ids starting `custom-`,
+and never count toward stars or unlocks. A level is proven either by the solver (par is the true
+minimum) or by a recorded solution that replays (par is the best solve so far). That solution comes from
+beating the level in test play, from a share code, or from the scramble of a hard random level.
 
 Share codes are `SR1-` plus base64url bytes (`Assets/Scripts/Core/ShareCode.cs`). A code carries its
 solution, which is replayed on import, so a code that does not solve its own level is refused. Authored
