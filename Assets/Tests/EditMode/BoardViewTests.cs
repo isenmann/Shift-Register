@@ -193,6 +193,45 @@ namespace ShiftRegister.Tests
             Assert.That(CountCells(view.IsBitAsleep), Is.GreaterThan(0));
         }
 
+        Transform LeftEye(int row, int column) =>
+            gameObject.transform.Find($"Cells/Cell {row + 1},{column + 1}/Bit/Eye L");
+
+        [Test]
+        public void AtHome_BitsOnATargetCellSquint_AtOnceOnShow()
+        {
+            // Heart's row 5 starts as 00111111 and wants 01111110.
+            var view = BuildHeart(out _);
+            Assert.That(view.EyeSquint(4, 2), Is.EqualTo(1f), "on a target cell");
+            Assert.That(view.EyeSquint(4, 7), Is.EqualTo(0f), "not on a target cell");
+
+            Vector3 home = LeftEye(4, 2).localScale, away = LeftEye(4, 7).localScale;
+            Assert.That(home.y, Is.LessThan(away.y), "a squinting eye is lower in height");
+            Assert.That(LeftEye(4, 2).localPosition.y, Is.LessThan(LeftEye(4, 7).localPosition.y), "and sits lower");
+        }
+
+        [Test]
+        public void AtHome_ClosedEyesWinOverASquint()
+        {
+            var view = BuildHeart(out var board);
+            int bits = CountCells(board.GetCell);
+            view.IdleLife = true;
+            Run(view, 10f + 0.35f * bits);
+            Assert.That(view.EyeSquint(4, 2), Is.EqualTo(1f), "it is still at home");
+            Assert.That(LeftEye(4, 2).localScale.y, Is.EqualTo(LeftEye(4, 7).localScale.y).Within(1e-4f),
+                "but asleep they all look the same");
+        }
+
+        [Test]
+        public void AtHome_IsOff_WhileTheEditorDrawsThePicture()
+        {
+            var view = BuildHeart(out var board);
+            view.SquintAtHome = false;
+            view.Show(board.Bits);
+            Assert.That(CountCells((row, column) => view.EyeSquint(row, column) > 0f), Is.EqualTo(0));
+            Run(view, 1f);
+            Assert.That(CountCells((row, column) => view.EyeSquint(row, column) > 0f), Is.EqualTo(0));
+        }
+
         [Test]
         public void CellCenter_RowZeroIsTop_PitchMatchesMockup()
         {

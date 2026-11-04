@@ -680,6 +680,7 @@ namespace ShiftRegister.Game.LevelEditor
                 game.Controls.Build(rules, withArrows: false, tightBelts: true);
             }
 
+            game.BoardView.SquintAtHome = false;
             game.BoardView.Show(BoardBits.FromRows(level.start));
             shownBoard = level;
         }

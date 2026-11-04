@@ -7,8 +7,8 @@ namespace ShiftRegister.Game.View
     /// The bits' small reactions to a move. Moved bits lean along the shift, then settle with a small squash, and
     /// look where they are going. Bits beside the moved part glance at it; if a bit falls, they stare at the edge
     /// it left. While the player thinks, one bit blinks now and then, and after a long pause they fall asleep one
-    /// at a time until any input wakes them. A body at rest never leaves its cell or changes size, so the picture
-    /// stays easy to read.
+    /// at a time until any input wakes them. Bits on a target cell are at home and relax into a squint. A body at
+    /// rest never leaves its cell or changes size, so the picture stays easy to read.
     /// </summary>
     public sealed partial class BoardView
     {
@@ -21,6 +21,8 @@ namespace ShiftRegister.Game.View
             public float Lid;
             public float BlinkLeft, WakeDelay;
             public bool Asleep;
+            /// <summary>0 = wide awake, 1 = at home. Empty cells keep their target, so a new bit fits.</summary>
+            public float Squint, SquintTarget;
         }
 
         // Timings in seconds, offsets in mockup pixels.
@@ -33,6 +35,8 @@ namespace ShiftRegister.Game.View
         // A closed eye is an 8×2 px line.
         const float ClosedWidthPx = 2f, ClosedHeightPx = -6f;
         const float LidCloseRate = 42f, LidOpenRate = 24f;
+        // A squinting eye is 6×4.5 px and sits a little lower.
+        const float SquintHeightPx = -3.5f, SquintDropPx = 1.5f, SquintRate = 7f;
         const float BlinkTime = 0.11f, BlinkGapMin = 2.6f, BlinkGapMax = 5f;
         const float NapDelay = 10f, NapStep = 0.3f, WakeMaxDelay = 0.12f;
 
@@ -58,6 +62,15 @@ namespace ShiftRegister.Game.View
                 WakeUp();
             }
         }
+
+        /// <summary>
+        /// True if bits on a target cell squint. Off in the level editor, where the picture is still being drawn.
+        /// Takes effect at the next <see cref="Show"/>.
+        /// </summary>
+        public bool SquintAtHome { get; set; } = true;
+
+        /// <summary>How much a bit is squinting: 0 = wide awake, 1 = at home.</summary>
+        public float EyeSquint(int row, int column) => cells[row, column].Face.Squint;
 
         public bool IsBitAsleep(int row, int column) => cells[row, column].Face.Asleep;
 
@@ -165,16 +178,11 @@ namespace ShiftRegister.Game.View
         }
 
         /// <summary>Hands the lean and the travel look over from the slide to the bits that arrived.</summary>
-        void StartArrival(ulong arrived, Axis axis, Vector2 step, float moveStart, bool spilled)
+        void StartArrival(ulong arrived, float[,] squints, Axis axis, Vector2 step, float moveStart, bool spilled)
         {
             leanCells = arrived;
             leanStart = moveStart;
             leanAxis = axis;
-            if (spilled)
-            {
-                return; // they are already staring at the edge
-            }
-
             for (int row = 0; row < BoardBits.Size; row++)
             {
                 for (int column = 0; column < BoardBits.Size; column++)
@@ -184,11 +192,17 @@ namespace ShiftRegister.Game.View
                         continue;
                     }
 
+                    // The squint came along with the bit, and eases from there to what the new cell asks for.
                     var face = cells[row, column].Face;
-                    face.Look = face.LookTarget = step * LookPx;
-                    face.LookFrom = moveStart;
-                    face.LookUntil = moveStart + TravelLookTime;
-                    ApplyEyes(cells[row, column].Eyes, face.Look, face.Wide);
+                    face.Squint = squints[row, column];
+                    if (!spilled) // otherwise they are already staring at the edge
+                    {
+                        face.Look = face.LookTarget = step * LookPx;
+                        face.LookFrom = moveStart;
+                        face.LookUntil = moveStart + TravelLookTime;
+                    }
+
+                    ApplyEyes(cells[row, column].Eyes, face.Look, face.Wide, face.Lid, face.Squint);
                 }
             }
         }
@@ -221,7 +235,8 @@ namespace ShiftRegister.Game.View
                     float lid = closed ? 1f : 0f;
                     face.BlinkLeft = Mathf.Max(0f, face.BlinkLeft - deltaTime);
                     face.WakeDelay = Mathf.Max(0f, face.WakeDelay - deltaTime);
-                    if (face.Look == look && face.Wide == wide && face.Lid == lid)
+                    if (face.Look == look && face.Wide == wide && face.Lid == lid
+                        && face.Squint == face.SquintTarget)
                     {
                         continue;
                     }
@@ -230,6 +245,7 @@ namespace ShiftRegister.Game.View
                     face.Wide = Mathf.Lerp(face.Wide, wide, blend);
                     float lidRate = closed ? LidCloseRate : LidOpenRate;
                     face.Lid = Mathf.Lerp(face.Lid, lid, 1f - Mathf.Exp(-deltaTime * lidRate));
+                    face.Squint = Mathf.Lerp(face.Squint, face.SquintTarget, 1f - Mathf.Exp(-deltaTime * SquintRate));
                     if ((face.Look - look).sqrMagnitude < FaceSnap * FaceSnap)
                     {
                         face.Look = look;
@@ -245,7 +261,12 @@ namespace ShiftRegister.Game.View
                         face.Lid = lid;
                     }
 
-                    ApplyEyes(cell.Eyes, face.Look, face.Wide, face.Lid);
+                    if (Mathf.Abs(face.Squint - face.SquintTarget) < FaceSnap)
+                    {
+                        face.Squint = face.SquintTarget;
+                    }
+
+                    ApplyEyes(cell.Eyes, face.Look, face.Wide, face.Lid, face.Squint);
                 }
             }
 
@@ -343,26 +364,38 @@ namespace ShiftRegister.Game.View
                 return;
             }
 
-            foreach (var cell in cells)
+            for (int row = 0; row < BoardBits.Size; row++)
             {
-                var face = cell.Face;
-                face.Look = face.LookTarget = Vector2.zero;
-                face.LookFrom = face.LookUntil = face.WideUntil = 0f;
-                face.Wide = face.Lid = face.BlinkLeft = face.WakeDelay = 0f;
-                face.Asleep = false;
-                ApplyEyes(cell.Eyes, Vector2.zero, 0f);
+                for (int column = 0; column < BoardBits.Size; column++)
+                {
+                    var cell = cells[row, column];
+                    var face = cell.Face;
+                    face.Look = face.LookTarget = Vector2.zero;
+                    face.LookFrom = face.LookUntil = face.WideUntil = 0f;
+                    face.Wide = face.Lid = face.BlinkLeft = face.WakeDelay = 0f;
+                    face.Asleep = false;
+                    // At once, not eased: an undo or reset must not make the whole board squint again.
+                    face.Squint = face.SquintTarget =
+                        SquintAtHome && BoardBits.GetCell(rules.Target, row, column) ? 1f : 0f;
+                    ApplyEyes(cell.Eyes, Vector2.zero, 0f, 0f, face.Squint);
+                }
             }
         }
 
-        /// <summary>Places a bit's two eyes (left, right); <paramref name="look"/> is in mockup pixels.</summary>
-        static void ApplyEyes(SpriteRenderer[] eyes, Vector2 look, float wide, float lid = 0f)
+        /// <summary>
+        /// Places a bit's two eyes (left, right); <paramref name="look"/> is in mockup pixels. Staring or closed eyes
+        /// win over a squint.
+        /// </summary>
+        static void ApplyEyes(SpriteRenderer[] eyes, Vector2 look, float wide, float lid = 0f, float squint = 0f)
         {
+            float relaxed = squint * (1f - wide) * (1f - lid);
             var scale = new Vector3(1f + (wide * WideWidthPx + lid * ClosedWidthPx) / EyeWidth,
-                1f + (wide * WideHeightPx + lid * ClosedHeightPx) / EyeHeight, 1f);
+                1f + (wide * WideHeightPx + lid * ClosedHeightPx + relaxed * SquintHeightPx) / EyeHeight, 1f);
             for (int i = 0; i < eyes.Length; i++)
             {
                 float side = i == 0 ? -EyeX : EyeX;
-                eyes[i].transform.localPosition = new Vector2(side + look.x, EyeY + look.y) / CellPx;
+                float height = EyeY + look.y - relaxed * SquintDropPx;
+                eyes[i].transform.localPosition = new Vector2(side + look.x, height) / CellPx;
                 eyes[i].transform.localScale = scale;
             }
         }

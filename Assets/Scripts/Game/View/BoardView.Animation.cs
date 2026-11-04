@@ -28,12 +28,15 @@ namespace ShiftRegister.Game.View
             public readonly Floater Floater;
             public readonly Vector2 From, To;
             public readonly float AlphaFrom, AlphaTo;
+            public readonly float Squint;
 
-            public Slide(Floater floater, Vector2 from, Vector2 to, float alphaFrom = 1f, float alphaTo = 1f)
+            public Slide(Floater floater, Vector2 from, Vector2 to, float squint, float alphaFrom = 1f,
+                float alphaTo = 1f)
             {
                 Floater = floater;
                 From = from;
                 To = to;
+                Squint = squint;
                 AlphaFrom = alphaFrom;
                 AlphaTo = alphaTo;
             }
@@ -175,6 +178,7 @@ namespace ShiftRegister.Game.View
             ShowNow(outcome.Before & ~moving, outcome.After);
             var slides = new List<Slide>();
             ulong arrived = 0;
+            var arrivalSquints = new float[BoardBits.Size, BoardBits.Size];
             for (int row = 0; row < BoardBits.Size; row++)
             {
                 for (int column = 0; column < BoardBits.Size; column++)
@@ -193,17 +197,20 @@ namespace ShiftRegister.Game.View
 
                     var (targetRow, targetColumn, wrap) = Destination(move, row, column);
                     arrived |= BoardBits.CellMask(targetRow, targetColumn);
+                    float squint = cells[row, column].Face.Squint;
+                    arrivalSquints[targetRow, targetColumn] = squint;
                     Vector2 endPosition = CellCenter(targetRow, targetColumn);
                     if (!wrap)
                     {
-                        slides.Add(new Slide(Spawn(startPosition), startPosition, endPosition));
+                        slides.Add(new Slide(Spawn(startPosition), startPosition, endPosition, squint));
                     }
                     else
                     {
                         // Wrap (rotate) or carry into the chained row: slide out, slide back in at the destination.
                         Vector2 outside = endPosition - step * 0.6f;
-                        slides.Add(new Slide(Spawn(startPosition), startPosition, startPosition + step * 0.6f, 1f, 0f));
-                        slides.Add(new Slide(Spawn(outside), outside, endPosition, 0f, 1f));
+                        slides.Add(new Slide(Spawn(startPosition), startPosition, startPosition + step * 0.6f, squint,
+                            1f, 0f));
+                        slides.Add(new Slide(Spawn(outside), outside, endPosition, squint, 0f, 1f));
                     }
                 }
             }
@@ -216,7 +223,7 @@ namespace ShiftRegister.Game.View
                 {
                     slide.Floater.Transform.localPosition = Vector2.Lerp(slide.From, slide.To, eased);
                     slide.Floater.Transform.localScale = lean;
-                    ApplyEyes(slide.Floater.Eyes, direction * (LookPx * eased), 0f);
+                    ApplyEyes(slide.Floater.Eyes, direction * (LookPx * eased), 0f, 0f, slide.Squint);
                     SetAlpha(slide.Floater, Mathf.Lerp(slide.AlphaFrom, slide.AlphaTo, progress));
                 }
             });
@@ -225,7 +232,7 @@ namespace ShiftRegister.Game.View
                 Release(slide.Floater);
             }
 
-            StartArrival(arrived, move.Axis, direction, moveStart, outcome.LostCells != 0);
+            StartArrival(arrived, arrivalSquints, move.Axis, direction, moveStart, outcome.LostCells != 0);
 
             // Bits that came from nowhere (a 1-IN edge) pop in.
             ulong kept = outcome.Before & ~moving;

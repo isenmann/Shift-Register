@@ -295,6 +295,7 @@ namespace ShiftRegister.Game
             LastResult = null;
 
             PlaceBoard();
+            boardView.SquintAtHome = true;
             boardView.Build(Board.Rules);
             if (controls != null)
             {
