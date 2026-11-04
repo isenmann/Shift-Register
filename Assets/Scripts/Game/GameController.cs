@@ -166,6 +166,7 @@ namespace ShiftRegister.Game
             if (boardView != null)
             {
                 boardView.Animate = !Settings.reducedMotion;
+                boardView.BitLife = Settings.bitLife;
             }
         }
 

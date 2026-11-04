@@ -88,7 +88,9 @@ namespace ShiftRegister.Game.Hud
                 return;
             }
 
-            pile.Shown = ResidentsShown(lost, pile.Columns, PileRows(layout, rules, broken));
+            pile.Shown = game.Settings.bitLife
+                ? ResidentsShown(lost, pile.Columns, PileRows(layout, rules, broken))
+                : 0;
             for (int i = 0; i < pile.Residents.Count; i++)
             {
                 var body = pile.Residents[i].Body;

@@ -9,13 +9,13 @@ using UnityEngine.UI;
 namespace ShiftRegister.Game.Hud
 {
     /// <summary>
-    /// The options screen: volume, sound on/off and reduced motion. Arrows up/down pick a row,
+    /// The options screen: volume, sound on/off, reduced motion and bit life. Arrows up/down pick a row,
     /// left/right change it, Enter switches it, Esc goes back. Landscape rows are one line each;
     /// portrait rows put the volume controls under their label.
     /// </summary>
     public sealed partial class MenuView
     {
-        enum OptionRow { Volume, Sound, Motion }
+        enum OptionRow { Volume, Sound, Motion, Life }
 
         /// <summary>One arrangement of the options screen.</summary>
         sealed class OptionsUi
@@ -23,7 +23,7 @@ namespace ShiftRegister.Game.Hud
             public float X, Top, Width, Height, Pitch;
             public readonly Image[] VolumeCells = new Image[GameSettings.VolumeSteps];
             public TextMeshProUGUI VolumeText;
-            public HudButton Sound, Motion;
+            public HudButton Sound, Motion, Life;
             public Image Focus;
         }
 
@@ -65,14 +65,14 @@ namespace ShiftRegister.Game.Hud
             OptionsMode.PhoneLandscape => new OptionsSpec
             {
                 X = (915 - 560) / 2f,
-                Top = 76,
+                Top = 62,
                 Width = 560,
-                Height = 86,
-                Pitch = 98,
+                Height = 78,
+                Pitch = 85,
                 LabelSize = 18,
                 TextSize = 14,
-                TextWidth = 300,
-                TextHeight = 40,
+                TextWidth = 400,
+                TextHeight = 24,
                 MinusX = 230,
                 ControlsY = 20,
                 Button = 44,
@@ -165,9 +165,13 @@ namespace ShiftRegister.Game.Hud
             options.Sound = HudButton.Create(sound, "ON", toggleX, toggleY, spec.ToggleWidth, spec.ToggleHeight,
                 display, 16, () => Toggle(OptionRow.Sound));
             var motion = OptionRowRoot(rows, options, spec, OptionRow.Motion, "REDUCED MOTION", out var motionText);
-            motionText.text = "Moves snap into place: no sliding, flying or hopping.";
+            motionText.text = "Moves snap into place. Only eyes move.";
             options.Motion = HudButton.Create(motion, "OFF", toggleX, toggleY, spec.ToggleWidth, spec.ToggleHeight,
                 display, 16, () => Toggle(OptionRow.Motion));
+            var life = OptionRowRoot(rows, options, spec, OptionRow.Life, "BIT LIFE", out var lifeText);
+            lifeText.text = "Bits blink, nap and react while you think.";
+            options.Life = HudButton.Create(life, "ON", toggleX, toggleY, spec.ToggleWidth, spec.ToggleHeight,
+                display, 16, () => Toggle(OptionRow.Life));
 
             options.Focus = Ui.Frame(rows, "Focus", options.X, options.Top, options.Width, options.Height, 10f, 3f,
                 Lcd.Ink);
@@ -213,7 +217,7 @@ namespace ShiftRegister.Game.Hud
             }
             else if (keyboard.downArrowKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame)
             {
-                SetOptionFocus((OptionRow)Mathf.Min((int)OptionRow.Motion, (int)optionFocus + 1));
+                SetOptionFocus((OptionRow)Mathf.Min((int)OptionRow.Life, (int)optionFocus + 1));
             }
             else if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame)
             {
@@ -254,7 +258,12 @@ namespace ShiftRegister.Game.Hud
             Sfx.Play(Sound.Click);
         }
 
-        bool IsOn(OptionRow row) => row == OptionRow.Sound ? !game.Settings.muted : game.Settings.reducedMotion;
+        bool IsOn(OptionRow row) => row switch
+        {
+            OptionRow.Sound => !game.Settings.muted,
+            OptionRow.Life => game.Settings.bitLife,
+            _ => game.Settings.reducedMotion
+        };
 
         void Toggle(OptionRow row)
         {
@@ -266,6 +275,10 @@ namespace ShiftRegister.Game.Hud
             else if (row == OptionRow.Motion)
             {
                 game.ChangeSettings(settings => settings.reducedMotion = !settings.reducedMotion);
+            }
+            else if (row == OptionRow.Life)
+            {
+                game.ChangeSettings(settings => settings.bitLife = !settings.bitLife);
             }
         }
 
@@ -313,6 +326,7 @@ namespace ShiftRegister.Game.Hud
                     : $"{settings.volume * 10}%";
                 options.Sound.Text = settings.muted ? "OFF" : "ON";
                 options.Motion.Text = settings.reducedMotion ? "ON" : "OFF";
+                options.Life.Text = settings.bitLife ? "ON" : "OFF";
                 if (resetFocus)
                 {
                     options.Focus.enabled = false; // no focus tick when the screen opens

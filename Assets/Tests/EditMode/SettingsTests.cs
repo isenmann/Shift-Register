@@ -16,6 +16,20 @@ namespace ShiftRegister.Tests
         }
 
         [Test]
+        public void BitLife_IsOnByDefault_AlsoInSavesFromBeforeTheOption()
+        {
+            Assert.That(new GameSettings().bitLife, Is.True);
+
+            const string oldSave = "{\"version\":1,\"volume\":3,\"muted\":false,\"reducedMotion\":true}";
+            var loaded = JsonUtility.FromJson<GameSettings>(oldSave);
+            Assert.That(loaded.bitLife, Is.True);
+            Assert.That(loaded.volume, Is.EqualTo(3));
+
+            var off = new GameSettings { bitLife = false };
+            Assert.That(JsonUtility.FromJson<GameSettings>(JsonUtility.ToJson(off)).bitLife, Is.False);
+        }
+
+        [Test]
         public void EffectiveVolume_ZeroWhenMuted()
         {
             var settings = new GameSettings { volume = 5, muted = true };

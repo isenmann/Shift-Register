@@ -65,6 +65,15 @@ namespace ShiftRegister.Game.Hud
             return label;
         }
 
+        /// <summary>A short value that shrinks to stay inside its rect when it gets too wide for its size.</summary>
+        public static TextMeshProUGUI ShrinkToFit(TextMeshProUGUI label, float smallest = 12f)
+        {
+            label.fontSizeMax = label.fontSize;
+            label.fontSizeMin = smallest;
+            label.enableAutoSizing = true;
+            return label;
+        }
+
         public static void Style(TextMeshProUGUI label, TMP_FontAsset font, float size, Color32 color,
             TextAlignmentOptions align)
         {

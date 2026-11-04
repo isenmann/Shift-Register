@@ -365,6 +365,32 @@ namespace ShiftRegister.Tests
         }
 
         [Test]
+        public void BitLife_Off_LeavesPlainFaces_AndOnBringsThemBack()
+        {
+            var view = BuildHeart(out var board);
+            Assert.That(view.EyeSquint(2, 0), Is.EqualTo(1f), "on by default");
+
+            view.BitLife = false;
+            Assert.That(CountCells((row, column) => view.EyeSquint(row, column) > 0f), Is.EqualTo(0), "no squint");
+
+            view.IdleLife = true;
+            view.SetPeek(board, 2, 3, Move.Row(2, Direction.Left));
+            Assert.That(CountCells(view.IsBitPeeking), Is.EqualTo(0), "no peek");
+            Assert.That(CountCells(view.IsBitAlarmed), Is.EqualTo(0), "no alarm");
+
+            int closed = 0;
+            Run(view, 15f, () => closed += CountCells((row, column) => view.EyeLid(row, column) > 0f));
+            Assert.That(closed, Is.EqualTo(0), "no blink and no nap");
+
+            board.TryMove(Move.Row(4, Direction.Left), out var outcome);
+            view.Play(outcome, true, false);
+            Assert.That(CountCells(view.IsBitHappy), Is.EqualTo(0), "no happy eyes");
+
+            view.BitLife = true;
+            Assert.That(view.EyeSquint(2, 0), Is.EqualTo(1f), "back at once");
+        }
+
+        [Test]
         public void CellCenter_RowZeroIsTop_PitchMatchesMockup()
         {
             Assert.That(BoardView.CellCenter(0, 0).y, Is.GreaterThan(BoardView.CellCenter(7, 0).y));

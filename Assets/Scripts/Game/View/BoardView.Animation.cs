@@ -57,7 +57,10 @@ namespace ShiftRegister.Game.View
         int flights;
         bool busy, hopping;
 
-        /// <summary>False for reduced motion: moves snap into place (the sound events still fire).</summary>
+        /// <summary>
+        /// False for reduced motion: moves snap into place (the sound events still fire). Bits still move their eyes,
+        /// but no body leans, hops or flies.
+        /// </summary>
         public bool Animate
         {
             get => animate;
@@ -94,7 +97,7 @@ namespace ShiftRegister.Game.View
             settledBits = outcome.After;
             napHeld = solved || broken;
             WakeUp();
-            if (cells != null)
+            if (cells != null && bitLife)
             {
                 StartReactions(outcome);
             }
@@ -223,12 +226,13 @@ namespace ShiftRegister.Game.View
             yield return Tween(shiftTime, progress =>
             {
                 float eased = EaseOutCubic(progress);
-                Vector3 lean = LeanScale(progress * shiftTime, move.Axis);
+                Vector3 lean = bitLife ? LeanScale(progress * shiftTime, move.Axis) : Vector3.one;
+                Vector2 look = bitLife ? direction * (LookPx * eased) : Vector2.zero;
                 foreach (var slide in slides)
                 {
                     slide.Floater.Transform.localPosition = Vector2.Lerp(slide.From, slide.To, eased);
                     slide.Floater.Transform.localScale = lean;
-                    ApplyEyes(slide.Floater.Eyes, direction * (LookPx * eased), 0f, 0f, slide.Squint);
+                    ApplyEyes(slide.Floater.Eyes, look, 0f, 0f, slide.Squint);
                     SetAlpha(slide.Floater, Mathf.Lerp(slide.AlphaFrom, slide.AlphaTo, progress));
                 }
             });
@@ -287,7 +291,7 @@ namespace ShiftRegister.Game.View
         /// </summary>
         public void PlayRescue(ulong rescued)
         {
-            if (!animate || !Application.isPlaying || !isActiveAndEnabled || cells == null)
+            if (!bitLife || !animate || !Application.isPlaying || !isActiveAndEnabled || cells == null)
             {
                 return;
             }
@@ -378,12 +382,16 @@ namespace ShiftRegister.Game.View
         {
             flights++;
             // On its way over the edge it sees what is coming.
-            ApplyEyes(floater.Eyes, (edge - from).normalized * StarePx, 1f);
+            if (bitLife)
+            {
+                ApplyEyes(floater.Eyes, (edge - from).normalized * StarePx, 1f);
+            }
+
             Axis axis = Mathf.Abs((edge - from).x) > Mathf.Abs((edge - from).y) ? Axis.Row : Axis.Column;
             yield return Tween(shiftTime, progress =>
             {
                 floater.Transform.localPosition = Vector2.Lerp(from, edge, EaseOutCubic(progress));
-                floater.Transform.localScale = LeanScale(progress * shiftTime, axis);
+                floater.Transform.localScale = bitLife ? LeanScale(progress * shiftTime, axis) : Vector3.one;
             });
 
             SetLost(floater, true);

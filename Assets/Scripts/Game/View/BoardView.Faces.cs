@@ -58,6 +58,7 @@ namespace ShiftRegister.Game.View
         ulong leanCells;
         float leanStart;
         Axis leanAxis;
+        bool bitLife = true;
         bool idleLife;
         /// <summary>A solved or broken board waits for the player: nobody naps through that.</summary>
         bool napHeld;
@@ -68,6 +69,20 @@ namespace ShiftRegister.Game.View
         ulong peekBits;
         int peekRow, peekColumn;
         Move? peekAimed;
+
+        /// <summary>The BIT LIFE option. Off: every bit keeps a plain face, and moves slide as plain squares.</summary>
+        public bool BitLife
+        {
+            get => bitLife;
+            set
+            {
+                if (bitLife != value)
+                {
+                    bitLife = value;
+                    ClearFaces();
+                }
+            }
+        }
 
         /// <summary>
         /// True while the player can act on the board: bits blink and nap. Off in the level editor and behind panels.
@@ -110,6 +125,7 @@ namespace ShiftRegister.Game.View
                 return;
             }
 
+            happy &= bitLife;
             foreach (var cell in cells)
             {
                 for (int i = 0; i < cell.Eyes.Length; i++)
@@ -133,7 +149,7 @@ namespace ShiftRegister.Game.View
         /// </summary>
         public void SetPeek(Board board, int row, int column, Move? aimed)
         {
-            if (cells == null)
+            if (cells == null || !bitLife)
             {
                 return;
             }
@@ -320,6 +336,11 @@ namespace ShiftRegister.Game.View
         /// <summary>Hands the lean and the travel look over from the slide to the bits that arrived.</summary>
         void StartArrival(ulong arrived, float[,] squints, Axis axis, Vector2 step, float moveStart, bool spilled)
         {
+            if (!bitLife)
+            {
+                return;
+            }
+
             leanCells = arrived;
             leanStart = moveStart;
             leanAxis = axis;
@@ -419,7 +440,7 @@ namespace ShiftRegister.Game.View
         /// <summary>The idle clock: one bit blinks every few seconds, and a long pause sends them to sleep.</summary>
         void UpdateIdleLife(float deltaTime)
         {
-            if (!idleLife)
+            if (!idleLife || !bitLife)
             {
                 return;
             }
@@ -520,7 +541,7 @@ namespace ShiftRegister.Game.View
                     face.Asleep = false;
                     // At once, not eased: an undo or reset must not make the whole board squint again.
                     face.Squint = face.SquintTarget =
-                        SquintAtHome && BoardBits.GetCell(rules.Target, row, column) ? 1f : 0f;
+                        bitLife && SquintAtHome && BoardBits.GetCell(rules.Target, row, column) ? 1f : 0f;
                     ApplyEyes(cell.Eyes, Vector2.zero, 0f, 0f, face.Squint);
                 }
             }

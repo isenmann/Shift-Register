@@ -289,13 +289,17 @@ namespace ShiftRegister.Game.Hud
             Ui.Box(left, "Moves Tile", x, tileY, tileWidth, tileHeight, 10f, Lcd.Cell);
             Ui.Text(left, "Moves Label", x + 14, tileY, 60, tileHeight, mono, 12, Lcd.Text3,
                 text: "MOVES").characterSpacing = 10;
-            layout.Moves = Ui.Text(left, "Moves", x + 14, tileY, tileWidth - 28, tileHeight, display, 30, Lcd.Ink,
-                TextAlignmentOptions.MidlineRight);
+            // The values stay beside their labels: their rects start where the label ends.
+            const float movesValueX = 58f, parValueX = 40f, valueRightPad = 14f;
+            layout.Moves = Ui.ShrinkToFit(Ui.Text(left, "Moves", x + movesValueX, tileY,
+                tileWidth - movesValueX - valueRightPad, tileHeight, display, 30, Lcd.Ink,
+                TextAlignmentOptions.MidlineRight));
             Ui.Frame(left, "Par Tile", parX, tileY, tileWidth, tileHeight, 10f, 2f, Lcd.Ink);
             Ui.Text(left, "Par Label", parX + 14, tileY, 60, tileHeight, mono, 12, Lcd.Text3,
                 text: "PAR").characterSpacing = 10;
-            layout.Par = Ui.Text(left, "Par", parX + 14, tileY, tileWidth - 28, tileHeight, display, 30, Lcd.Ink,
-                TextAlignmentOptions.MidlineRight);
+            layout.Par = Ui.ShrinkToFit(Ui.Text(left, "Par", parX + parValueX, tileY,
+                tileWidth - parValueX - valueRightPad, tileHeight, display, 30, Lcd.Ink,
+                TextAlignmentOptions.MidlineRight));
 
             Outlook(layout, left, x, 531, 20f);
 
@@ -415,7 +419,8 @@ namespace ShiftRegister.Game.Hud
 
             Ui.Text(frame, label + " Label", x + 10, y + 6, width - 20, 14, mono, 12, Lcd.Text3,
                 text: label.ToUpperInvariant());
-            value = Ui.Text(frame, label, x + 10, y + 22, width - 20, height - 26, display, 24, Lcd.Ink);
+            value = Ui.ShrinkToFit(Ui.Text(frame, label, x + 10, y + 22, width - 20, height - 26, display, 24,
+                Lcd.Ink));
         }
 
         /// <summary>
@@ -877,7 +882,7 @@ namespace ShiftRegister.Game.Hud
                 {
                     layout.BucketText.text = broken ? (layout.Phone ? "rule broken" : "Rule broken. Undo to continue.")
                         : layout.Phone ? ShortRuleText(rules)
-                        : board.Lost > 0 ? RuleHeadline(rules) : RuleText(rules);
+                        : board.Lost > 0 && game.Settings.bitLife ? RuleHeadline(rules) : RuleText(rules);
                     layout.BucketText.color = broken ? Lcd.Loss : Lcd.Text2;
                 }
 
