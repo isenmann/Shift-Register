@@ -37,6 +37,18 @@ namespace ShiftRegister.Game.Input
             hovered = -1;
             lastPointer = new Vector2(float.NaN, float.NaN);
             swipe.End();
+            SetIdleLife(true);
+        }
+
+        void OnDisable() => SetIdleLife(false);
+
+        /// <summary>Bits blink and nap only while this script takes input: not in menus, the editor or help.</summary>
+        void SetIdleLife(bool on)
+        {
+            if (game != null && game.BoardView != null)
+            {
+                game.BoardView.IdleLife = on;
+            }
         }
 
         void Update()
@@ -46,9 +58,24 @@ namespace ShiftRegister.Game.Input
                 return;
             }
 
+            int oldRow = row, oldColumn = column, oldHovered = hovered;
             HandlePointer();
             HandleKeyboard();
             controls.Highlight(hovered, row, column);
+
+            if (row != oldRow || column != oldColumn || hovered != oldHovered || IsAnyKeyOrPressThisFrame())
+            {
+                game.BoardView.WakeUp();
+            }
+        }
+
+        /// <summary>Tiny pointer jitter doesn't count as input; a new cell, a key or a press does.</summary>
+        static bool IsAnyKeyOrPressThisFrame()
+        {
+            var keyboard = Keyboard.current;
+            var pointer = Pointer.current;
+            return (keyboard != null && keyboard.anyKey.wasPressedThisFrame)
+                || (pointer != null && pointer.press.wasPressedThisFrame);
         }
 
         void HandleKeyboard()

@@ -6,7 +6,9 @@ namespace ShiftRegister.Game.View
     /// <summary>
     /// The bits' small reactions to a move. Moved bits lean along the shift, then settle with a small squash, and
     /// look where they are going. Bits beside the moved part glance at it; if a bit falls, they stare at the edge
-    /// it left. A body at rest never leaves its cell or changes size, so the picture stays easy to read.
+    /// it left. While the player thinks, one bit blinks now and then, and after a long pause they fall asleep one
+    /// at a time until any input wakes them. A body at rest never leaves its cell or changes size, so the picture
+    /// stays easy to read.
     /// </summary>
     public sealed partial class BoardView
     {
@@ -15,6 +17,10 @@ namespace ShiftRegister.Game.View
             public Vector2 Look, LookTarget;
             public float LookFrom, LookUntil, WideUntil;
             public float Wide;
+            /// <summary>0 = eyes open, 1 = closed to a thin line.</summary>
+            public float Lid;
+            public float BlinkLeft, WakeDelay;
+            public bool Asleep;
         }
 
         // Timings in seconds, offsets in mockup pixels.
@@ -24,13 +30,60 @@ namespace ShiftRegister.Game.View
         const float FaceRate = 14f, FaceSnap = 0.01f;
         // A wide eye is 7×10.5 px instead of 6×8.
         const float WideWidthPx = 1f, WideHeightPx = 2.5f;
+        // A closed eye is an 8×2 px line.
+        const float ClosedWidthPx = 2f, ClosedHeightPx = -6f;
+        const float LidCloseRate = 42f, LidOpenRate = 24f;
+        const float BlinkTime = 0.11f, BlinkGapMin = 2.6f, BlinkGapMax = 5f;
+        const float NapDelay = 10f, NapStep = 0.3f, WakeMaxDelay = 0.12f;
 
         readonly System.Random faceRandom = new System.Random();
         ulong leanCells;
         float leanStart;
         Axis leanAxis;
+        bool idleLife;
+        /// <summary>A solved or broken board waits for the player: nobody naps through that.</summary>
+        bool napHeld;
+        float idleTime, napIn;
+        float blinkIn = BlinkGapMin;
 
-        /// <summary>The body's scale at this time after a shift starts: stretched first, then a damped squash.</summary>
+        /// <summary>
+        /// True while the player can act on the board: bits blink and nap. Off in the level editor and behind panels.
+        /// </summary>
+        public bool IdleLife
+        {
+            get => idleLife;
+            set
+            {
+                idleLife = value;
+                WakeUp();
+            }
+        }
+
+        public bool IsBitAsleep(int row, int column) => cells[row, column].Face.Asleep;
+
+        /// <summary>How closed a bit's eyes are: 0 = open, 1 = closed.</summary>
+        public float EyeLid(int row, int column) => cells[row, column].Face.Lid;
+
+        /// <summary>The player did something: restarts the idle clock and wakes every sleeping bit.</summary>
+        public void WakeUp()
+        {
+            idleTime = 0f;
+            if (cells == null)
+            {
+                return;
+            }
+
+            foreach (var cell in cells)
+            {
+                if (cell.Face.Asleep)
+                {
+                    cell.Face.Asleep = false;
+                    cell.Face.WakeDelay = (float)faceRandom.NextDouble() * WakeMaxDelay;
+                }
+            }
+        }
+
+        /// <summary>The body's scale this long after a shift starts: stretched first, then a damped squash.</summary>
         public static Vector3 LeanScale(float elapsed, Axis axis)
         {
             float progress = elapsed / LeanTime;
@@ -140,16 +193,21 @@ namespace ShiftRegister.Game.View
             }
         }
 
-        /// <summary>Runs after the move animation's coroutines, so these scales win over the ones ShowNow resets.</summary>
-        void LateUpdate()
+        /// <summary>Runs after the move animation's coroutines, so these scales win over ShowNow's resets.</summary>
+        void LateUpdate() => TickFaces(Time.deltaTime);
+
+        /// <summary>One frame of the faces. Public so tests can run it without play mode.</summary>
+        public void TickFaces(float deltaTime)
         {
             if (cells == null)
             {
                 return;
             }
 
+            UpdateIdleLife(deltaTime);
+
             float now = Time.time;
-            float blend = 1f - Mathf.Exp(-Time.deltaTime * FaceRate);
+            float blend = 1f - Mathf.Exp(-deltaTime * FaceRate);
             for (int row = 0; row < BoardBits.Size; row++)
             {
                 for (int column = 0; column < BoardBits.Size; column++)
@@ -159,13 +217,19 @@ namespace ShiftRegister.Game.View
                     bool started = now >= face.LookFrom;
                     Vector2 look = started && now < face.LookUntil ? face.LookTarget : Vector2.zero;
                     float wide = started && now < face.WideUntil ? 1f : 0f;
-                    if (face.Look == look && face.Wide == wide)
+                    bool closed = face.Asleep || face.BlinkLeft > 0f || face.WakeDelay > 0f;
+                    float lid = closed ? 1f : 0f;
+                    face.BlinkLeft = Mathf.Max(0f, face.BlinkLeft - deltaTime);
+                    face.WakeDelay = Mathf.Max(0f, face.WakeDelay - deltaTime);
+                    if (face.Look == look && face.Wide == wide && face.Lid == lid)
                     {
                         continue;
                     }
 
                     face.Look = Vector2.Lerp(face.Look, look, blend);
                     face.Wide = Mathf.Lerp(face.Wide, wide, blend);
+                    float lidRate = closed ? LidCloseRate : LidOpenRate;
+                    face.Lid = Mathf.Lerp(face.Lid, lid, 1f - Mathf.Exp(-deltaTime * lidRate));
                     if ((face.Look - look).sqrMagnitude < FaceSnap * FaceSnap)
                     {
                         face.Look = look;
@@ -176,11 +240,69 @@ namespace ShiftRegister.Game.View
                         face.Wide = wide;
                     }
 
-                    ApplyEyes(cell.Eyes, face.Look, face.Wide);
+                    if (Mathf.Abs(face.Lid - lid) < FaceSnap)
+                    {
+                        face.Lid = lid;
+                    }
+
+                    ApplyEyes(cell.Eyes, face.Look, face.Wide, face.Lid);
                 }
             }
 
             UpdateLean(now);
+        }
+
+        /// <summary>The idle clock: one bit blinks every few seconds, and a long pause sends them to sleep.</summary>
+        void UpdateIdleLife(float deltaTime)
+        {
+            if (!idleLife)
+            {
+                return;
+            }
+
+            idleTime += deltaTime;
+            blinkIn -= deltaTime;
+            if (blinkIn <= 0f)
+            {
+                blinkIn = Mathf.Lerp(BlinkGapMin, BlinkGapMax, (float)faceRandom.NextDouble());
+                if (!busy && TryPickAwakeBit(out var blinker))
+                {
+                    blinker.Face.BlinkLeft = BlinkTime;
+                }
+            }
+
+            if (napHeld || idleTime < NapDelay)
+            {
+                napIn = 0f;
+                return;
+            }
+
+            napIn -= deltaTime;
+            if (napIn <= 0f)
+            {
+                napIn = NapStep;
+                if (TryPickAwakeBit(out var sleeper))
+                {
+                    sleeper.Face.Asleep = true;
+                }
+            }
+        }
+
+        /// <summary>A random bit on the board that is awake and looking straight ahead.</summary>
+        bool TryPickAwakeBit(out Cell picked)
+        {
+            picked = null;
+            int seen = 0;
+            foreach (var cell in cells)
+            {
+                if (cell.Bit.activeSelf && !cell.Face.Asleep && cell.Face.Look == Vector2.zero
+                    && faceRandom.Next(++seen) == 0)
+                {
+                    picked = cell;
+                }
+            }
+
+            return picked != null;
         }
 
         void UpdateLean(float now)
@@ -214,6 +336,8 @@ namespace ShiftRegister.Game.View
         void ClearFaces()
         {
             leanCells = 0;
+            idleTime = 0f;
+            napHeld = false;
             if (cells == null)
             {
                 return;
@@ -224,15 +348,17 @@ namespace ShiftRegister.Game.View
                 var face = cell.Face;
                 face.Look = face.LookTarget = Vector2.zero;
                 face.LookFrom = face.LookUntil = face.WideUntil = 0f;
-                face.Wide = 0f;
+                face.Wide = face.Lid = face.BlinkLeft = face.WakeDelay = 0f;
+                face.Asleep = false;
                 ApplyEyes(cell.Eyes, Vector2.zero, 0f);
             }
         }
 
         /// <summary>Places a bit's two eyes (left, right); <paramref name="look"/> is in mockup pixels.</summary>
-        static void ApplyEyes(SpriteRenderer[] eyes, Vector2 look, float wide)
+        static void ApplyEyes(SpriteRenderer[] eyes, Vector2 look, float wide, float lid = 0f)
         {
-            var scale = new Vector3(1f + wide * WideWidthPx / EyeWidth, 1f + wide * WideHeightPx / EyeHeight, 1f);
+            var scale = new Vector3(1f + (wide * WideWidthPx + lid * ClosedWidthPx) / EyeWidth,
+                1f + (wide * WideHeightPx + lid * ClosedHeightPx) / EyeHeight, 1f);
             for (int i = 0; i < eyes.Length; i++)
             {
                 float side = i == 0 ? -EyeX : EyeX;

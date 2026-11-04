@@ -89,6 +89,8 @@ namespace ShiftRegister.Game.View
             StopAnimation();
             leanCells = 0;
             settledBits = outcome.After;
+            napHeld = solved || broken;
+            WakeUp();
             if (cells != null)
             {
                 StartReactions(outcome);

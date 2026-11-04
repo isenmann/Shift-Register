@@ -88,6 +88,111 @@ namespace ShiftRegister.Tests
                 "a wall splits the row: the other part did not move");
         }
 
+        BoardView BuildHeart(out Board board)
+        {
+            board = new Board(TestLevels.Heart());
+            gameObject = new GameObject("Board");
+            var view = gameObject.AddComponent<BoardView>();
+            view.Build(board.Rules);
+            view.Show(board.Bits);
+            return view;
+        }
+
+        static void Run(BoardView view, float seconds, System.Action afterEachTick = null)
+        {
+            const float frame = 0.02f;
+            for (float time = 0f; time < seconds; time += frame)
+            {
+                view.TickFaces(frame);
+                afterEachTick?.Invoke();
+            }
+        }
+
+        static int CountCells(System.Func<int, int, bool> test)
+        {
+            int count = 0;
+            for (int row = 0; row < 8; row++)
+            {
+                for (int column = 0; column < 8; column++)
+                {
+                    if (test(row, column))
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        [Test]
+        public void IdleLife_BlinksOneBitAtATime_BeforeAnyoneNaps()
+        {
+            var view = BuildHeart(out _);
+            view.IdleLife = true;
+            int most = 0, blinkFrames = 0;
+            Run(view, 9.5f, () =>
+            {
+                int closing = CountCells((row, column) => view.EyeLid(row, column) > 0f);
+                most = Mathf.Max(most, closing);
+                blinkFrames += closing;
+            });
+
+            Assert.That(blinkFrames, Is.GreaterThan(0), "somebody blinked");
+            Assert.That(most, Is.EqualTo(1), "never two at once");
+            Assert.That(CountCells(view.IsBitAsleep), Is.EqualTo(0), "too early for a nap");
+        }
+
+        [Test]
+        public void Nap_ClosesEyesOneAtATime_OnlyOnBits_AndInputWakesThem()
+        {
+            var view = BuildHeart(out var board);
+            int bits = CountCells(board.GetCell);
+            view.IdleLife = true;
+            Run(view, 10.2f);
+            int early = CountCells(view.IsBitAsleep);
+            Assert.That(early, Is.InRange(1, 2), "they drop off one by one");
+
+            Run(view, 0.35f * bits);
+            Assert.That(CountCells(view.IsBitAsleep), Is.EqualTo(bits), "all asleep, and only real bits");
+            Assert.That(CountCells((row, column) => view.EyeLid(row, column) == 1f), Is.EqualTo(bits));
+
+            view.WakeUp();
+            Assert.That(CountCells(view.IsBitAsleep), Is.EqualTo(0));
+            Run(view, 0.5f);
+            Assert.That(CountCells((row, column) => view.EyeLid(row, column) > 0f), Is.LessThanOrEqualTo(1),
+                "eyes open again, apart from a blink");
+
+            Run(view, 5f);
+            Assert.That(CountCells(view.IsBitAsleep), Is.EqualTo(0), "the idle clock started over");
+        }
+
+        [Test]
+        public void IdleLife_Off_KeepsEveryEyeOpen()
+        {
+            var view = BuildHeart(out _);
+            view.IdleLife = true;
+            view.IdleLife = false;
+            int closed = 0;
+            Run(view, 15f, () => closed += CountCells((row, column) => view.EyeLid(row, column) > 0f));
+            Assert.That(closed, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void Nap_IsHeldOnASolvedBoard_UntilTheBoardChanges()
+        {
+            var view = BuildHeart(out var board);
+            view.IdleLife = true;
+            board.TryMove(Move.Row(4, Direction.Left), out var outcome);
+            view.Play(outcome, true, false);
+            Run(view, 15f);
+            Assert.That(CountCells(view.IsBitAsleep), Is.EqualTo(0));
+
+            view.Show(board.Bits);
+            Run(view, 11f);
+            Assert.That(CountCells(view.IsBitAsleep), Is.GreaterThan(0));
+        }
+
         [Test]
         public void CellCenter_RowZeroIsTop_PitchMatchesMockup()
         {
