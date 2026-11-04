@@ -87,6 +87,31 @@ namespace ShiftRegister.Game.CustomLevels
         }
 
         /// <summary>
+        /// Adds the level in a share code. The code's solution has been replayed by the decoder, so the
+        /// level arrives proven by play. Returns null with the error, or with None if the library is full.
+        /// </summary>
+        public CustomLevel Import(string code, long nowTicks, out ShareCodeError error)
+        {
+            error = ShareCode.TryDecode(code, out var level);
+            if (error != ShareCodeError.None) return null;
+            return Add(level, LevelProof.Replayed, nowTicks);
+        }
+
+        /// <summary>The player-facing words for what is wrong with a share code.</summary>
+        public static string ImportMessage(ShareCodeError error)
+        {
+            switch (error)
+            {
+                case ShareCodeError.NotACode: return "That is not a share code.";
+                case ShareCodeError.UnknownVersion: return "This code needs a newer version of the game.";
+                case ShareCodeError.Damaged: return "This code is damaged or cut off.";
+                case ShareCodeError.InvalidLevel: return "This code holds a level that breaks the rules.";
+                case ShareCodeError.BadSolution: return "This code's solution does not solve its level.";
+                default: return "";
+            }
+        }
+
+        /// <summary>
         /// The player beat a level with these moves. On a level without a proof this proves it, and par
         /// becomes the move count; on one proven by play, fewer moves lower par. A par the solver found
         /// is the true minimum and stays.

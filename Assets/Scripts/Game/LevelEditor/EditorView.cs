@@ -16,7 +16,7 @@ namespace ShiftRegister.Game.LevelEditor
     /// The level editor screen (layout A of the editor canvas), desktop only, on its own canvas. The board
     /// stays where the game draws it and is painted directly: click or drag, or arrows and Space. Tab swaps
     /// start and target, 1–5 pick a tool, 6 changes the gate tool's operator, Z / Y undo and redo, Enter
-    /// solves, T test plays, Esc cancels a search or leaves. Each row's options sit beside it: 1-IN toggles in the arrow
+    /// solves, T test plays, X exports a share code, Esc cancels a search or leaves. Each row's options sit beside it: 1-IN toggles in the arrow
     /// button slots, then wrap, gate operator and the link to the next row.
     /// </summary>
     public sealed class EditorView : MonoBehaviour
@@ -52,7 +52,8 @@ namespace ShiftRegister.Game.LevelEditor
         Image nameCaret;
         int caretShownAt = -1;
         float caretMovedTime;
-        HudButton startTab, targetTab, solveButton, testPlayButton, undoButton, redoButton;
+        HudButton startTab, targetTab, solveButton, testPlayButton, exportButton, undoButton, redoButton;
+        ShareDialog share;
         readonly HudButton[] toolButtons = new HudButton[ToolOrder.Length];
         HudButton opButton, lossDown, lossUp;
         readonly HudButton[] fillLeft = new HudButton[N], fillRight = new HudButton[N], wrap = new HudButton[N], gate = new HudButton[N];
@@ -94,6 +95,7 @@ namespace ShiftRegister.Game.LevelEditor
             if (session == null) return;
             session.EndPaint();
             session.CancelSolve();
+            share.Close();
             CommitName();
             Save();
             if (keepSession) return; // test play comes back here, with the undo history
@@ -255,7 +257,7 @@ namespace ShiftRegister.Game.LevelEditor
         void HandleKeyboard()
         {
             var kb = Keyboard.current;
-            if (kb == null || Time.frameCount == enabledFrame || Ui.IsTyping) return;
+            if (kb == null || Time.frameCount == enabledFrame || Ui.IsTyping || share.IsOpen) return;
 
             if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame) MoveCursor(0, -1);
             else if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame) MoveCursor(0, 1);
@@ -278,6 +280,7 @@ namespace ShiftRegister.Game.LevelEditor
 
             if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) ToggleSolve();
             if (kb.tKey.wasPressedThisFrame) TestPlay();
+            if (kb.xKey.wasPressedThisFrame) Export();
         }
 
         void MoveCursor(int dr, int dc)
@@ -359,6 +362,20 @@ namespace ShiftRegister.Game.LevelEditor
             Refresh();
         }
 
+        void Export()
+        {
+            if (session.Edit.Proof == LevelProof.None)
+            {
+                Sfx.Play(Sound.Blocked);
+                return;
+            }
+            CommitName();
+            share.OpenExport(session.Edit.Level);
+        }
+
+        /// <summary>Esc on the open share dialog closes it. False if it was not open.</summary>
+        public bool CloseShare() => share != null && share.Close();
+
         /// <summary>Esc while searching stops the search instead of leaving. False if nothing was running.</summary>
         public bool CancelSolve()
         {
@@ -400,6 +417,7 @@ namespace ShiftRegister.Game.LevelEditor
             solveButton.Text = session.IsSolving ? "CANCEL" : "SOLVE";
             solveButton.Disabled = !session.IsSolving && !session.CanSolve;
             testPlayButton.Disabled = problem;
+            exportButton.Disabled = session.Edit.Proof == LevelProof.None;
             RefreshProof();
         }
 
@@ -477,6 +495,7 @@ namespace ShiftRegister.Game.LevelEditor
             BuildCentre(frame);
             BuildRows(frame);
             BuildRight(right);
+            share = ShareDialog.Create(frame, 1280f, 720f, display, mono); // last, so it covers the screen
         }
 
         void BuildLeft(Transform root)
@@ -603,12 +622,13 @@ namespace ShiftRegister.Game.LevelEditor
             progressFill.gameObject.AddComponent<Image>().color = Lcd.Ink;
             progressFill.GetComponent<Image>().raycastTarget = false;
 
-            var keys = Ui.Text(root, "Keys", x, 372, w, 108, mono, 12, Lcd.Text3, TextAlignmentOptions.BottomLeft,
-                "Space paint\nZ undo · Y redo\nEnter solve · T test\nEsc back");
+            var keys = Ui.Text(root, "Keys", x, 340, w, 90, mono, 12, Lcd.Text3, TextAlignmentOptions.BottomLeft,
+                "Space paint\nZ undo · Y redo\nEnter solve · T test\nX export · Esc back");
             keys.textWrappingMode = TextWrappingModes.Normal;
 
-            solveButton = HudButton.CreateSolid(root, "SOLVE", x, 492, w, 52, display, 15, ToggleSolve);
-            testPlayButton = HudButton.Create(root, "TEST PLAY", x, 552, w, 44, display, 14, TestPlay);
+            solveButton = HudButton.CreateSolid(root, "SOLVE", x, 440, w, 52, display, 15, ToggleSolve);
+            testPlayButton = HudButton.Create(root, "TEST PLAY", x, 500, w, 44, display, 14, TestPlay);
+            exportButton = HudButton.Create(root, "EXPORT", x, 552, w, 44, display, 14, Export);
             HudButton.Create(root, "BACK", x, 604, w, 40, display, 12, Lcd.Text2, Lcd.Light, () => flow.Show(GameScreen.MyLevels));
         }
 

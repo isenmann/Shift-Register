@@ -166,6 +166,61 @@ namespace ShiftRegister.Tests
         }
 
         [Test]
+        public void Import_AddsAProvenLevelUnderANewId()
+        {
+            var lib = new CustomLevelLibrary();
+            string code = ShareCode.Encode(Simple());
+            var a = lib.Import(code, 5, out var error);
+            var b = lib.Import(code, 6, out _);
+
+            Assert.That(error, Is.EqualTo(ShareCodeError.None));
+            Assert.That(a.proof, Is.EqualTo(LevelProof.Replayed));
+            Assert.That(a.level.par, Is.EqualTo(1));
+            Assert.That(a.level.name, Is.EqualTo("Simple"));
+            StringAssert.StartsWith(CustomLevelLibrary.IdPrefix, a.level.id);
+            Assert.That(b.level.id, Is.Not.EqualTo(a.level.id), "the same code twice gives two levels");
+        }
+
+        [Test]
+        public void Import_ReportsABadCode_AndAddsNothing()
+        {
+            var lib = new CustomLevelLibrary();
+            Assert.That(lib.Import("nonsense", 1, out var error), Is.Null);
+            Assert.That(error, Is.EqualTo(ShareCodeError.NotACode));
+            Assert.That(lib.levels, Is.Empty);
+        }
+
+        [Test]
+        public void Import_RefusedWhenFull()
+        {
+            var lib = new CustomLevelLibrary();
+            for (int i = 0; i < CustomLevelLibrary.MaxLevels; i++) lib.Add(Simple(), LevelProof.None, i);
+            Assert.That(lib.Import(ShareCode.Encode(Simple()), 1, out var error), Is.Null);
+            Assert.That(error, Is.EqualTo(ShareCodeError.None));
+            Assert.That(lib.levels.Count, Is.EqualTo(CustomLevelLibrary.MaxLevels));
+        }
+
+        [Test]
+        public void EveryImportError_HasWords()
+        {
+            foreach (ShareCodeError e in System.Enum.GetValues(typeof(ShareCodeError)))
+                if (e != ShareCodeError.None) Assert.That(CustomLevelLibrary.ImportMessage(e), Is.Not.Empty, e.ToString());
+        }
+
+        [Test]
+        public void AWonLevel_CanBeExportedAndImported()
+        {
+            var lib = new CustomLevelLibrary();
+            string id = lib.Add(Unproven(), LevelProof.None, 1).level.id;
+            Assert.That(ShareCode.CanEncode(lib.Get(id).level, out _), Is.False, "not proven yet");
+
+            lib.RecordWin(id, Detour, out _);
+            var copy = lib.Import(ShareCode.Encode(lib.Get(id).level), 2, out _);
+            Assert.That(copy.level.solution, Is.EqualTo("R1← R1→ R1→"));
+            Assert.That(copy.level.par, Is.EqualTo(3));
+        }
+
+        [Test]
         public void Remove_TakesTheLevelOut()
         {
             var lib = new CustomLevelLibrary();

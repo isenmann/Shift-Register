@@ -59,9 +59,10 @@ namespace ShiftRegister.Game
             }
             if (Current == GameScreen.Editor)
             {
-                if (!editor.CancelSolve()) Show(GameScreen.MyLevels);
+                if (!editor.CloseShare() && !editor.CancelSolve()) Show(GameScreen.MyLevels);
                 return;
             }
+            if (Current == GameScreen.MyLevels && menu.CloseShare()) return;
             if (Current == GameScreen.Playing) LeaveLevel();
             else if (Current == GameScreen.Chapters || Current == GameScreen.Options || Current == GameScreen.MyLevels) Show(GameScreen.Title);
         }

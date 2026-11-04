@@ -11,8 +11,9 @@ namespace ShiftRegister.Game.Hud
 {
     /// <summary>
     /// The MY LEVELS screen: the player's own levels on the left, the chosen one on the right with PLAY,
-    /// EDIT, DUPLICATE and DELETE. Arrows or the mouse wheel move through the list; Enter plays, E edits,
-    /// N makes a new level, D duplicates, Delete (pressed twice) deletes, Esc goes back.
+    /// EDIT, COPY, DELETE and EXPORT. Arrows or the mouse wheel move through the list; Enter plays, E edits,
+    /// N makes a new level, I imports a share code, X exports one, D copies, Delete (pressed twice) deletes,
+    /// Esc goes back.
     /// </summary>
     public sealed partial class MenuView
     {
@@ -30,7 +31,8 @@ namespace ShiftRegister.Game.Hud
         readonly MyLevelRow[] myRows = new MyLevelRow[VisibleRows];
         readonly Image[] myStart = new Image[N * N], myTarget = new Image[N * N];
         TextMeshProUGUI myCount, myName, myProof, myBest, myEmpty, myStartLabel, myTargetLabel;
-        HudButton myPlay, myEdit, myDuplicate, myDelete, myNew;
+        HudButton myPlay, myEdit, myDuplicate, myDelete, myNew, myImport, myExport;
+        ShareDialog myShare;
         int mySelected, myTop, myEnteredFrame;
         float deleteArmedUntil;
 
@@ -69,9 +71,10 @@ namespace ShiftRegister.Game.Hud
             myEmpty = Ui.Text(left, "Empty", x, top, w, 60, mono, 15, Lcd.Text2, TextAlignmentOptions.TopLeft,
                 "No levels yet. NEW starts one on an empty board.");
 
-            myNew = HudButton.CreateSolid(left, "NEW", x, 640, 140, 44, display, 14, NewLevel);
-            Ui.Text(left, "Keys", x + 156, 640, 500, 44, mono, 13, Lcd.Text3,
-                text: "Enter play · E edit · N new · D copy · Del delete · Esc back");
+            myNew = HudButton.CreateSolid(left, "NEW", x, 636, 140, 44, display, 14, NewLevel);
+            myImport = HudButton.Create(left, "IMPORT", x + 148, 636, 140, 44, display, 14, ImportLevel);
+            Ui.Text(left, "Keys", x, 688, 1168, 20, mono, 13, Lcd.Text3,
+                text: "Enter play · E edit · N new · I import · X export · D copy · Del delete · Esc back");
 
             const float px = 732f, pw = 492f;
             myName = Ui.Text(right, "Name", px, 104, pw, 36, display, 26, Lcd.Ink);
@@ -93,17 +96,25 @@ namespace ShiftRegister.Game.Hud
             myEdit = HudButton.Create(right, "EDIT", px, 500, third, 44, display, 14, EditMyLevel);
             myDuplicate = HudButton.Create(right, "COPY", px + third + 8f, 500, third, 44, display, 14, DuplicateMyLevel);
             myDelete = HudButton.Create(right, "DELETE", px + 2f * (third + 8f), 500, third, 44, display, 14, DeleteMyLevel);
+            myExport = HudButton.Create(right, "EXPORT", px, 552, pw, 44, display, 14, ExportMyLevel);
+
+            // Last, so it covers the screen.
+            myShare = ShareDialog.Create(root, 1280f, 720f, display, mono);
         }
 
-        void EnterMyLevels()
+        void EnterMyLevels(bool arriving)
         {
-            myEnteredFrame = Time.frameCount;
-            deleteArmedUntil = 0f;
+            if (arriving)
+            {
+                myEnteredFrame = Time.frameCount;
+                myShare.Close();
+            }
             SelectMyLevel(mySelected);
         }
 
         void UpdateMyLevels(Keyboard kb)
         {
+            if (myShare.IsOpen) return;
             if (deleteArmedUntil > 0f && Time.unscaledTime > deleteArmedUntil) DisarmDelete();
 
             var mouse = Mouse.current;
@@ -121,6 +132,8 @@ namespace ShiftRegister.Game.Hud
             else if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame) PlayMyLevel();
             else if (kb.eKey.wasPressedThisFrame) EditMyLevel();
             else if (kb.nKey.wasPressedThisFrame) NewLevel();
+            else if (kb.iKey.wasPressedThisFrame) ImportLevel();
+            else if (kb.xKey.wasPressedThisFrame) ExportMyLevel();
             else if (kb.dKey.wasPressedThisFrame) DuplicateMyLevel();
             else if (kb.deleteKey.wasPressedThisFrame) DeleteMyLevel();
         }
@@ -150,6 +163,33 @@ namespace ShiftRegister.Game.Hud
             myTop = Mathf.Clamp(myTop, 0, Mathf.Max(0, count - VisibleRows));
             DisarmDelete();
             RefreshMyLevels();
+        }
+
+        /// <summary>Esc on the open share dialog closes it. False if it was not open.</summary>
+        public bool CloseShare() => myShare != null && myShare.Close();
+
+        void ImportLevel()
+        {
+            if (Library.IsFull)
+            {
+                Sfx.Play(Sound.Blocked);
+                return;
+            }
+            myShare.OpenImport(code =>
+            {
+                var entry = Library.Import(code, DateTime.UtcNow.Ticks, out var error);
+                if (entry == null) return CustomLevelLibrary.ImportMessage(error);
+                CustomLevelStore.Save(Library);
+                SelectMyLevel(Library.levels.Count - 1);
+                return null;
+            });
+        }
+
+        void ExportMyLevel()
+        {
+            var entry = MySelected;
+            if (entry == null || entry.proof == LevelProof.None) Sfx.Play(Sound.Blocked);
+            else myShare.OpenExport(entry.level);
         }
 
         void NewLevel()
@@ -256,7 +296,8 @@ namespace ShiftRegister.Game.Hud
             myPlay.Disabled = !any || !IsPlayable(entry);
             myEdit.Disabled = myDelete.Disabled = !any;
             myDuplicate.Disabled = !any || Library.IsFull;
-            myNew.Disabled = Library.IsFull;
+            myNew.Disabled = myImport.Disabled = Library.IsFull;
+            myExport.Disabled = !any || entry.proof == LevelProof.None;
 
             myName.text = any ? DisplayName(entry) : "";
             myProof.text = any ? ProofLine(entry) : "";

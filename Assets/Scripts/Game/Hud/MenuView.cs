@@ -79,6 +79,8 @@ namespace ShiftRegister.Game.Hud
         public void Show(GameScreen screen)
         {
             if (!built) Build();
+            // A layout change shows the same screen again, which must not count as arriving on it.
+            bool arriving = screen != shown;
             shown = screen;
             if (screen != GameScreen.Title) FinishIntro();
             foreach (var s in Both)
@@ -89,7 +91,7 @@ namespace ShiftRegister.Game.Hud
                 s.Options.gameObject.SetActive(cur && screen == GameScreen.Options);
                 if (s.MyLevels != null) s.MyLevels.gameObject.SetActive(cur && screen == GameScreen.MyLevels);
             }
-            if (screen == GameScreen.MyLevels) EnterMyLevels();
+            if (screen == GameScreen.MyLevels) EnterMyLevels(arriving);
             if (screen == GameScreen.Options) RefreshOptions(true);
             if (screen == GameScreen.Title) RefreshTitle();
             if (screen == GameScreen.Title && !introPlayed) StartIntro();
