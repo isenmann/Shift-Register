@@ -87,7 +87,13 @@ namespace ShiftRegister.Game.View
         public void Play(MoveOutcome outcome, bool solved, bool broken)
         {
             StopAnimation();
+            leanCells = 0;
             settledBits = outcome.After;
+            if (cells != null)
+            {
+                StartReactions(outcome);
+            }
+
             if (!animate || !Application.isPlaying || !isActiveAndEnabled || cells == null)
             {
                 ShowNow(outcome.After, outcome.After);
@@ -152,13 +158,16 @@ namespace ShiftRegister.Game.View
             live.Clear();
             flights = 0;
             busy = hopping = false;
+            leanCells = 0;
         }
 
         IEnumerator Run(MoveOutcome outcome, bool solved, bool broken)
         {
             var move = outcome.Move;
             ulong moving = MovingCells(move) & outcome.Before;
-            Vector2 step = StepVector(move.Direction) * ScreenLayout.Pitch;
+            Vector2 direction = StepVector(move.Direction);
+            Vector2 step = direction * ScreenLayout.Pitch;
+            float moveStart = Time.time;
 
             // 1. Shift: everything in the moved part slides one cell.
             ShowNow(outcome.Before & ~moving, outcome.After);
@@ -200,9 +209,12 @@ namespace ShiftRegister.Game.View
             yield return Tween(shiftTime, progress =>
             {
                 float eased = EaseOutCubic(progress);
+                Vector3 lean = LeanScale(progress * shiftTime, move.Axis);
                 foreach (var slide in slides)
                 {
                     slide.Floater.Transform.localPosition = Vector2.Lerp(slide.From, slide.To, eased);
+                    slide.Floater.Transform.localScale = lean;
+                    ApplyEyes(slide.Floater.Eyes, direction * (LookPx * eased), 0f);
                     SetAlpha(slide.Floater, Mathf.Lerp(slide.AlphaFrom, slide.AlphaTo, progress));
                 }
             });
@@ -210,6 +222,8 @@ namespace ShiftRegister.Game.View
             {
                 Release(slide.Floater);
             }
+
+            StartArrival(arrived, move.Axis, direction, moveStart, outcome.LostCells != 0);
 
             // Bits that came from nowhere (a 1-IN edge) pop in.
             ulong kept = outcome.Before & ~moving;
@@ -302,8 +316,14 @@ namespace ShiftRegister.Game.View
         IEnumerator FlyToBucket(Floater floater, Vector2 from, Vector2 edge)
         {
             flights++;
-            yield return Tween(shiftTime,
-                progress => floater.Transform.localPosition = Vector2.Lerp(from, edge, EaseOutCubic(progress)));
+            // On its way over the edge it sees what is coming.
+            ApplyEyes(floater.Eyes, (edge - from).normalized * StarePx, 1f);
+            Axis axis = Mathf.Abs((edge - from).x) > Mathf.Abs((edge - from).y) ? Axis.Row : Axis.Column;
+            yield return Tween(shiftTime, progress =>
+            {
+                floater.Transform.localPosition = Vector2.Lerp(from, edge, EaseOutCubic(progress));
+                floater.Transform.localScale = LeanScale(progress * shiftTime, axis);
+            });
 
             SetLost(floater, true);
             Vector3 bucketWorld = ScreenLayout.BucketCenter;
@@ -469,6 +489,7 @@ namespace ShiftRegister.Game.View
             floater.Transform.gameObject.SetActive(true);
             floater.Transform.localPosition = localPosition;
             floater.Transform.localScale = Vector3.one;
+            ApplyEyes(floater.Eyes, Vector2.zero, 0f);
             SetLost(floater, false);
             SetAlpha(floater, 1f);
             live.Add(floater);

@@ -18,6 +18,9 @@ namespace ShiftRegister.Game.View
             public SpriteRenderer Ghost;
             /// <summary>The bit body plus its eyes; moved as one by later animations.</summary>
             public GameObject Bit;
+            /// <summary>The bit's left and right eye.</summary>
+            public SpriteRenderer[] Eyes;
+            public readonly Face Face = new Face();
             public SpriteRenderer Pin;
         }
 
@@ -75,10 +78,12 @@ namespace ShiftRegister.Game.View
 
                     var bit = Renderer(root, "Bit", ground, Lcd.Ink, Layer.Bit);
                     cell.Bit = bit.gameObject;
-                    Renderer(bit.transform, "Eye L", eye, Lcd.Light,
-                        Layer.Eyes).transform.localPosition = new Vector2(-EyeX, EyeY) / CellPx;
-                    Renderer(bit.transform, "Eye R", eye, Lcd.Light,
-                        Layer.Eyes).transform.localPosition = new Vector2(EyeX, EyeY) / CellPx;
+                    cell.Eyes = new[]
+                    {
+                        Renderer(bit.transform, "Eye L", eye, Lcd.Light, Layer.Eyes),
+                        Renderer(bit.transform, "Eye R", eye, Lcd.Light, Layer.Eyes)
+                    };
+                    ApplyEyes(cell.Eyes, Vector2.zero, 0f);
 
                     cell.Pin = Renderer(root, "Pin", pin, Lcd.Light, Layer.Pin);
                     cell.Pin.enabled = rules.IsPinned(row, column);
@@ -95,6 +100,7 @@ namespace ShiftRegister.Game.View
         public void Show(ulong bits)
         {
             StopAnimation();
+            ClearFaces();
             settledBits = bits;
             ShowNow(bits, bits);
         }
