@@ -23,6 +23,20 @@ namespace ShiftRegister.Tests
         }
 
         [Test]
+        public void LastDirection_IsEmptyUntilTheFirstShift_AndForgottenByTheNextDrag()
+        {
+            Started(out var tracker);
+            Assert.That(tracker.Step(new Vector2(0.3f, 0f)), Is.Null);
+            Assert.That(tracker.LastDirection, Is.Null);
+
+            tracker.Step(new Vector2(-0.5f, 0f));
+            Assert.That(tracker.LastDirection, Is.EqualTo(Direction.Left));
+
+            tracker.Begin(Vector2.zero, 1, 1);
+            Assert.That(tracker.LastDirection, Is.Null);
+        }
+
+        [Test]
         public void FirstShiftAtThreshold_ThenOnePerStep()
         {
             Started(out var tracker);

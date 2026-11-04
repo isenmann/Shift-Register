@@ -67,6 +67,26 @@ namespace ShiftRegister.Game.Input
             {
                 game.BoardView.WakeUp();
             }
+
+            // Hovering an arrow outlines that line only (see BoardControls.Highlight), so only it counts then.
+            game.BoardView.SetPeek(game.Board, hovered >= 0 ? -1 : row, column, AimedMove());
+        }
+
+        /// <summary>The move an arrow under the pointer would make, or the next one of a swipe under way.</summary>
+        Move? AimedMove()
+        {
+            if (swipe.Active && swipe.LastDirection.HasValue)
+            {
+                return InputMapping.TryCursorMove(game.Board.Rules, swipe.Row, swipe.Column,
+                    swipe.LastDirection.Value, out var next) ? next : (Move?)null;
+            }
+
+            if (hovered >= 0 && hovered < controls.Buttons.Count && controls.Buttons[hovered].Enabled)
+            {
+                return controls.Buttons[hovered].Move;
+            }
+
+            return null;
         }
 
         /// <summary>Tiny pointer jitter doesn't count as input; a new cell, a key or a press does.</summary>

@@ -1,4 +1,6 @@
+using System;
 using ShiftRegister.Core;
+using ShiftRegister.Game.Input;
 using UnityEngine;
 
 namespace ShiftRegister.Game.View
@@ -7,8 +9,10 @@ namespace ShiftRegister.Game.View
     /// The bits' small reactions to a move. Moved bits lean along the shift, then settle with a small squash, and
     /// look where they are going. Bits beside the moved part glance at it; if a bit falls, they stare at the edge
     /// it left. While the player thinks, one bit blinks now and then, and after a long pause they fall asleep one
-    /// at a time until any input wakes them. Bits on a target cell are at home and relax into a squint. A body at
-    /// rest never leaves its cell or changes size, so the picture stays easy to read.
+    /// at a time until any input wakes them. Bits on a target cell are at home and relax into a squint. Bits that
+    /// a move of the selected lines would push off the edge peek over it, and the one an arrow or swipe is about
+    /// to drop goes wide-eyed. A body at rest never leaves its cell or changes size, so the picture stays easy to
+    /// read.
     /// </summary>
     public sealed partial class BoardView
     {
@@ -23,6 +27,10 @@ namespace ShiftRegister.Game.View
             public bool Asleep;
             /// <summary>0 = wide awake, 1 = at home. Empty cells keep their target, so a new bit fits.</summary>
             public float Squint, SquintTarget;
+            /// <summary>Where this bit looks when no reaction is running: over the edge it could fall from.</summary>
+            public Vector2 PeekLook;
+            /// <summary>The move being aimed would drop this bit.</summary>
+            public bool PeekWide;
         }
 
         // Timings in seconds, offsets in mockup pixels.
@@ -40,6 +48,11 @@ namespace ShiftRegister.Game.View
         const float BlinkTime = 0.11f, BlinkGapMin = 2.6f, BlinkGapMax = 5f;
         const float NapDelay = 10f, NapStep = 0.3f, WakeMaxDelay = 0.12f;
 
+        static readonly Direction[] AllDirections =
+        {
+            Direction.Left, Direction.Right, Direction.Up, Direction.Down
+        };
+
         readonly System.Random faceRandom = new System.Random();
         ulong leanCells;
         float leanStart;
@@ -49,6 +62,11 @@ namespace ShiftRegister.Game.View
         bool napHeld;
         float idleTime, napIn;
         float blinkIn = BlinkGapMin;
+        // What the peeks were worked out for, so they are only worked out again when it changes.
+        bool peekKnown;
+        ulong peekBits;
+        int peekRow, peekColumn;
+        Move? peekAimed;
 
         /// <summary>
         /// True while the player can act on the board: bits blink and nap. Off in the level editor and behind panels.
@@ -60,6 +78,10 @@ namespace ShiftRegister.Game.View
             {
                 idleLife = value;
                 WakeUp();
+                if (!value)
+                {
+                    ClearPeeks();
+                }
             }
         }
 
@@ -73,6 +95,100 @@ namespace ShiftRegister.Game.View
         public float EyeSquint(int row, int column) => cells[row, column].Face.Squint;
 
         public bool IsBitAsleep(int row, int column) => cells[row, column].Face.Asleep;
+
+        /// <summary>True if a bit is looking over the edge it could fall from.</summary>
+        public bool IsBitPeeking(int row, int column) => cells[row, column].Face.PeekLook != Vector2.zero;
+
+        /// <summary>True if the move being aimed would drop this bit.</summary>
+        public bool IsBitAlarmed(int row, int column) => cells[row, column].Face.PeekWide;
+
+        /// <summary>
+        /// Says what the player has selected. Edge bits that a move of the cursor's row or column would drop look
+        /// over the edge, and those that <paramref name="aimed"/> would drop go wide-eyed. A negative
+        /// <paramref name="row"/> means no cursor lines. Cheap to call every frame.
+        /// </summary>
+        public void SetPeek(Board board, int row, int column, Move? aimed)
+        {
+            if (cells == null)
+            {
+                return;
+            }
+
+            if (peekKnown && peekBits == board.Bits && peekRow == row && peekColumn == column
+                && Nullable.Equals(peekAimed, aimed))
+            {
+                return;
+            }
+
+            ClearPeeks();
+            peekKnown = true;
+            peekBits = board.Bits;
+            peekRow = row;
+            peekColumn = column;
+            peekAimed = aimed;
+            if (row >= 0)
+            {
+                foreach (var direction in AllDirections)
+                {
+                    if (InputMapping.TryCursorMove(rules, row, column, direction, out var move))
+                    {
+                        MarkPeeks(board, move, false);
+                    }
+                }
+            }
+
+            if (aimed.HasValue)
+            {
+                MarkPeeks(board, aimed.Value, true);
+            }
+        }
+
+        /// <summary>The rules decide who would fall, so a wrapping row or a wall never raises a false alarm.</summary>
+        void MarkPeeks(Board board, Move move, bool alarmed)
+        {
+            if (!board.CanMove(move) || !rules.TryApply(board.Bits, move, out var outcome) || outcome.LostCells == 0)
+            {
+                return;
+            }
+
+            Vector2 direction = StepVector(move.Direction);
+            for (int row = 0; row < BoardBits.Size; row++)
+            {
+                for (int column = 0; column < BoardBits.Size; column++)
+                {
+                    if (!BoardBits.GetCell(outcome.LostCells, row, column))
+                    {
+                        continue;
+                    }
+
+                    var face = cells[row, column].Face;
+                    if (alarmed)
+                    {
+                        face.PeekLook = direction * StarePx;
+                        face.PeekWide = true;
+                    }
+                    else
+                    {
+                        face.PeekLook += direction * LookPx; // a corner bit looks both ways
+                    }
+                }
+            }
+        }
+
+        void ClearPeeks()
+        {
+            peekKnown = false;
+            if (cells == null)
+            {
+                return;
+            }
+
+            foreach (var cell in cells)
+            {
+                cell.Face.PeekLook = Vector2.zero;
+                cell.Face.PeekWide = false;
+            }
+        }
 
         /// <summary>How closed a bit's eyes are: 0 = open, 1 = closed.</summary>
         public float EyeLid(int row, int column) => cells[row, column].Face.Lid;
@@ -229,8 +345,11 @@ namespace ShiftRegister.Game.View
                     var cell = cells[row, column];
                     var face = cell.Face;
                     bool started = now >= face.LookFrom;
-                    Vector2 look = started && now < face.LookUntil ? face.LookTarget : Vector2.zero;
-                    float wide = started && now < face.WideUntil ? 1f : 0f;
+                    bool reacting = started && now < face.LookUntil;
+                    Vector2 peek = face.Asleep ? Vector2.zero : face.PeekLook;
+                    Vector2 look = reacting ? face.LookTarget : peek;
+                    bool alarmed = face.PeekWide && !face.Asleep;
+                    float wide = alarmed || (started && now < face.WideUntil) ? 1f : 0f;
                     bool closed = face.Asleep || face.BlinkLeft > 0f || face.WakeDelay > 0f;
                     float lid = closed ? 1f : 0f;
                     face.BlinkLeft = Mathf.Max(0f, face.BlinkLeft - deltaTime);
@@ -309,15 +428,14 @@ namespace ShiftRegister.Game.View
             }
         }
 
-        /// <summary>A random bit on the board that is awake and looking straight ahead.</summary>
+        /// <summary>A random bit on the board that is awake.</summary>
         bool TryPickAwakeBit(out Cell picked)
         {
             picked = null;
             int seen = 0;
             foreach (var cell in cells)
             {
-                if (cell.Bit.activeSelf && !cell.Face.Asleep && cell.Face.Look == Vector2.zero
-                    && faceRandom.Next(++seen) == 0)
+                if (cell.Bit.activeSelf && !cell.Face.Asleep && faceRandom.Next(++seen) == 0)
                 {
                     picked = cell;
                 }
@@ -359,6 +477,7 @@ namespace ShiftRegister.Game.View
             leanCells = 0;
             idleTime = 0f;
             napHeld = false;
+            ClearPeeks();
             if (cells == null)
             {
                 return;

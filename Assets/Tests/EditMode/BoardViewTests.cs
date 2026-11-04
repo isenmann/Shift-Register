@@ -232,6 +232,102 @@ namespace ShiftRegister.Tests
             Assert.That(CountCells((row, column) => view.EyeSquint(row, column) > 0f), Is.EqualTo(0));
         }
 
+        BoardView BuildLevel(LevelData level, out Board board)
+        {
+            board = new Board(level);
+            gameObject = new GameObject("Board");
+            var view = gameObject.AddComponent<BoardView>();
+            view.Build(board.Rules);
+            view.Show(board.Bits);
+            return view;
+        }
+
+        [Test]
+        public void Peek_CursorLines_LookOverTheEdge_OnlyTheBitsThatCouldFall()
+        {
+            var view = BuildHeart(out var board);
+            view.SetPeek(board, 2, 3, null);
+            Assert.That(view.IsBitPeeking(2, 0), Is.True, "left end of the cursor's row");
+            Assert.That(view.IsBitPeeking(2, 7), Is.True, "right end of the cursor's row");
+            Assert.That(CountCells(view.IsBitPeeking), Is.EqualTo(2), "column 4 has no bit on the board's edge");
+            Assert.That(CountCells(view.IsBitAlarmed), Is.EqualTo(0), "nothing is aimed yet");
+
+            float restX = LeftEye(2, 0).localPosition.x;
+            Run(view, 1f);
+            Assert.That(LeftEye(2, 0).localPosition.x, Is.LessThan(restX), "the eyes really moved left");
+
+            view.SetPeek(board, 5, 3, null);
+            Assert.That(view.IsBitPeeking(2, 0), Is.False, "the cursor moved on");
+            Assert.That(view.IsBitPeeking(5, 7), Is.True);
+        }
+
+        [Test]
+        public void Peek_AimedMove_AlarmsOnlyTheBitItWouldDrop()
+        {
+            var view = BuildHeart(out var board);
+            view.SetPeek(board, -1, 0, Move.Row(2, Direction.Left));
+            Assert.That(view.IsBitAlarmed(2, 0), Is.True);
+            Assert.That(CountCells(view.IsBitAlarmed), Is.EqualTo(1));
+            Assert.That(CountCells(view.IsBitPeeking), Is.EqualTo(1), "no cursor lines while aiming");
+
+            float restHeight = LeftEye(2, 1).localScale.y;
+            Run(view, 1f);
+            Assert.That(LeftEye(2, 0).localScale.y, Is.GreaterThan(restHeight), "wide eyes");
+
+            view.SetPeek(board, -1, 0, Move.Row(4, Direction.Left));
+            Assert.That(CountCells(view.IsBitAlarmed), Is.EqualTo(0), "row 5 has room on the left");
+        }
+
+        [Test]
+        public void Peek_FollowsTheRules_WrappingRowsAndOtherPartsDoNotPeek()
+        {
+            var rotating = TestLevels.OneRow("11111111");
+            rotating.rotateRows = new[] { 3 };
+            var view = BuildLevel(rotating, out var board);
+            view.SetPeek(board, 3, 2, Move.Row(3, Direction.Left));
+            Assert.That(CountCells(view.IsBitPeeking), Is.EqualTo(0), "a wrapping row loses nothing");
+            Object.DestroyImmediate(gameObject);
+
+            view = BuildLevel(TestLevels.OneRow("11#00011", "00#00000"), out board);
+            view.SetPeek(board, 3, 1, null);
+            Assert.That(view.IsBitPeeking(3, 0), Is.True);
+            Assert.That(view.IsBitPeeking(3, 7), Is.False, "behind the wall: the cursor's part can't move it");
+        }
+
+        [Test]
+        public void Peek_NothingOnASolvedBoard_AndClearedByShow()
+        {
+            var solved = TestLevels.OneRow("11111111");
+            solved.target[3] = solved.start[3];
+            var view = BuildLevel(solved, out var board);
+            view.SetPeek(board, 3, 2, Move.Row(3, Direction.Left));
+            Assert.That(CountCells(view.IsBitPeeking), Is.EqualTo(0));
+            Object.DestroyImmediate(gameObject);
+
+            view = BuildHeart(out board);
+            view.SetPeek(board, 2, 3, null);
+            view.Show(board.Bits);
+            Assert.That(CountCells(view.IsBitPeeking), Is.EqualTo(0));
+            view.SetPeek(board, 2, 3, null);
+            Assert.That(CountCells(view.IsBitPeeking), Is.EqualTo(2), "worked out again after Show");
+
+            view.IdleLife = true;
+            view.IdleLife = false;
+            Assert.That(CountCells(view.IsBitPeeking), Is.EqualTo(0), "not behind panels");
+        }
+
+        [Test]
+        public void Peek_DoesNotKeepEdgeBitsAwake()
+        {
+            var view = BuildHeart(out var board);
+            int bits = CountCells(board.GetCell);
+            view.IdleLife = true;
+            view.SetPeek(board, 2, 3, null);
+            Run(view, 10f + 0.35f * bits);
+            Assert.That(CountCells(view.IsBitAsleep), Is.EqualTo(bits));
+            Assert.That(view.EyeLid(2, 0), Is.EqualTo(1f));
+        }
+
         [Test]
         public void CellCenter_RowZeroIsTop_PitchMatchesMockup()
         {

@@ -20,6 +20,8 @@ namespace ShiftRegister.Game.Input
         public bool Swiped { get; private set; }
         public int Row { get; private set; }
         public int Column { get; private set; }
+        /// <summary>The way the drag last shifted, which is where it will shift next if it goes on.</summary>
+        public Direction? LastDirection { get; private set; }
 
         public SwipeTracker(float step, float threshold)
         {
@@ -35,6 +37,7 @@ namespace ShiftRegister.Game.Input
             Column = column;
             Active = true;
             Swiped = false;
+            LastDirection = null;
         }
 
         public void End() => Active = false;
@@ -70,10 +73,14 @@ namespace ShiftRegister.Game.Input
             Swiped = true;
             if (axis == Axis.Row)
             {
-                return sign > 0 ? Direction.Right : Direction.Left;
+                LastDirection = sign > 0 ? Direction.Right : Direction.Left;
+            }
+            else
+            {
+                LastDirection = sign > 0 ? Direction.Up : Direction.Down;
             }
 
-            return sign > 0 ? Direction.Up : Direction.Down;
+            return LastDirection;
         }
     }
 }
