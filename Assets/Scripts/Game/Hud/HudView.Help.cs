@@ -122,7 +122,9 @@ namespace ShiftRegister.Game.Hud
             }
 
             var ch = game.Chapter;
-            Wrapped(p.Board, "Chapter", mono, p.TextSize, Lcd.Ink, game.IsCustom
+            Wrapped(p.Board, "Chapter", mono, p.TextSize, Lcd.Ink, game.IsRandom
+                ? "<b>Random level</b>\nMade just now. It earns no stars and unlocks nothing."
+                : game.IsCustom
                 ? "<b>My levels</b>\nA level from the editor. It earns no stars and unlocks nothing."
                 : $"<b>Chapter {game.ChapterIndex + 1} · {ch.name}</b>\n{ch.description}");
             foreach (var e in HelpText.Mechanics(game.Level))

@@ -71,6 +71,7 @@ namespace ShiftRegister.Game.Input
             bool next = kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame
                 || kb.spaceKey.wasPressedThisFrame || kb.nKey.wasPressedThisFrame;
             if (next && game.Board.IsSolved && game.NextLevel()) Sfx.Play(Sound.Click);
+            if (kb.kKey.wasPressedThisFrame && game.IsRandom && game.Board.IsSolved && game.SaveRandom()) Sfx.Play(Sound.Click);
 
             // Testing shortcuts (editor and development builds): jump between levels without solving them.
             if (Debug.isDebugBuild)

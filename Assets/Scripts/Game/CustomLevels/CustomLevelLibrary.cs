@@ -121,8 +121,16 @@ namespace ShiftRegister.Game.CustomLevels
         {
             justProved = false;
             var entry = Get(id);
-            if (entry == null) return default;
+            return entry == null ? default : ApplyWin(entry, moves, out justProved);
+        }
 
+        /// <summary>
+        /// <see cref="RecordWin"/> for an entry that need not be in a library, such as a random level
+        /// that has not been saved.
+        /// </summary>
+        public static LevelResult ApplyWin(CustomLevel entry, IReadOnlyList<Move> moves, out bool justProved)
+        {
+            justProved = false;
             var d = entry.level;
             if (Solver.Replays(LevelRules.Compile(d), moves) && (entry.proof == LevelProof.None || (entry.proof == LevelProof.Replayed && moves.Count < d.par)))
             {
@@ -133,8 +141,17 @@ namespace ShiftRegister.Game.CustomLevels
             }
 
             int previous = entry.bestMoves;
-            bool better = RecordSolve(id, moves.Count);
+            bool better = previous == 0 || moves.Count < previous;
+            if (better) entry.bestMoves = moves.Count;
             return new LevelResult(moves.Count, d.par, Scoring.Stars(moves.Count, d.par), better, previous);
+        }
+
+        /// <summary>Keeps a random level: a copy under a new id, with its best moves. Returns null if the library is full.</summary>
+        public CustomLevel SaveCopy(CustomLevel entry, long nowTicks)
+        {
+            var copy = Add(entry.level, entry.proof, nowTicks);
+            if (copy != null) copy.bestMoves = entry.bestMoves;
+            return copy;
         }
 
         /// <summary>

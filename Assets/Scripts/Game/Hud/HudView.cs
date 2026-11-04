@@ -71,7 +71,7 @@ namespace ShiftRegister.Game.Hud
         RectTransform bannerFrame, solvedBanner, brokenBanner;
         TextMeshProUGUI solvedText, lastLevelText;
         readonly Image[] stars = new Image[Scoring.MaxStars];
-        HudButton nextButton;
+        HudButton nextButton, nextRandomButton, saveRandomButton;
         int shownLost;
         bool solvedShown, brokenShown;
 
@@ -509,7 +509,9 @@ namespace ShiftRegister.Game.Hud
                 stars[i] = Ui.Shape(solvedBanner, $"Star {i + 1}", sx, 94, star, star, ProceduralSprites.Star(star, ui: true), Lcd.Light);
             }
             nextButton = HudButton.Create(solvedBanner, "NEXT →", (w - 150f) / 2f, 140, 150, 40, display, 15, Lcd.Light, Lcd.Ink, () => game.NextLevel());
-            lastLevelText = Ui.Text(solvedBanner, "Last Level", 0, 140, w, 40, mono, 13, Lcd.Light, TextAlignmentOptions.Center,
+            nextRandomButton = HudButton.Create(solvedBanner, "NEXT RANDOM", 16, 140, 188, 40, display, 15, Lcd.Light, Lcd.Ink, () => game.NextLevel());
+            saveRandomButton = HudButton.Create(solvedBanner, "SAVE", 212, 140, 112, 40, display, 15, Lcd.Light, Lcd.Ink, () => game.SaveRandom());
+            lastLevelText =Ui.Text(solvedBanner, "Last Level", 0, 140, w, 40, mono, 13, Lcd.Light, TextAlignmentOptions.Center,
                 "That's every level so far.");
 
             brokenBanner = BannerRoot(frame, "Broken Banner", w, 110f);
@@ -579,7 +581,8 @@ namespace ShiftRegister.Game.Hud
 
             foreach (var l in layouts)
             {
-                if (game.IsCustom) l.ChapterLabel.text = "MY LEVELS";
+                if (game.IsRandom) l.ChapterLabel.text = "RANDOM LEVEL";
+                else if (game.IsCustom) l.ChapterLabel.text = "MY LEVELS";
                 else
                     l.ChapterLabel.text = l.Phone
                         ? $"CH {game.ChapterIndex + 1} · {game.Chapter.name.ToUpperInvariant()} · {level.id}"
@@ -694,9 +697,17 @@ namespace ShiftRegister.Game.Hud
                 solvedText.text = $"{Ui.Moves(result.Moves)} · par {par}{best}";
                 for (int i = 0; i < stars.Length; i++) stars[i].enabled = i < result.Stars;
                 bool hasNext = game.HasNextLevel;
-                nextButton.gameObject.SetActive(hasNext);
+                nextButton.gameObject.SetActive(hasNext && !game.IsRandom);
                 nextButton.Text = game.IsCustom ? "BACK" : "NEXT →";
                 lastLevelText.gameObject.SetActive(!hasNext);
+                nextRandomButton.gameObject.SetActive(game.IsRandom);
+                saveRandomButton.gameObject.SetActive(game.IsRandom);
+                if (game.IsRandom)
+                {
+                    bool full = !game.RandomSaved && game.CustomLevels.IsFull;
+                    saveRandomButton.Text = game.RandomSaved ? "SAVED" : full ? "FULL" : DeviceMode.IsMobile ? "SAVE" : "SAVE (K)";
+                    saveRandomButton.Disabled = game.RandomSaved || full;
+                }
             }
             ShowBanner(solvedBanner, solved, ref solvedShown, animate);
             ShowBanner(brokenBanner, broken, ref brokenShown, animate);
@@ -739,6 +750,10 @@ namespace ShiftRegister.Game.Hud
         /// <summary>The line under "MY LEVELS": what par means on this level.</summary>
         string CustomRule()
         {
+            if (game.IsRandom)
+                return game.CustomEntry.proof == LevelProof.Searched
+                    ? "A random level. Par is the shortest possible."
+                    : "A random level. Par is a known solve, and may not be the shortest.";
             switch (game.CustomEntry.proof)
             {
                 case LevelProof.Searched: return "Your level. Par is the shortest possible.";

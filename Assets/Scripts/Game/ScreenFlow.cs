@@ -6,12 +6,12 @@ using UnityEngine.InputSystem;
 
 namespace ShiftRegister.Game
 {
-    public enum GameScreen { Title, Chapters, Playing, Options, MyLevels, Editor }
+    public enum GameScreen { Title, Chapters, Playing, Options, MyLevels, Editor, Random }
 
     /// <summary>
     /// Switches between the title screen, chapter select and the level being played, all in one scene.
-    /// Esc steps back: level → chapters → title, options → title, editor → my levels → title; a custom
-    /// level goes back to where it was opened from. M mutes anywhere,
+    /// Esc steps back: level → chapters → title, options → title, editor → my levels → title, random →
+    /// title; a custom level goes back to where it was opened from. M mutes anywhere,
     /// except while typing in a text field.
     /// </summary>
     public sealed class ScreenFlow : MonoBehaviour
@@ -35,6 +35,7 @@ namespace ShiftRegister.Game
         {
             hudView = hud.GetComponentInChildren<HudView>(true);
             game.LeaveCustom += LeaveLevel;
+            game.NextRandom += NextRandom;
             if (game.StartsInLevel)
             {
                 game.LoadStartLevel();
@@ -63,8 +64,9 @@ namespace ShiftRegister.Game
                 return;
             }
             if (Current == GameScreen.MyLevels && menu.CloseShare()) return;
+            if (Current == GameScreen.Random && menu.CancelRandom()) return;
             if (Current == GameScreen.Playing) LeaveLevel();
-            else if (Current == GameScreen.Chapters || Current == GameScreen.Options || Current == GameScreen.MyLevels) Show(GameScreen.Title);
+            else if (Current == GameScreen.Chapters || Current == GameScreen.Options || Current == GameScreen.MyLevels || Current == GameScreen.Random) Show(GameScreen.Title);
         }
 
         /// <summary>PLAY on the title screen: the last level played, or the first open unsolved one.</summary>
@@ -89,6 +91,21 @@ namespace ShiftRegister.Game
             customReturn = returnTo;
             game.PlayCustom(entry);
             Show(GameScreen.Playing);
+        }
+
+        /// <summary>Plays a finished random level; leaving it returns to the RANDOM screen.</summary>
+        public void PlayRandom(CustomLevels.CustomLevel entry)
+        {
+            customReturn = GameScreen.Random;
+            game.PlayRandom(entry);
+            Show(GameScreen.Playing);
+        }
+
+        /// <summary>NEXT RANDOM on the solved banner: another level of the same difficulty.</summary>
+        void NextRandom()
+        {
+            Show(GameScreen.Random);
+            menu.MakeRandomAgain();
         }
 
         /// <summary>Opens one of the player's own levels in the editor.</summary>

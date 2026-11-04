@@ -50,7 +50,7 @@ namespace ShiftRegister.Game
         /// <summary>The result of the latest solve of the current level, if it is solved.</summary>
         public LevelResult? LastResult { get; private set; }
 
-        /// <summary>A custom level's "next" is leaving it (see <see cref="LeaveCustom"/>).</summary>
+        /// <summary>A custom level's "next" is leaving it (see <see cref="LeaveCustom"/>); a random level's is another one.</summary>
         public bool HasNextLevel => IsCustom || catalog.TryNext(ChapterIndex, LevelIndex, out _, out _);
 
         /// <summary>The player's own levels; kept apart from <see cref="Progress"/>, so they never earn stars or unlocks.</summary>
@@ -60,11 +60,20 @@ namespace ShiftRegister.Game
         public CustomLevel CustomEntry { get; private set; }
         public bool IsCustom => CustomEntry != null;
 
+        /// <summary>True while playing a random level. It is also custom: <see cref="CustomEntry"/> holds it.</summary>
+        public bool IsRandom { get; private set; }
+
+        /// <summary>True once this random level was saved: <see cref="CustomEntry"/> is then its library entry.</summary>
+        public bool RandomSaved { get; private set; }
+
         /// <summary>True if the latest solve gave this custom level its first proof.</summary>
         public bool JustProved { get; private set; }
 
         /// <summary>Raised when "next" is asked for on a solved custom level: go back where it was opened from.</summary>
         public event Action LeaveCustom;
+
+        /// <summary>Raised when "next" is asked for on a solved random level: make another one.</summary>
+        public event Action NextRandom;
 
         /// <summary>Raised after every board change: a move, undo, reset or a new level.</summary>
         public event Action Changed;
@@ -162,6 +171,7 @@ namespace ShiftRegister.Game
             var file = catalog.chapters[chapter].levels[level];
             previewing = false;
             CustomEntry = null;
+            IsRandom = RandomSaved = false;
             ChapterIndex = chapter;
             LevelIndex = level;
             Show(LevelJson.Parse(file));
@@ -181,6 +191,7 @@ namespace ShiftRegister.Game
         {
             previewing = true;
             CustomEntry = null;
+            IsRandom = RandomSaved = false;
             Show(data);
         }
 
@@ -189,8 +200,34 @@ namespace ShiftRegister.Game
         {
             previewing = true;
             CustomEntry = entry;
+            IsRandom = RandomSaved = false;
             JustProved = false;
             Show(LevelEdit.Clone(entry.level));
+        }
+
+        /// <summary>Plays a random level, which stays out of the library until <see cref="SaveRandom"/>.</summary>
+        public void PlayRandom(CustomLevel entry)
+        {
+            PlayCustom(entry);
+            IsRandom = true;
+        }
+
+        /// <summary>Keeps the random level being played in MY LEVELS. False if it cannot, as the library is full.</summary>
+        public bool SaveRandom()
+        {
+            if (!IsRandom || RandomSaved) return false;
+            var saved = CustomLevels.SaveCopy(CustomEntry, DateTime.UtcNow.Ticks);
+            if (saved == null)
+            {
+                Blocked?.Invoke();
+                return false;
+            }
+            CustomLevelStore.Save(CustomLevels);
+            CustomEntry = saved;
+            Level.id = saved.level.id;
+            RandomSaved = true;
+            Changed?.Invoke();
+            return true;
         }
 
         bool previewing;
@@ -230,6 +267,11 @@ namespace ShiftRegister.Game
 
         public bool NextLevel()
         {
+            if (IsRandom)
+            {
+                NextRandom?.Invoke();
+                return true;
+            }
             if (IsCustom)
             {
                 LeaveCustom?.Invoke();
@@ -261,7 +303,12 @@ namespace ShiftRegister.Game
             if (Board.IsSolved)
             {
                 LevelResult result;
-                if (IsCustom)
+                if (IsRandom && !RandomSaved)
+                {
+                    result = CustomLevelLibrary.ApplyWin(CustomEntry, moveLog, out _);
+                    Level.par = result.Par;
+                }
+                else if (IsCustom)
                 {
                     result = CustomLevels.RecordWin(Level.id, moveLog, out bool proved);
                     JustProved = proved;

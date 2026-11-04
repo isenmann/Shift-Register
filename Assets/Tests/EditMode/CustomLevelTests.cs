@@ -97,6 +97,83 @@ namespace ShiftRegister.Tests
         static readonly Move[] Detour = { Move.Row(0, Direction.Left), Move.Row(0, Direction.Right), Move.Row(0, Direction.Right) };
 
         [Test]
+        public void ApplyWin_WorksOnAnEntryOutsideTheLibrary()
+        {
+            var entry = new CustomLevel { level = Unproven(), proof = LevelProof.Replayed };
+            entry.level.par = 3;
+            entry.level.solution = "R1← R1→ R1→";
+
+            var r = CustomLevelLibrary.ApplyWin(entry, Quick, out bool proved);
+
+            Assert.That(proved, Is.False);
+            Assert.That(entry.level.par, Is.EqualTo(1), "a better solve lowers a par that is only a known solve");
+            Assert.That(entry.bestMoves, Is.EqualTo(1));
+            Assert.That(r.IsNewBest, Is.True);
+        }
+
+        [Test]
+        public void SaveCopy_KeepsProofParAndBest_UnderANewId()
+        {
+            var lib = new CustomLevelLibrary();
+            var random = new CustomLevel { level = Simple(), proof = LevelProof.Searched, bestMoves = 2 };
+
+            var saved = lib.SaveCopy(random, 5);
+
+            StringAssert.StartsWith(CustomLevelLibrary.IdPrefix, saved.level.id);
+            Assert.That(saved.proof, Is.EqualTo(LevelProof.Searched));
+            Assert.That(saved.level.par, Is.EqualTo(1));
+            Assert.That(saved.bestMoves, Is.EqualTo(2));
+            Assert.That(lib.levels, Has.Count.EqualTo(1));
+            Assert.That(saved, Is.Not.SameAs(random));
+        }
+
+        [Test]
+        public void SaveCopy_IsNull_WhenTheLibraryIsFull()
+        {
+            var lib = new CustomLevelLibrary();
+            for (int i = 0; i < CustomLevelLibrary.MaxLevels; i++) lib.Add(Simple(), LevelProof.Searched, i);
+            Assert.That(lib.SaveCopy(new CustomLevel { level = Simple(), proof = LevelProof.Searched }, 1), Is.Null);
+        }
+
+        [Test]
+        public void RandomSession_MakesALevelOutsideAnyLibrary_ThatSurvivesSaving()
+        {
+            var session = new RandomSession();
+            session.Start(RandomDifficulty.Medium, 11);
+            Assert.That(session.IsGenerating, Is.True);
+            while (!session.Tick(1.0)) { }
+
+            Assert.That(session.IsGenerating, Is.False);
+            Assert.That(session.Failed, Is.False);
+            Assert.That(session.Difficulty, Is.EqualTo(RandomDifficulty.Medium));
+            Assert.That(session.Level.proof, Is.EqualTo(LevelProof.Searched));
+
+            // The check a saved level has to pass when it is loaded again.
+            var lib = new CustomLevelLibrary();
+            Assert.That(lib.SaveCopy(session.Level, 1), Is.Not.Null);
+            Assert.That(lib.RemoveInvalid(), Is.Zero);
+        }
+
+        [Test]
+        public void RandomSession_Cancel_StopsIt_AndAStartForgetsTheOldLevel()
+        {
+            var session = new RandomSession();
+            Assert.That(session.Cancel(), Is.False);
+
+            session.Start(RandomDifficulty.Easy, 1);
+            Assert.That(session.Cancel(), Is.True);
+            Assert.That(session.IsGenerating, Is.False);
+            Assert.That(session.Tick(1.0), Is.False);
+            Assert.That(session.Level, Is.Null);
+
+            session.Start(RandomDifficulty.Easy, 1);
+            while (!session.Tick(1.0)) { }
+            Assert.That(session.Level, Is.Not.Null);
+            session.Start(RandomDifficulty.Hard, 2);
+            Assert.That(session.Level, Is.Null);
+        }
+
+        [Test]
         public void RecordWin_ProvesAnUnprovenLevel()
         {
             var lib = new CustomLevelLibrary();

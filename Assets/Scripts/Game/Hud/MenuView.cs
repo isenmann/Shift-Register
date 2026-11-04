@@ -14,7 +14,7 @@ namespace ShiftRegister.Game.Hud
     /// Title screen, chapter select and options, built from code on their own canvas in three
     /// arrangements: desktop (1280×720 units) and phone landscape / portrait (915×412 / 412×915, the
     /// phone mockups' CSS px, so text keeps its size); the one matching the screen is shown.
-    /// Title: Enter plays, C opens chapters, L my levels, O options, Q quits (desktop builds only). Chapters: arrows pick a level, Enter plays it;
+    /// Title: Enter plays, C opens chapters, R random, L my levels, O options, Q quits (desktop builds only). Chapters: arrows pick a level, Enter plays it;
     /// on an upright phone the chapters are a scrolling list of cards.
     /// </summary>
     public sealed partial class MenuView : MonoBehaviour
@@ -50,6 +50,8 @@ namespace ShiftRegister.Game.Hud
             public RectTransform Title, Chapters, Options;
             public RectTransform MyLevels;
             public MyUi My;
+            public RectTransform Random;
+            public RandomUi RandomUi;
             public TextMeshProUGUI TitleProgress, ChaptersStats, SoundText;
             /// <summary>Keyboard hints (absent where there is no room); hidden or reworded on phones.</summary>
             public TextMeshProUGUI ChaptersKeys, OptionsKeys;
@@ -90,7 +92,10 @@ namespace ShiftRegister.Game.Hud
                 s.Chapters.gameObject.SetActive(cur && screen == GameScreen.Chapters);
                 s.Options.gameObject.SetActive(cur && screen == GameScreen.Options);
                 s.MyLevels.gameObject.SetActive(cur && screen == GameScreen.MyLevels);
+                s.Random.gameObject.SetActive(cur && screen == GameScreen.Random);
             }
+            if (screen != GameScreen.Random) randomSession.Cancel();
+            if (screen == GameScreen.Random) EnterRandom(arriving);
             if (screen == GameScreen.MyLevels) EnterMyLevels(arriving);
             if (screen == GameScreen.Options) RefreshOptions(true);
             if (screen == GameScreen.Title) RefreshTitle();
@@ -143,6 +148,7 @@ namespace ShiftRegister.Game.Hud
             if (flow == null || !built) return;
             // Phones have no keyboard, but their list still scrolls by dragging.
             if (flow.Current == GameScreen.MyLevels) UpdateMyLevels(kb);
+            if (flow.Current == GameScreen.Random) UpdateRandom(kb);
             if (kb == null) return;
 
             if (flow.Current == GameScreen.Title && introRunning)
@@ -155,6 +161,7 @@ namespace ShiftRegister.Game.Hud
             {
                 if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame) flow.Resume();
                 else if (kb.cKey.wasPressedThisFrame) flow.Show(GameScreen.Chapters);
+                else if (kb.rKey.wasPressedThisFrame) flow.Show(GameScreen.Random);
                 else if (kb.lKey.wasPressedThisFrame) flow.Show(GameScreen.MyLevels);
                 else if (kb.oKey.wasPressedThisFrame) flow.Show(GameScreen.Options);
                 else if (kb.qKey.wasPressedThisFrame) flow.Quit();
@@ -216,6 +223,12 @@ namespace ShiftRegister.Game.Hud
             BuildMyLevels(wide, MyDesktop);
             BuildMyLevels(phoneWide, MyPhoneLandscape);
             BuildMyLevels(phoneTall, MyPhonePortrait);
+            wide.Random = Frame(canvas, "Random", 1280, 720);
+            phoneWide.Random = Frame(canvas, "Random (phone landscape)", 915, 412);
+            phoneTall.Random = Frame(canvas, "Random (phone portrait)", 412, 915);
+            BuildRandom(wide, RandomDesktop);
+            BuildRandom(phoneWide, RandomPhoneLandscape);
+            BuildRandom(phoneTall, RandomPhonePortrait);
             game.SettingsChanged += OnSettingsChanged;
             ApplyFrame();
         }
@@ -250,13 +263,14 @@ namespace ShiftRegister.Game.Hud
                 "Slide whole rows of bits to draw the picture. Whatever falls off the edge is gone for good.");
             blurb.textWrappingMode = TextWrappingModes.Normal;
 
-            HudButton.CreateSolid(a, "PLAY", x, 458, 104, 52, display, 18, () => flow.Resume());
-            HudButton.Create(a, "CHAPTERS", x + 112, 458, 138, 52, display, 14, () => flow.Show(GameScreen.Chapters));
-            HudButton.Create(a, "MY LEVELS", x + 258, 458, 146, 52, display, 14, () => flow.Show(GameScreen.MyLevels));
-            HudButton.Create(a, "OPTIONS", x + 412, 458, 124, 52, display, 14, () => flow.Show(GameScreen.Options));
+            HudButton.CreateSolid(a, "PLAY", x, 458, 92, 52, display, 18, () => flow.Resume());
+            HudButton.Create(a, "CHAPTERS", x + 98, 458, 122, 52, display, 14, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(a, "RANDOM", x + 226, 458, 102, 52, display, 14, () => flow.Show(GameScreen.Random));
+            HudButton.Create(a, "MY LEVELS", x + 334, 458, 128, 52, display, 14, () => flow.Show(GameScreen.MyLevels));
+            HudButton.Create(a, "OPTIONS", x + 468, 458, 104, 52, display, 14, () => flow.Show(GameScreen.Options));
             // Desktop builds only: a browser tab or a phone app is closed from outside the game.
             bool canQuit = ScreenFlow.CanQuit;
-            if (canQuit) HudButton.Create(a, "QUIT", x + 544, 458, 76, 52, display, 14, () => flow.Quit());
+            if (canQuit) HudButton.Create(a, "QUIT", x + 578, 458, 64, 52, display, 14, () => flow.Quit());
             s.TitleProgress = Ui.Text(a, "Progress", x, 526, 560, 20, mono, 14, Lcd.Text2);
 
             TitleGrid(b, 740f, 120f);
@@ -264,7 +278,7 @@ namespace ShiftRegister.Game.Hud
 
             var keys = Ui.Rect(a, "Keys", 0, 0, 1280, 720);
             s.TitleKeys = keys.gameObject;
-            Ui.Text(keys, "Keys Hint", x, 550, 560, 20, mono, 13, Lcd.Text3, text: canQuit ? "Enter play · C chapters · L my levels · O options · Q quit" : "Enter play · C chapters · L my levels · O options");
+            Ui.Text(keys, "Keys Hint", x, 550, 560, 20, mono, 13, Lcd.Text3, text: canQuit ? "Enter play · C chapters · R random · L my levels · O options · Q quit" : "Enter play · C chapters · R random · L my levels · O options");
             const float ky = 642f;
             KeyCap(keys, "⇧ Shift", x, ky, 82);
             Ui.Text(keys, "Plus", x + 82, ky, 28, 34, mono, 14, Lcd.Ink, TextAlignmentOptions.Center, "+");
