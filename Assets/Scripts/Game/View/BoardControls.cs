@@ -26,6 +26,7 @@ namespace ShiftRegister.Game.View
         const float ButtonLong = 46f, ButtonShort = 36f, ButtonGap = 8f, ButtonRadius = 6f;
         const float OutlineMargin = 6f, OutlineRadius = 10f, OutlineWidth = 3f;
         const float DisabledAlpha = 0.25f;
+        const float HintOutlineWidth = 4f, HintChevronSize = 14f, HintChevronDrop = 8f, HintPulseSeconds = 1.2f;
 
         [Tooltip("Unlit sprite material, so the palette shows exactly. Empty = the renderer's default.")]
         [SerializeField] Material spriteMaterial;
@@ -37,8 +38,18 @@ namespace ShiftRegister.Game.View
         Transform root;
         LevelRules rules;
         int shownHover = int.MinValue;
+        Transform hintRoot;
+        readonly List<SpriteRenderer> hintParts = new List<SpriteRenderer>();
+        Move? hint;
+        bool hintPulses;
 
         public IReadOnlyList<ArrowButton> Buttons => buttons;
+
+        /// <summary>The move a hint is showing, or null.</summary>
+        public Move? ShownHint => hint;
+
+        /// <summary>The chevrons of the shown hint, one per cell that moves.</summary>
+        public int HintChevrons => hint.HasValue ? hintParts.Count - 1 : 0;
 
         /// <param name="withArrows">False for the level editor, where the board is painted and nothing shifts.</param>
         /// <param name="tightBelts">Belts hug the cells, leaving the arrow button slots free for the editor's own
@@ -48,6 +59,8 @@ namespace ShiftRegister.Game.View
             rules = levelRules;
             buttons.Clear();
             shownHover = int.MinValue;
+            hint = null;
+            hintParts.Clear();
             if (root != null)
             {
                 DestroySafe(root.gameObject);
@@ -55,6 +68,8 @@ namespace ShiftRegister.Game.View
 
             root = new GameObject("Controls").transform;
             root.SetParent(transform, false);
+            hintRoot = new GameObject("Hint").transform;
+            hintRoot.SetParent(root, false);
 
             // Phones and tablets shift by swiping in either orientation: no arrow buttons, and the belts hug the board.
             bool arrows = withArrows && !DeviceMode.IsMobile;
@@ -88,6 +103,86 @@ namespace ShiftRegister.Game.View
                 ProceduralSprites.RoundedOutline(cellOutlineSize, cellOutlineSize, OutlineRadius, OutlineWidth),
                 Lcd.Ink, (int)Layer.Outline);
             cellOutline.enabled = false;
+        }
+
+        /// <summary>
+        /// Marks a hinted move: an outline around the line part, a chevron on each of its cells pointing the
+        /// way it shifts, and its arrow button filled.
+        /// </summary>
+        /// <param name="bits">The board now: a chevron is light on a bit and ink on an empty cell.</param>
+        public void ShowHint(Move move, ulong bits, bool pulse)
+        {
+            ClearHint();
+            if (rules == null || !PartRect(move.Axis, move.Line, move.Segment, out var rect))
+            {
+                return;
+            }
+
+            hint = move;
+            hintPulses = pulse;
+            var outline = Renderer(hintRoot, "Hint outline", ProceduralSprites.RoundedOutline(
+                rect.width * PixelsPerUnit, rect.height * PixelsPerUnit, OutlineRadius, HintOutlineWidth), Lcd.Ink,
+                (int)Layer.Outline);
+            outline.transform.localPosition = rect.center;
+            hintParts.Add(outline);
+
+            var (first, last) = InputMapping.SegmentRange(rules, move.Axis, move.Line, move.Segment);
+            bool chain = move.Axis == Axis.Row && rules.ChainTopOf(move.Line) >= 0;
+            int lineFrom = chain ? rules.ChainTopOf(move.Line) : move.Line;
+            int lineTo = chain ? lineFrom + 1 : move.Line;
+            float angle = ChevronAngle(move.Direction);
+            for (int line = lineFrom; line <= lineTo; line++)
+            {
+                for (int along = first; along <= last; along++)
+                {
+                    int row = move.Axis == Axis.Row ? line : along;
+                    int column = move.Axis == Axis.Row ? along : line;
+                    var chevron = Renderer(hintRoot, $"Hint chevron {row + 1},{column + 1}",
+                        ProceduralSprites.Chevron(HintChevronSize, 2.5f),
+                        BoardBits.GetCell(bits, row, column) ? Lcd.Light : Lcd.Ink, (int)Layer.Outline);
+                    // Below the middle of the cell, clear of a bit's eyes.
+                    chevron.transform.localPosition = BoardView.CellCenter(row, column)
+                        + Vector2.down * (HintChevronDrop / PixelsPerUnit);
+                    chevron.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+                    hintParts.Add(chevron);
+                }
+            }
+
+            shownHover = int.MinValue;
+        }
+
+        public void ClearHint()
+        {
+            if (!hint.HasValue)
+            {
+                return;
+            }
+
+            hint = null;
+            foreach (var part in hintParts)
+            {
+                DestroySafe(part.gameObject);
+            }
+
+            hintParts.Clear();
+            shownHover = int.MinValue;
+        }
+
+        void Update()
+        {
+            if (!hint.HasValue || !hintPulses)
+            {
+                return;
+            }
+
+            // The chevrons breathe; the outline stays solid, so the hint is never hard to see.
+            float alpha = 0.75f + 0.25f * Mathf.Cos(Time.time * 2f * Mathf.PI / HintPulseSeconds);
+            for (int i = 1; i < hintParts.Count; i++)
+            {
+                var color = hintParts[i].color;
+                color.a = alpha;
+                hintParts[i].color = color;
+            }
         }
 
         /// <summary>The level editor's cursor: outlines one cell.</summary>
@@ -194,7 +289,7 @@ namespace ShiftRegister.Game.View
             for (int i = 0; i < buttons.Count; i++)
             {
                 var button = buttons[i];
-                bool hot = i == index && button.Enabled;
+                bool hot = (i == index || (hint.HasValue && button.Move.Equals(hint.Value))) && button.Enabled;
                 button.Fill.enabled = hot;
                 button.Icon.color = Fade(hot ? Lcd.Light : Lcd.Ink, button.Enabled);
             }
@@ -460,15 +555,17 @@ namespace ShiftRegister.Game.View
                 (int)Layer.ButtonIcon)
             };
             button.Fill.enabled = false;
-            button.Icon.transform.localRotation = Quaternion.Euler(0, 0, direction switch
-            {
-                Direction.Up => 0f,
-                Direction.Down => 180f,
-                Direction.Left => 90f,
-                _ => -90f
-            });
+            button.Icon.transform.localRotation = Quaternion.Euler(0, 0, ChevronAngle(direction));
             buttons.Add(button);
         }
+
+        static float ChevronAngle(Direction direction) => direction switch
+        {
+            Direction.Up => 0f,
+            Direction.Down => 180f,
+            Direction.Left => 90f,
+            _ => -90f
+        };
 
         static Color Fade(Color32 baseColor, bool enabled)
         {

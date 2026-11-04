@@ -25,6 +25,7 @@ namespace ShiftRegister.Game.Hud
             new Entry("Arrows / WASD", "move the cursor"),
             new Entry("Click an arrow", "shift that row or column"),
             new Entry("Z · R", "undo · reset the level"),
+            new Entry("T", "hint: shows one move, but the solve earns 1 star"),
             new Entry("Enter", "next level, once solved"),
             new Entry("M · Esc · H", "mute · menu · this help")
         };
@@ -35,6 +36,7 @@ namespace ShiftRegister.Game.Hud
             new Entry("Swipe a row or column", "shift it, one cell per cell dragged"),
             new Entry("Tap a cell", "select its row and column"),
             new Entry("UNDO · RESET", "take a move back · start the level over"),
+            new Entry("HINT", "shows one move, but the solve earns 1 star"),
             new Entry("NEXT", "on the banner, once solved"),
             new Entry("MENU · HELP · SOUND", "chapters · this help · mute")
         };

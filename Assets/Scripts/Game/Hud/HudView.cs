@@ -37,7 +37,7 @@ namespace ShiftRegister.Game.Hud
             public TextMeshProUGUI BucketCount, BucketText, LogEmpty;
             public Pile Pile;
             public TextMeshProUGUI[] LogIndex, LogMove;
-            public HudButton Sound;
+            public HudButton Sound, Hint;
             /// <summary>Phone layouts: compact texts, and the readout of the selected row.</summary>
             public bool Phone;
             public TextMeshProUGUI ReadRow, ReadOk, ReadBits, ReadFrom, ReadArrow, ReadTo, ReadTag;
@@ -304,8 +304,9 @@ namespace ShiftRegister.Game.Hud
             Outlook(layout, left, x, 531, 20f);
 
             // Bottom edge level with the board's down-arrow row (mockup y 644).
-            HudButton.CreateSolid(left, "UNDO", x, 592, tileWidth, 52, display, 15, () => game.Undo());
-            HudButton.Create(left, "RESET", parX, 592, tileWidth, 52, display, 15, () => game.ResetLevel());
+            HudButton.CreateSolid(left, "UNDO", x, 592, 72, 52, display, 13, () => game.Undo());
+            HudButton.Create(left, "RESET", x + 80, 592, 72, 52, display, 13, () => game.ResetLevel());
+            layout.Hint = HudButton.Create(left, "HINT", x + 160, 592, 72, 52, display, 13, () => game.RequestHint());
 
             RowTags(layout, frame, 892f, ScreenLayout.LandscapeBoardCenterPx.y, ScreenLayout.LandscapeBoardScale);
 
@@ -325,10 +326,12 @@ namespace ShiftRegister.Game.Hud
             keyX = KeyLabel(keys, "undo", keyX + 6f, keyRow2, 40f);
             keyX = KeyCap(keys, "R", keyX + 8f, keyRow2, 26f);
             KeyLabel(keys, "reset", keyX + 6f, keyRow2, 50f);
-            keyX = KeyCap(keys, "H", railX, keyRow3, 26f);
-            keyX = KeyLabel(keys, "help", keyX + 6f, keyRow3, 40f);
-            keyX = KeyCap(keys, "M", keyX + 8f, keyRow3, 26f);
-            KeyLabel(keys, "mute", keyX + 6f, keyRow3, 50f);
+            keyX = KeyCap(keys, "T", railX, keyRow3, 26f);
+            keyX = KeyLabel(keys, "hint", keyX + 4f, keyRow3, 30f);
+            keyX = KeyCap(keys, "H", keyX + 6f, keyRow3, 26f);
+            keyX = KeyLabel(keys, "help", keyX + 4f, keyRow3, 30f);
+            keyX = KeyCap(keys, "M", keyX + 6f, keyRow3, 26f);
+            KeyLabel(keys, "mute", keyX + 4f, keyRow3, 30f);
             var swipe = Ui.Text(right, "Swipe Hint", railX, 504, railWidth, 90, mono, 13, Lcd.Text3,
                 TextAlignmentOptions.TopLeft,
                 "Swipe a row or column to shift it. Tap a cell to select it.");
@@ -366,8 +369,9 @@ namespace ShiftRegister.Game.Hud
 
             Ui.Text(bottom, "Swipe Hint", 12, 756, 388, 18, mono, 14, Lcd.Text3, TextAlignmentOptions.Center,
                 "Swipe to shift · tap a row to read it");
-            HudButton.CreateSolid(bottom, "UNDO", 12, 782, 189, 56, display, 20, () => game.Undo());
-            HudButton.Create(bottom, "RESET", 211, 782, 189, 56, display, 20, () => game.ResetLevel());
+            HudButton.CreateSolid(bottom, "UNDO", 12, 782, 124, 56, display, 17, () => game.Undo());
+            HudButton.Create(bottom, "RESET", 144, 782, 124, 56, display, 17, () => game.ResetLevel());
+            layout.Hint = HudButton.Create(bottom, "HINT", 276, 782, 124, 56, display, 17, () => game.RequestHint());
             HudButton.Create(bottom, "MENU", 12, 848, 122, 48, display, 14, () => flow.LeaveLevel());
             HudButton.Create(bottom, "HELP", 145, 848, 122, 48, display, 14, ToggleHelp);
             layout.Sound = HudButton.Create(bottom, "SOUND", 278, 848, 122, 48, display, 14, ToggleMute);
@@ -389,8 +393,9 @@ namespace ShiftRegister.Game.Hud
             PhoneTile(left, "Par", 123, 84, 99, 54, false, out layout.Par);
             Outlook(layout, left, 16, 150, 16f, 14f);
             Readout(layout, left, 16, 180, 206, 84, 15f, 15f, 20f);
-            HudButton.CreateSolid(left, "UNDO", 16, 336, 99, 56, display, 18, () => game.Undo());
-            HudButton.Create(left, "RESET", 123, 336, 99, 56, display, 18, () => game.ResetLevel());
+            HudButton.CreateSolid(left, "UNDO", 16, 336, 64, 56, display, 12, () => game.Undo());
+            HudButton.Create(left, "RESET", 87, 336, 64, 56, display, 12, () => game.ResetLevel());
+            layout.Hint = HudButton.Create(left, "HINT", 158, 336, 64, 56, display, 12, () => game.RequestHint());
 
             CompactRowTags(layout, frame, 618f, ScreenLayout.PhoneLandscapeBoardCenterPx.y,
                 ScreenLayout.PhoneLandscapeBoardScale);
@@ -755,6 +760,12 @@ namespace ShiftRegister.Game.Hud
                 layout.Moves.text = board.MoveCount.ToString();
                 layout.Par.text = level.par > 0 ? level.par.ToString() : "?";
                 RefreshOutlook(layout, board.MoveCount, level.par);
+                // Setting it clears the hover, which must not go away with every board change.
+                if (layout.Hint.Disabled == game.CanHint)
+                {
+                    layout.Hint.Disabled = !game.CanHint;
+                }
+
                 RefreshLog(layout);
 
                 for (int row = 0; row < BoardSize; row++)
@@ -898,11 +909,15 @@ namespace ShiftRegister.Game.Hud
             if (solved)
             {
                 var result = game.LastResult ?? new Progress.LevelResult(board.MoveCount, game.Level.par,
-                    Scoring.Stars(board.MoveCount, game.Level.par), false, 0);
+                    Scoring.Stars(board.MoveCount, game.Level.par, game.HintUsed), false, 0);
                 string best = result.IsNewBest && result.PreviousBest > 0 ? " · new best" : "";
                 if (game.JustProved && game.IsCustom)
                 {
                     best = " · proven";
+                }
+                else if (game.HintUsed)
+                {
+                    best = " · hint used";
                 }
 
                 solvedText.text = $"{Ui.Moves(result.Moves)} · par {par}{best}";
@@ -999,7 +1014,7 @@ namespace ShiftRegister.Game.Hud
         {
             bool show = par > 0;
             layout.Outlook.enabled = show;
-            int earned = game.LastResult?.Stars ?? Scoring.Stars(Mathf.Max(moves, par), par);
+            int earned = game.LastResult?.Stars ?? Scoring.Stars(Mathf.Max(moves, par), par, game.HintUsed);
             for (int i = 0; i < layout.OutlookStars.Length; i++)
             {
                 layout.OutlookStars[i].enabled = show && i < earned;
@@ -1011,6 +1026,10 @@ namespace ShiftRegister.Game.Hud
             }
 
             layout.Outlook.text = game.LastResult != null ? $"solved for {earned}"
+                : game.Hint == HintStatus.Searching ? "looking..."
+                : game.Hint == HintStatus.DeadEnd ? (layout.Phone ? "undo a move" : "dead end · undo a move")
+                : game.Hint == HintStatus.TooHard ? (layout.Phone ? "undo a move" : "no hint here · undo a move")
+                : game.HintUsed ? (layout.Phone ? "hint used" : $"hint used · {Scoring.HintStars} star")
                 : moves == 0 ? $"{Ui.Moves(par)} for {Scoring.MaxStars}"
                 : earned == Scoring.MaxStars && !layout.Phone ? $"still on track for {earned}"
                 : $"on track for {earned}";

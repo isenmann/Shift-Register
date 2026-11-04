@@ -12,7 +12,7 @@ namespace ShiftRegister.Game.Input
     /// arrows / WASD move it, Shift + arrow shifts the line part under it.
     /// The pointer moves the cursor (hover or tap) and presses the arrow buttons; in mobile mode
     /// (<see cref="DeviceMode"/>) dragging a row or column shifts it (<see cref="SwipeTracker"/>).
-    /// Z / Backspace undoes, R resets, Enter / Space / N goes to the next level once solved.
+    /// Z / Backspace undoes, R resets, T asks for a hint, Enter / Space / N goes to the next level once solved.
     /// </summary>
     public sealed class BoardInput : MonoBehaviour
     {
@@ -145,6 +145,11 @@ namespace ShiftRegister.Game.Input
             if (keyboard.rKey.wasPressedThisFrame)
             {
                 game.ResetLevel();
+            }
+
+            if (keyboard.tKey.wasPressedThisFrame)
+            {
+                game.RequestHint();
             }
 
             bool next = keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame

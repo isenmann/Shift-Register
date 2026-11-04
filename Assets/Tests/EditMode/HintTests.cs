@@ -2,8 +2,11 @@ using System.Linq;
 using NUnit.Framework;
 using ShiftRegister.Core;
 using ShiftRegister.Game;
+using ShiftRegister.Game.Hud;
 using ShiftRegister.Game.Progress;
+using ShiftRegister.Game.View;
 using UnityEditor;
+using UnityEngine;
 
 namespace ShiftRegister.Tests
 {
@@ -218,6 +221,64 @@ namespace ShiftRegister.Tests
                     }
                 }
             }
+        }
+
+        [Test]
+        public void Controls_MarkTheHintedLine_AndClearIt()
+        {
+            var gameObject = new GameObject("Board");
+            try
+            {
+                var controls = gameObject.AddComponent<BoardControls>();
+                var rules = LevelRules.Compile(TestLevels.Heart());
+                controls.Build(rules);
+                var move = Move.Row(5, Direction.Left);
+                controls.ShowHint(move, rules.Start, pulse: false);
+                Assert.That(controls.ShownHint, Is.EqualTo(move));
+                Assert.That(controls.HintChevrons, Is.EqualTo(BoardBits.Size));
+
+                controls.Highlight(-1, 0, 0);
+                foreach (var button in controls.Buttons)
+                {
+                    Assert.That(button.Fill.enabled, Is.EqualTo(button.Move.Equals(move)), button.Move.ToString());
+                }
+
+                controls.ClearHint();
+                Assert.That(controls.ShownHint, Is.Null);
+                Assert.That(controls.HintChevrons, Is.Zero);
+                controls.Highlight(-1, 0, 0);
+                Assert.That(controls.Buttons.Any(button => button.Fill.enabled), Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void Controls_MarkOnlyThePartOfAWalledLine()
+        {
+            var gameObject = new GameObject("Board");
+            try
+            {
+                var controls = gameObject.AddComponent<BoardControls>();
+                var rules = LevelRules.Compile(TestLevels.OneRow("11000000", "00#00000"));
+                controls.Build(rules);
+                controls.ShowHint(Move.Row(3, Direction.Right, 1), rules.Start, pulse: false);
+                Assert.That(controls.HintChevrons, Is.EqualTo(5));
+            }
+            finally
+            {
+                Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void HelpExplainsTheCost_OnBothControlLists()
+        {
+            Assert.That(HelpText.Controls.Any(entry => entry.Title == "T" && entry.Text.Contains("1 star")), Is.True);
+            Assert.That(HelpText.TouchControls.Any(entry => entry.Title == "HINT" && entry.Text.Contains("1 star")),
+                Is.True);
         }
 
         [Test]

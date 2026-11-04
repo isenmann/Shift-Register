@@ -26,6 +26,9 @@ namespace ShiftRegister.Game
             public LevelData Data;
         }
 
+        /// <summary>A slice of a hint search per frame: the longest search then takes about a second at 60 fps.</summary>
+        const int HintNodesPerFrame = 8000;
+
         [SerializeField] LevelCatalog catalog;
         [SerializeField] BoardView boardView;
         [SerializeField] BoardControls controls;
@@ -41,6 +44,7 @@ namespace ShiftRegister.Game
         readonly List<LevelEntry> levels = new List<LevelEntry>();
         readonly List<Move> moveLog = new List<Move>();
         bool previewing;
+        HintSearch hint;
 
         public Board Board { get; private set; }
         public LevelData Level { get; private set; }
@@ -66,6 +70,15 @@ namespace ShiftRegister.Game
 
         /// <summary>True once a hint showed a move in this attempt. Undo keeps it, a reset starts a new attempt.</summary>
         public bool HintUsed { get; private set; }
+
+        /// <summary>The answer for this board while it is searched for or shown; null if none was asked for.</summary>
+        public HintStatus? Hint => hint?.Status;
+
+        /// <summary>
+        /// Hints need a proven level (an unproven one is for its author to beat) and a board that can still move.
+        /// </summary>
+        public bool CanHint => Board != null && !Board.IsSolved && !Board.IsRuleBroken
+            && !string.IsNullOrEmpty(Level.solution);
 
         /// <summary>
         /// A custom level's "next" is leaving it (see <see cref="LeaveCustom"/>); a random level's is another one.
@@ -298,6 +311,7 @@ namespace ShiftRegister.Game
             moveLog.Clear();
             LastResult = null;
             HintUsed = false;
+            hint = null;
 
             PlaceBoard();
             boardView.SquintAtHome = true;
@@ -327,6 +341,7 @@ namespace ShiftRegister.Game
             if (Board != null && controls != null && !BoardLent)
             {
                 controls.Build(Board.Rules);
+                ShowHintMove();
             }
         }
 
@@ -383,6 +398,7 @@ namespace ShiftRegister.Game
             }
 
             moveLog.Add(move);
+            ClearHint();
 
             if (Board.IsSolved)
             {
@@ -457,6 +473,7 @@ namespace ShiftRegister.Game
                 return;
             }
 
+            ClearHint();
             Move? undone = null;
             if (moveLog.Count > 0)
             {
@@ -485,6 +502,7 @@ namespace ShiftRegister.Game
             Board.Reset();
             moveLog.Clear();
             HintUsed = false;
+            ClearHint();
             Refresh();
             if (moved)
             {
@@ -492,16 +510,68 @@ namespace ShiftRegister.Game
             }
         }
 
-        /// <summary>Starts looking for the next move on the current board; null if no level is loaded.</summary>
-        public HintSearch BeginHint() => Board == null ? null : new HintSearch(Board, Level.solution);
-
-        /// <summary>Call when a hint's move is shown to the player: from here on this attempt earns the hint's stars.</summary>
-        public void MarkHintUsed()
+        /// <summary>
+        /// Looks for the next move on this board. Showing a move costs this attempt its stars; being told to
+        /// undo costs nothing. Asking again for the same board changes nothing.
+        /// </summary>
+        public void RequestHint()
         {
-            if (!HintUsed)
+            if (!CanHint)
+            {
+                Blocked?.Invoke();
+                return;
+            }
+
+            if (hint != null)
+            {
+                return;
+            }
+
+            hint = new HintSearch(Board, Level.solution);
+            if (hint.IsDone)
+            {
+                OnHintFound();
+            }
+            else
+            {
+                Changed?.Invoke();
+            }
+        }
+
+        void Update()
+        {
+            if (hint != null && !hint.IsDone && hint.Step(HintNodesPerFrame))
+            {
+                OnHintFound();
+            }
+        }
+
+        void OnHintFound()
+        {
+            if (hint.Status == HintStatus.Move)
             {
                 HintUsed = true;
-                Changed?.Invoke();
+                ShowHintMove();
+            }
+
+            Changed?.Invoke();
+        }
+
+        void ShowHintMove()
+        {
+            if (hint != null && hint.Status == HintStatus.Move && controls != null)
+            {
+                controls.ShowHint(hint.Move, Board.Bits, !Settings.reducedMotion);
+            }
+        }
+
+        /// <summary>The board changed, so the answer no longer holds.</summary>
+        void ClearHint()
+        {
+            hint = null;
+            if (controls != null)
+            {
+                controls.ClearHint();
             }
         }
 
