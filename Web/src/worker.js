@@ -1,23 +1,34 @@
 import { decodeShareCode, puzzleKey } from "../public/sharecode.js";
-import { MAX_BODY_LENGTH, MAX_LEVELS } from "./limits.js";
+import { MAX_BODY_LENGTH, MAX_LEVELS, PAGE_SIZE } from "./limits.js";
 
 export default {
   async fetch(request, env) {
-    if (new URL(request.url).pathname !== "/api/levels") {
+    const url = new URL(request.url);
+    if (url.pathname !== "/api/levels") {
       return reply(404, { error: "NotFound" });
     }
 
     if (request.method === "GET") {
-      return list(env);
+      return list(url, env);
     }
 
     return request.method === "POST" ? upload(request, env) : reply(405, { error: "NotAllowed" });
   }
 };
 
-async function list(env) {
-  const { results } = await env.DB.prepare("SELECT code FROM levels ORDER BY rowid DESC").all();
-  return reply(200, { codes: results.map(row => row.code) });
+/** One page, newest first. `next` goes into ?before= for the page after it, and is null on the last one. */
+async function list(url, env) {
+  const asked = Number(url.searchParams.get("before"));
+  const before = Number.isSafeInteger(asked) && asked > 0 ? asked : Number.MAX_SAFE_INTEGER;
+  // One row more than a page, only to learn whether another page follows.
+  const { results } = await env.DB.prepare(
+    "SELECT rowid AS id, code FROM levels WHERE rowid < ?1 ORDER BY rowid DESC LIMIT ?2"
+  ).bind(before, PAGE_SIZE + 1).all();
+  const page = results.slice(0, PAGE_SIZE);
+  return reply(200, {
+    codes: page.map(row => row.code),
+    next: results.length > PAGE_SIZE ? page.at(-1).id : null
+  });
 }
 
 async function upload(request, env) {
@@ -45,7 +56,7 @@ async function upload(request, env) {
   const puzzle = puzzleKey(level);
   const { meta } = await env.DB.prepare(
     `INSERT INTO levels (code, puzzle)
-     SELECT ?1, ?2 WHERE (SELECT COUNT(*) FROM levels) < ?3
+     SELECT ?1, ?2 WHERE (SELECT COALESCE(MAX(rowid), 0) FROM levels) < ?3
      ON CONFLICT (puzzle) DO NOTHING`
   ).bind(code, puzzle, MAX_LEVELS).run();
   if (meta.changes > 0) {

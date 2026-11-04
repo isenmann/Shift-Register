@@ -72,6 +72,7 @@ h1 { font: 700 34px/1.1 var(--display); margin: 0 0 4px; letter-spacing: .02em; 
   overflow-wrap: anywhere;
 }
 .row .status { color: var(--sub); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.more { width: 100%; height: var(--row); font-size: 13px; }
 
 .detail { display: grid; gap: 12px; min-width: 0; }
 .detail h2 { font: 400 26px/1.2 var(--display); margin: 0; letter-spacing: .05em; overflow-wrap: anywhere; }

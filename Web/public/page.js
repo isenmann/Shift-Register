@@ -10,10 +10,14 @@ const MESSAGES = {
 
 const element = id => document.getElementById(id);
 const list = element("list");
+const more = element("more");
 
-/** Newest first: { level, row } per shared level. */
+/** Newest first: { level, row } per shared level loaded so far. */
 let entries = [];
 let selected = -1;
+/** Where the next page starts, as the server said. Null before the first page and after the last. */
+let next = null;
+let loading = false;
 
 const displayName = level => (level.name || "UNTITLED").toUpperCase();
 const proofLine = level => `par ${level.par} · best so far`;
@@ -99,9 +103,8 @@ function fillBoard(target, level, picture) {
 }
 
 function showCount() {
-  const count = entries.length;
-  element("count").textContent = count === 0 ? "No levels yet. Paste a share code above to add the first one."
-    : `${count} ${count === 1 ? "level" : "levels"} · newest first`;
+  element("count").textContent = entries.length === 0 ? "No levels yet. Paste a share code above to add the first one."
+    : "Newest first";
 }
 
 function select(index, focus = false) {
@@ -150,24 +153,57 @@ function say(text, bad = false) {
   message.className = bad ? "message bad" : "message";
 }
 
-async function load() {
+/** Loads the next page once the button at the end of the list comes near the visible part. */
+const nearEnd = new IntersectionObserver(changes => {
+  if (changes.some(change => change.isIntersecting)) {
+    loadMore();
+  }
+}, { root: list, rootMargin: "0px 0px 300px 0px" });
+
+async function loadMore() {
+  if (loading) {
+    return;
+  }
+
+  loading = true;
+  more.disabled = true;
+  more.textContent = "LOADING...";
+  nearEnd.unobserve(more);
   try {
-    const response = await fetch(API);
+    const response = await fetch(next === null ? API : `${API}?before=${next}`);
     if (!response.ok) {
       throw new Error(String(response.status));
     }
 
-    const { codes } = await response.json();
-    entries = codes.map(toEntry).filter(Boolean);
-    for (const entry of entries) {
+    const page = await response.json();
+    // A level shown at the top after a duplicate upload can arrive again here, further down the list.
+    const fresh = page.codes.filter(code => !entries.some(entry => entry.level.code === code))
+      .map(toEntry).filter(Boolean);
+    for (const entry of fresh) {
       entry.row = makeRow(entry);
     }
 
-    list.replaceChildren(...entries.map(entry => entry.row));
+    more.before(...fresh.map(entry => entry.row));
+    entries.push(...fresh);
+    next = page.next;
+    more.hidden = next === null;
     showCount();
-    select(entries.length > 0 ? 0 : -1);
+    if (selected < 0 && entries.length > 0) {
+      select(0);
+    }
+
+    if (next !== null) {
+      nearEnd.observe(more); // reports at once if the button is still near, so a short page cannot stall
+    }
   } catch {
-    element("count").textContent = "The levels could not be loaded. Reload the page to try again.";
+    if (entries.length === 0) {
+      element("count").textContent = "The levels could not be loaded.";
+    }
+
+    more.textContent = "TRY AGAIN"; // by click only: retrying by itself would hammer a server in trouble
+    more.disabled = false;
+  } finally {
+    loading = false;
   }
 }
 
@@ -252,4 +288,5 @@ list.addEventListener("keydown", event => {
 });
 element("form").addEventListener("submit", upload);
 element("copy").addEventListener("click", copy);
-load();
+more.addEventListener("click", loadMore);
+loadMore();

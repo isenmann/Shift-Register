@@ -7,7 +7,7 @@ browser works out names, boards and par from the code when the page opens.
 | Path | What it is |
 | --- | --- |
 | `public/` | The page, served as it is. `sharecode.js` is shared with the Worker. |
-| `src/worker.js` | `GET /api/levels` lists the codes, `POST /api/levels` adds one (the body is the code). |
+| `src/worker.js` | `GET /api/levels` gives a page of codes (`?before=` takes the `next` of the previous page), `POST /api/levels` adds one (the body is the code). |
 | `schema.sql` | The database table. |
 | `test/` | `vectors.json` holds the verdicts of the game's C# code, made by `Tools/ShareCodeVectors`. |
 
@@ -44,7 +44,9 @@ The database id is not a secret, so it can be committed.
 
 ## Look after it
 
-Limits: 5 uploads a minute per visitor (`wrangler.jsonc`) and 2000 levels in total (`MAX_LEVELS` in `src/limits.js`).
+Limits: 5 uploads a minute per visitor (`wrangler.jsonc`) and 20000 levels in total (`MAX_LEVELS` in `src/limits.js`).
+The list loads 50 levels at a time as people scroll (`PAGE_SIZE`). The total counts arrivals: removing older levels
+frees no room, so after a flood empty the table or remove the newest rows.
 
 Remove a level, for example one with a rude name:
 

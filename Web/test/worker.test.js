@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { beforeEach, test } from "node:test";
-import { MAX_LEVELS } from "../src/limits.js";
+import { MAX_LEVELS, PAGE_SIZE } from "../src/limits.js";
 import * as workerModule from "../src/worker.js";
 import { RIGHT_ROW_1, makeCode } from "./make-code.js";
 
@@ -50,17 +50,60 @@ test("the main module exports only its handler, or Cloudflare refuses to start i
 });
 
 test("an empty list, then uploads newest first, without the whitespace of the paste", async () => {
-  await expectReply(send("GET"), 200, { codes: [] });
+  await expectReply(send("GET"), 200, { codes: [], next: null });
   await expectReply(send("POST", ` ${CODE_A.slice(0, 9)}\n${CODE_A.slice(9)} `), 201, { code: CODE_A });
   await expectReply(send("POST", CODE_B), 201, { code: CODE_B });
-  await expectReply(send("GET"), 200, { codes: [CODE_B, CODE_A] });
+  await expectReply(send("GET"), 200, { codes: [CODE_B, CODE_A], next: null });
+});
+
+/** Rows the list can return as they are; only an upload has to be a real code. */
+function storeRows(count) {
+  const insert = env.DB.raw.prepare("INSERT INTO levels (code, puzzle) VALUES (?, ?)");
+  for (let i = 1; i <= count; i++) {
+    insert.run(`code${i}`, String(i));
+  }
+}
+
+const newestFirst = (from, count) => Array.from({ length: count }, (_, i) => `code${from - i}`);
+
+test("the list comes in pages that add up to every level exactly once", async () => {
+  const total = PAGE_SIZE * 2 + 3;
+  storeRows(total);
+  await expectReply(send("GET"), 200, { codes: newestFirst(total, PAGE_SIZE), next: total - PAGE_SIZE + 1 });
+  await expectReply(send("GET", undefined, `/api/levels?before=${total - PAGE_SIZE + 1}`), 200, {
+    codes: newestFirst(total - PAGE_SIZE, PAGE_SIZE),
+    next: 4
+  });
+  await expectReply(send("GET", undefined, "/api/levels?before=4"), 200, { codes: newestFirst(3, 3), next: null });
+});
+
+test("a list of exactly one page has no page after it", async () => {
+  storeRows(PAGE_SIZE);
+  await expectReply(send("GET"), 200, { codes: newestFirst(PAGE_SIZE, PAGE_SIZE), next: null });
+});
+
+test("an upload while someone scrolls does not move the pages they have yet to load", async () => {
+  storeRows(PAGE_SIZE + 2);
+  const { next } = await (await send("GET")).json();
+  await send("POST", CODE_A);
+  await expectReply(send("GET", undefined, `/api/levels?before=${next}`), 200, {
+    codes: newestFirst(2, 2),
+    next: null
+  });
+});
+
+test("a nonsense cursor gives the first page", async () => {
+  storeRows(1);
+  for (const before of ["hello", "-5", "1.5", "1e999"]) {
+    await expectReply(send("GET", undefined, `/api/levels?before=${before}`), 200, { codes: ["code1"], next: null });
+  }
 });
 
 test("the same puzzle again stays out, and the first upload keeps its name", async () => {
   await send("POST", CODE_A);
   await expectReply(send("POST", CODE_A_RENAMED), 409, { error: "Duplicate", code: CODE_A });
   await expectReply(send("POST", CODE_A), 409, { error: "Duplicate", code: CODE_A });
-  await expectReply(send("GET"), 200, { codes: [CODE_A] });
+  await expectReply(send("GET"), 200, { codes: [CODE_A], next: null });
 });
 
 test("the server does its own check and stores nothing bad", async () => {
@@ -68,13 +111,13 @@ test("the server does its own check and stores nothing bad", async () => {
   await expectReply(send("POST", CODE_A.slice(0, -3)), 400, { error: "Damaged" });
   await expectReply(send("POST", makeCode({ moves: [RIGHT_ROW_1] })), 400, { error: "BadSolution" });
   await expectReply(send("POST", CODE_A + " ".repeat(3000)), 400, { error: "NotACode" });
-  await expectReply(send("GET"), 200, { codes: [] });
+  await expectReply(send("GET"), 200, { codes: [], next: null });
 });
 
 test("too many uploads are refused before anything is stored", async () => {
   env.UPLOADS.limit = async () => ({ success: false });
   await expectReply(send("POST", CODE_A), 429, { error: "TooFast" });
-  await expectReply(send("GET"), 200, { codes: [] });
+  await expectReply(send("GET"), 200, { codes: [], next: null });
 });
 
 test("a full page refuses new puzzles but still recognises known ones", async () => {
@@ -86,6 +129,13 @@ test("a full page refuses new puzzles but still recognises known ones", async ()
 
   await expectReply(send("POST", CODE_B), 503, { error: "Full" });
   await expectReply(send("POST", CODE_A_RENAMED), 409, { error: "Duplicate", code: CODE_A });
+});
+
+test("emptying a full page makes room again", async () => {
+  storeRows(MAX_LEVELS);
+  await expectReply(send("POST", CODE_B), 503, { error: "Full" });
+  env.DB.raw.exec("DELETE FROM levels");
+  await expectReply(send("POST", CODE_B), 201, { code: CODE_B });
 });
 
 test("other addresses and methods are refused", async () => {
