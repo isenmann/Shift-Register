@@ -43,13 +43,13 @@ namespace ShiftRegister.Game.View
         }
 
         const int FloatBodyOrder = 8, FloatEyesOrder = 9;
-        static readonly Color32 LostEye = new Color32(0xF1, 0xE3, 0xC8, 0xFF);
 
         [Header("Animation")]
         [SerializeField] bool animate = true;
         [SerializeField] float shiftTime = 0.13f;
         [SerializeField] float gateTime = 0.15f;
         [SerializeField] float flyTime = 0.55f;
+        [SerializeField] float rescueTime = 0.28f;
 
         readonly List<Floater> pool = new List<Floater>();
         readonly List<Floater> live = new List<Floater>();
@@ -109,6 +109,11 @@ namespace ShiftRegister.Game.View
 
                 Reacted?.Invoke(outcome, solved, broken);
                 Settled?.Invoke();
+                if (solved)
+                {
+                    SetHappy(true);
+                }
+
                 return;
             }
 
@@ -271,8 +276,55 @@ namespace ShiftRegister.Game.View
             Settled?.Invoke();
             if (solved)
             {
+                SetHappy(true);
                 StartCoroutine(Hop());
             }
+        }
+
+        /// <summary>
+        /// After an undo gave lost bits back: they climb out of the bucket to their cells. The board and its count
+        /// are already up to date, so this only hides those bits until they land.
+        /// </summary>
+        public void PlayRescue(ulong rescued)
+        {
+            if (!animate || !Application.isPlaying || !isActiveAndEnabled || cells == null)
+            {
+                return;
+            }
+
+            Vector2 start = cellsRoot.InverseTransformPoint(ScreenLayout.BucketCenter);
+            for (int row = 0; row < BoardBits.Size; row++)
+            {
+                for (int column = 0; column < BoardBits.Size; column++)
+                {
+                    if (BoardBits.GetCell(rescued, row, column))
+                    {
+                        StartCoroutine(Rescue(row, column, start));
+                    }
+                }
+            }
+        }
+
+        IEnumerator Rescue(int row, int column, Vector2 start)
+        {
+            var bit = cells[row, column].Bit;
+            bit.SetActive(false);
+            var floater = Spawn(start);
+            SetLost(floater, true);
+            Vector2 end = CellCenter(row, column);
+            Vector2 control = (start + end) / 2f + Vector2.up * 2.5f;
+            yield return Tween(rescueTime, progress =>
+            {
+                float eased = EaseInOutQuad(progress);
+                floater.Transform.localPosition = Bezier(start, control, end, eased);
+                floater.Transform.localScale = Vector3.one * Mathf.Lerp(0.55f, 1f, eased);
+                if (progress > 0.7f)
+                {
+                    SetLost(floater, false);
+                }
+            });
+            Release(floater);
+            bit.SetActive(true);
         }
 
         /// <summary>
@@ -535,8 +587,8 @@ namespace ShiftRegister.Game.View
                 },
                 FlatEyes = new[]
                 {
-                    Renderer(parent, "Flat Eye L", flat, LostEye, Layer.Eyes),
-                    Renderer(parent, "Flat Eye R", flat, LostEye, Layer.Eyes)
+                    Renderer(parent, "Flat Eye L", flat, Lcd.LostEye, Layer.Eyes),
+                    Renderer(parent, "Flat Eye R", flat, Lcd.LostEye, Layer.Eyes)
                 }
             };
             floater.Body.sortingOrder = FloatBodyOrder;

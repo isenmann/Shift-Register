@@ -11,8 +11,8 @@ namespace ShiftRegister.Game.View
     /// it left. While the player thinks, one bit blinks now and then, and after a long pause they fall asleep one
     /// at a time until any input wakes them. Bits on a target cell are at home and relax into a squint. Bits that
     /// a move of the selected lines would push off the edge peek over it, and the one an arrow or swipe is about
-    /// to drop goes wide-eyed. A body at rest never leaves its cell or changes size, so the picture stays easy to
-    /// read.
+    /// to drop goes wide-eyed. A solved level gets happy eyes until the board changes. A body at rest never leaves
+    /// its cell or changes size, so the picture stays easy to read.
     /// </summary>
     public sealed partial class BoardView
     {
@@ -45,6 +45,7 @@ namespace ShiftRegister.Game.View
         const float LidCloseRate = 42f, LidOpenRate = 24f;
         // A squinting eye is 6×4.5 px and sits a little lower.
         const float SquintHeightPx = -3.5f, SquintDropPx = 1.5f, SquintRate = 7f;
+        const float HappyEyeSize = 14f, HappyEyeStroke = 2.6f;
         const float BlinkTime = 0.11f, BlinkGapMin = 2.6f, BlinkGapMax = 5f;
         const float NapDelay = 10f, NapStep = 0.3f, WakeMaxDelay = 0.12f;
 
@@ -95,6 +96,29 @@ namespace ShiftRegister.Game.View
         public float EyeSquint(int row, int column) => cells[row, column].Face.Squint;
 
         public bool IsBitAsleep(int row, int column) => cells[row, column].Face.Asleep;
+
+        /// <summary>True once the pause is long enough for a nap, so the rest of the screen can hush too.</summary>
+        public bool IsDozing => idleTime >= NapDelay;
+
+        /// <summary>True if a bit shows the happy eyes of a solved level.</summary>
+        public bool IsBitHappy(int row, int column) => cells[row, column].HappyEyes[0].enabled;
+
+        void SetHappy(bool happy)
+        {
+            if (cells == null)
+            {
+                return;
+            }
+
+            foreach (var cell in cells)
+            {
+                for (int i = 0; i < cell.Eyes.Length; i++)
+                {
+                    cell.Eyes[i].enabled = !happy;
+                    cell.HappyEyes[i].enabled = happy;
+                }
+            }
+        }
 
         /// <summary>True if a bit is looking over the edge it could fall from.</summary>
         public bool IsBitPeeking(int row, int column) => cells[row, column].Face.PeekLook != Vector2.zero;
@@ -478,6 +502,7 @@ namespace ShiftRegister.Game.View
             idleTime = 0f;
             napHeld = false;
             ClearPeeks();
+            SetHappy(false);
             if (cells == null)
             {
                 return;

@@ -35,6 +35,7 @@ namespace ShiftRegister.Game.Hud
             public readonly Image[] RowTagBox = new Image[BoardSize];
             public Image BucketFrame;
             public TextMeshProUGUI BucketCount, BucketText, LogEmpty;
+            public Pile Pile;
             public TextMeshProUGUI[] LogIndex, LogMove;
             public HudButton Sound;
             /// <summary>Phone layouts: compact texts, and the readout of the selected row.</summary>
@@ -187,6 +188,7 @@ namespace ShiftRegister.Game.Hud
         void Update()
         {
             UpdateHelp();
+            UpdatePile();
             if (ScreenLayout.Phone)
             {
                 RefreshReadout();
@@ -427,9 +429,11 @@ namespace ShiftRegister.Game.Hud
             layout.BucketCount = Ui.Text(frame, "Bucket Count", x + 10, y + 30, width - 20, 50, display, 40, Lcd.Ink);
             if (!withText)
             {
+                BuildPile(layout, frame, x + 10, y + height - 7, 4, 1, 12f, 14f);
                 return;
             }
 
+            BuildPile(layout, frame, x + 10, y + height - 8, 5, 2, 14f, 16f);
             layout.BucketText = Ui.Text(frame, "Bucket Text", x + 10, y + 84, width - 20, height - 92, mono, 13,
                 Lcd.Text2, TextAlignmentOptions.TopLeft);
             layout.BucketText.textWrappingMode = TextWrappingModes.Normal;
@@ -579,6 +583,7 @@ namespace ShiftRegister.Game.Hud
                 Lcd.Text2, TextAlignmentOptions.TopLeft);
             layout.BucketText.textWrappingMode = TextWrappingModes.Normal;
             layout.BucketText.lineSpacing = 4;
+            BuildPile(layout, frame, x + pad, y + height - 12, 9, 4, 16f, 18f);
         }
 
         /// <summary>Move log: a light counterweight; newest move first.</summary>
@@ -852,7 +857,8 @@ namespace ShiftRegister.Game.Hud
             string par = game.Level.par > 0 ? game.Level.par.ToString() : "?";
 
             bool broken = board.IsRuleBroken;
-            if (animate && board.Lost > shownLost)
+            bool landed = animate && board.Lost > shownLost;
+            if (landed)
             {
                 StartCoroutine(Bump(Active.BucketCount.rectTransform));
             }
@@ -870,9 +876,17 @@ namespace ShiftRegister.Game.Hud
                 if (layout.BucketText != null)
                 {
                     layout.BucketText.text = broken ? (layout.Phone ? "rule broken" : "Rule broken. Undo to continue.")
-                        : layout.Phone ? ShortRuleText(rules) : RuleText(rules);
+                        : layout.Phone ? ShortRuleText(rules)
+                        : board.Lost > 0 ? RuleHeadline(rules) : RuleText(rules);
                     layout.BucketText.color = broken ? Lcd.Loss : Lcd.Text2;
                 }
+
+                RefreshPile(layout, rules, board.Lost, broken);
+            }
+
+            if (landed)
+            {
+                OnBitsLanded();
             }
 
             bool solved = board.IsSolved;
@@ -1025,5 +1039,17 @@ namespace ShiftRegister.Game.Hud
             LossRule.Exactly => $"GOAL · LOSE EXACTLY {rules.LossCount}\nDump exactly that many bits on the way.",
             _ => "Bits pushed off the edge land here and can't come back."
         };
+
+        /// <summary>Once bits are in the bucket, only the rule itself keeps a line: the pile needs the room.</summary>
+        static string RuleHeadline(LevelRules rules)
+        {
+            if (rules.LossRule == LossRule.Any)
+            {
+                return "";
+            }
+
+            string text = RuleText(rules);
+            return text.Substring(0, text.IndexOf('\n'));
+        }
     }
 }

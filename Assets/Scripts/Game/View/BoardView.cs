@@ -20,6 +20,8 @@ namespace ShiftRegister.Game.View
             public GameObject Bit;
             /// <summary>The bit's left and right eye.</summary>
             public SpriteRenderer[] Eyes;
+            /// <summary>The ^ ^ of a solved level, shown instead of the eyes.</summary>
+            public SpriteRenderer[] HappyEyes;
             public readonly Face Face = new Face();
             public SpriteRenderer Pin;
         }
@@ -58,6 +60,7 @@ namespace ShiftRegister.Game.View
             var ghost = ProceduralSprites.RoundedOutline(CellPx, CellPx, RadiusPx, 2f, 5f);
             var pin = ProceduralSprites.RoundedOutline(CellPx - 6f, CellPx - 6f, RadiusPx - 3f, 3f);
             var eye = ProceduralSprites.RoundedRect(EyeWidth, EyeHeight, EyeRadius);
+            var happyEye = ProceduralSprites.Chevron(HappyEyeSize, HappyEyeStroke);
 
             cells = new Cell[BoardBits.Size, BoardBits.Size];
             for (int row = 0; row < BoardBits.Size; row++)
@@ -84,6 +87,14 @@ namespace ShiftRegister.Game.View
                         Renderer(bit.transform, "Eye R", eye, Lcd.Light, Layer.Eyes)
                     };
                     ApplyEyes(cell.Eyes, Vector2.zero, 0f);
+                    cell.HappyEyes = new[]
+                    {
+                        Renderer(bit.transform, "Happy L", happyEye, Lcd.Light, Layer.Eyes),
+                        Renderer(bit.transform, "Happy R", happyEye, Lcd.Light, Layer.Eyes)
+                    };
+                    cell.HappyEyes[0].transform.localPosition = new Vector2(-EyeX, EyeY) / CellPx;
+                    cell.HappyEyes[1].transform.localPosition = new Vector2(EyeX, EyeY) / CellPx;
+                    cell.HappyEyes[0].enabled = cell.HappyEyes[1].enabled = false;
 
                     cell.Pin = Renderer(root, "Pin", pin, Lcd.Light, Layer.Pin);
                     cell.Pin.enabled = rules.IsPinned(row, column);

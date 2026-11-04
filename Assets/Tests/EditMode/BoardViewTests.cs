@@ -329,6 +329,42 @@ namespace ShiftRegister.Tests
         }
 
         [Test]
+        public void SolveParty_HappyEyesReplaceTheEyes_UntilTheBoardChanges()
+        {
+            var view = BuildHeart(out var board);
+            board.TryMove(Move.Row(4, Direction.Left), out var outcome);
+            view.Play(outcome, false, false);
+            Assert.That(CountCells(view.IsBitHappy), Is.EqualTo(0), "not solved yet");
+
+            view.Play(outcome, true, false);
+            Assert.That(view.IsBitHappy(2, 0), Is.True);
+            var eye = LeftEye(2, 0).GetComponent<SpriteRenderer>();
+            Assert.That(eye.enabled, Is.False, "the normal eyes step aside");
+
+            view.Show(board.Bits);
+            Assert.That(CountCells(view.IsBitHappy), Is.EqualTo(0), "undo or a new level ends the party");
+            Assert.That(eye.enabled, Is.True);
+        }
+
+        [Test]
+        public void Rescue_DoesNothingOutsidePlayMode_AndLeavesTheBoardShown()
+        {
+            var view = BuildHeart(out _);
+            view.PlayRescue(BoardBits.CellMask(2, 0));
+            Assert.That(view.IsBitShown(2, 0), Is.True);
+        }
+
+        [TestCase(0, 8, 4, 0)]
+        [TestCase(5, 8, 4, 5)]
+        [TestCase(32, 8, 4, 32)]
+        [TestCase(64, 8, 4, 32)]
+        [TestCase(64, 4, 1, 4)]
+        public void ResidentsShown_StopsAtWhatTheCardHolds(int lost, int columns, int rows, int shown)
+        {
+            Assert.That(ShiftRegister.Game.Hud.HudView.ResidentsShown(lost, columns, rows), Is.EqualTo(shown));
+        }
+
+        [Test]
         public void CellCenter_RowZeroIsTop_PitchMatchesMockup()
         {
             Assert.That(BoardView.CellCenter(0, 0).y, Is.GreaterThan(BoardView.CellCenter(7, 0).y));

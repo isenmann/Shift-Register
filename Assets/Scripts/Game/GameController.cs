@@ -435,17 +435,31 @@ namespace ShiftRegister.Game
 
         public void Undo()
         {
-            if (Board == null || !Board.Undo())
+            if (Board == null)
             {
                 return;
             }
 
+            int lostBefore = Board.Lost;
+            if (!Board.Undo())
+            {
+                return;
+            }
+
+            Move? undone = null;
             if (moveLog.Count > 0)
             {
+                undone = moveLog[moveLog.Count - 1];
                 moveLog.RemoveAt(moveLog.Count - 1);
             }
 
             Refresh();
+            if (Board.Lost < lostBefore && undone.HasValue
+                && Board.Rules.TryApply(Board.Bits, undone.Value, out var outcome))
+            {
+                boardView.PlayRescue(outcome.LostCells);
+            }
+
             Undone?.Invoke();
         }
 

@@ -19,5 +19,7 @@ namespace ShiftRegister.Game
         /// <summary>Lost bits, broken rules.</summary>
         public static readonly Color32 Loss = new Color32(0xA2, 0x40, 0x2A, 0xFF);
         public static readonly Color32 LossText = new Color32(0x7A, 0x2E, 0x1F, 0xFF);
+        /// <summary>The flat eyes of lost bits.</summary>
+        public static readonly Color32 LostEye = new Color32(0xF1, 0xE3, 0xC8, 0xFF);
     }
 }
