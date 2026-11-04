@@ -6,6 +6,8 @@ using ShiftRegister.Core;
 static class Program
 {
     const Direction Left = Direction.Left, Right = Direction.Right, Up = Direction.Up, Down = Direction.Down;
+    static readonly List<LevelData> picked = new List<LevelData>();
+
     static Move RowMove(int row, Direction direction, int segment = 0) => Move.Row(row, direction, segment);
     static Move ColumnMove(int column, Direction direction, int segment = 0) => Move.Column(column, direction, segment);
 
@@ -167,8 +169,6 @@ static class Program
     }
 
     static bool Column(LevelRules rules, MoveOutcome outcome) => outcome.Move.Axis == Axis.Column;
-
-    static readonly List<LevelData> picked = new List<LevelData>();
 
     static void Find(string id, string name, LevelData template, int moveCount, int parMin, int parMax,
         Func<LevelData, SolveResult, bool> require = null, int junk = 0, int seeds = 300, int maxStates = 2_500_000)

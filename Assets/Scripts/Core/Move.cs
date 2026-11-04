@@ -18,6 +18,11 @@ namespace ShiftRegister.Core
         public readonly byte Line;
         public readonly byte Segment;
 
+        public Axis Axis => Direction == Direction.Left || Direction == Direction.Right ? Axis.Row : Axis.Column;
+
+        /// <summary>Left and Up move bits toward index 0 of the line.</summary>
+        public bool TowardStart => Direction == Direction.Left || Direction == Direction.Up;
+
         public Move(Direction direction, int line, int segment = 0)
         {
             if (line < 0 || line >= BoardBits.Size)
@@ -54,11 +59,6 @@ namespace ShiftRegister.Core
 
             return new Move(direction, column, segment);
         }
-
-        public Axis Axis => Direction == Direction.Left || Direction == Direction.Right ? Axis.Row : Axis.Column;
-
-        /// <summary>Left and Up move bits toward index 0 of the line.</summary>
-        public bool TowardStart => Direction == Direction.Left || Direction == Direction.Up;
 
         /// <summary>Packs the move into one byte: direction (2 bits), line (3 bits), part (3 bits).</summary>
         public byte ToByte() => (byte)(((int)Direction << 6) | (Line << 3) | Segment);

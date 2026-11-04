@@ -15,11 +15,6 @@ namespace ShiftRegister.Game.Hud
     /// </summary>
     public sealed partial class MenuView
     {
-        const double RandomBudgetMs = 8.0;
-
-        static readonly RandomDifficulty[] Difficulties = { RandomDifficulty.Easy, RandomDifficulty.Medium,
-            RandomDifficulty.Hard };
-
         /// <summary>The RANDOM screen in one arrangement.</summary>
         sealed class RandomUi
         {
@@ -40,8 +35,10 @@ namespace ShiftRegister.Game.Hud
             public bool Outer, Keys;
         }
 
-        readonly RandomSession randomSession = new RandomSession();
-        int randomFocus, randomEnteredFrame;
+        const double RandomBudgetMs = 8.0;
+
+        static readonly RandomDifficulty[] Difficulties = { RandomDifficulty.Easy, RandomDifficulty.Medium,
+            RandomDifficulty.Hard };
 
         static readonly RandomLayout RandomDesktop = new RandomLayout
         {
@@ -141,6 +138,9 @@ namespace ShiftRegister.Game.Hud
             StatusHeight = 28,
             StatusSize = 16
         };
+
+        readonly RandomSession randomSession = new RandomSession();
+        int randomFocus, randomEnteredFrame;
 
         void BuildRandom(Screens screens, RandomLayout layout)
         {

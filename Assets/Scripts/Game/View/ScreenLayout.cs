@@ -24,6 +24,16 @@ namespace ShiftRegister.Game.View
         public const float Pitch = (46f + GapPx) / PxPerUnit;
         public const float BoardSize = (8 * 46f + 7 * GapPx) / PxPerUnit;
 
+        /// <summary>Landscape (layout A3b): 52 px cells, centred at x 596, y 360 of 1280×720.</summary>
+        public const float LandscapeBoardScale = 52f / 46f;
+        public static readonly Vector2 LandscapeBoardCenterPx = new Vector2(596f, 360f);
+        /// <summary>Phone portrait (B2): the board spans the width, x 12–399, y 356–743 of 412×915.</summary>
+        public const float PhonePortraitBoardScale = 387f / 417f;
+        public static readonly Vector2 PhonePortraitBoardCenterPx = new Vector2(205.5f, 549.5f);
+        /// <summary>Phone landscape (B3): the board spans the height, x 236–607, y 20–391 of 915×412.</summary>
+        public const float PhoneLandscapeBoardScale = 371f / 417f;
+        public static readonly Vector2 PhoneLandscapeBoardCenterPx = new Vector2(421.5f, 205.5f);
+
         /// <summary>
         /// Desktop: 720 short side, 1280 base long side (16:9), stretching to about 21.5:9.
         /// Phones and tablets: 412 × 915 (a 20:9 phone in CSS px), stretching to 1000. A shorter screen
@@ -38,16 +48,6 @@ namespace ShiftRegister.Game.View
         /// <summary>Phones and tablets in play: the phone layouts (B2 portrait, B3 landscape).</summary>
         public static bool Phone { get; private set; }
 
-        /// <summary>Landscape (layout A3b): 52 px cells, centred at x 596, y 360 of 1280×720.</summary>
-        public const float LandscapeBoardScale = 52f / 46f;
-        public static readonly Vector2 LandscapeBoardCenterPx = new Vector2(596f, 360f);
-        /// <summary>Phone portrait (B2): the board spans the width, x 12–399, y 356–743 of 412×915.</summary>
-        public const float PhonePortraitBoardScale = 387f / 417f;
-        public static readonly Vector2 PhonePortraitBoardCenterPx = new Vector2(205.5f, 549.5f);
-        /// <summary>Phone landscape (B3): the board spans the height, x 236–607, y 20–391 of 915×412.</summary>
-        public const float PhoneLandscapeBoardScale = 371f / 417f;
-        public static readonly Vector2 PhoneLandscapeBoardCenterPx = new Vector2(421.5f, 205.5f);
-
         /// <summary>True on a phone or tablet held upright (<see cref="DeviceMode.IsMobile"/> only).</summary>
         public static bool Portrait { get; private set; }
 
@@ -56,32 +56,6 @@ namespace ShiftRegister.Game.View
 
         /// <summary>Raised when the orientation or the frame length changes: rearrange what depends on it.</summary>
         public static event Action LayoutChanged;
-
-        /// <summary>
-        /// Called every frame by <see cref="CameraFit"/> with the size of the area the game draws into.
-        /// </summary>
-        public static void SetScreen(float width, float height)
-        {
-            if (width <= 0f || height <= 0f)
-            {
-                return;
-            }
-
-            bool phone = Application.isPlaying && DeviceMode.IsMobile;
-            bool portrait = phone && height > width;
-            float ratio = portrait ? height / width : width / height;
-            bool wasPhone = Phone;
-            Phone = phone;
-            float extra = Mathf.Round(Mathf.Clamp(ShortPx * ratio, MinLongPx, MaxLongPx) - BaseLongPx);
-            if (phone == wasPhone && portrait == Portrait && Mathf.Approximately(extra, ExtraPx))
-            {
-                return;
-            }
-
-            Portrait = portrait;
-            ExtraPx = extra;
-            LayoutChanged?.Invoke();
-        }
 
         /// <summary>The base frame the layouts are drawn on.</summary>
         public static float BaseWidthPx => Portrait ? ShortPx : BaseLongPx;
@@ -112,6 +86,32 @@ namespace ShiftRegister.Game.View
         public static Vector2 BucketCenter => !Phone
             ? FromMockup(1144f + OuterShiftPx, 199f)
             : Portrait ? FromMockup(226f, 196f - OuterShiftPx) : FromMockup(858f + OuterShiftPx, 76f);
+
+        /// <summary>
+        /// Called every frame by <see cref="CameraFit"/> with the size of the area the game draws into.
+        /// </summary>
+        public static void SetScreen(float width, float height)
+        {
+            if (width <= 0f || height <= 0f)
+            {
+                return;
+            }
+
+            bool phone = Application.isPlaying && DeviceMode.IsMobile;
+            bool portrait = phone && height > width;
+            float ratio = portrait ? height / width : width / height;
+            bool wasPhone = Phone;
+            Phone = phone;
+            float extra = Mathf.Round(Mathf.Clamp(ShortPx * ratio, MinLongPx, MaxLongPx) - BaseLongPx);
+            if (phone == wasPhone && portrait == Portrait && Mathf.Approximately(extra, ExtraPx))
+            {
+                return;
+            }
+
+            Portrait = portrait;
+            ExtraPx = extra;
+            LayoutChanged?.Invoke();
+        }
 
         /// <summary>Converts base-frame mockup coordinates (origin top-left, y down) to world units.</summary>
         public static Vector2 FromMockup(float x, float y) =>

@@ -12,6 +12,8 @@ namespace ShiftRegister.Game.View
     /// </summary>
     public static class ProceduralSprites
     {
+        delegate Color PixelFunction(float pixelX, float pixelY, float halfWidth, float halfHeight);
+
         public const int Resolution = 128;
         const float Scale = Resolution / ScreenLayout.PxPerUnit;
         const int Padding = 2;
@@ -147,8 +149,6 @@ namespace ShiftRegister.Game.View
             float along = Mathf.Clamp01(Vector2.Dot(toPoint, segment) / segment.sqrMagnitude);
             return (toPoint - segment * along).magnitude;
         }
-
-        delegate Color PixelFunction(float pixelX, float pixelY, float halfWidth, float halfHeight);
 
         static Sprite Get(string key, float width, float height, bool ui, PixelFunction shade)
         {

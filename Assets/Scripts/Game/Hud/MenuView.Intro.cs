@@ -21,10 +21,9 @@ namespace ShiftRegister.Game.Hud
             public Image Body, LeftEye, RightEye;
         }
 
-        readonly List<TitleBit> titleBits = new List<TitleBit>();
-
         const float RevealTime = 0.35f;
 
+        readonly List<TitleBit> titleBits = new List<TitleBit>();
         Image reveal;
         Coroutine introRoutine;
         bool introRunning, introPlayed;

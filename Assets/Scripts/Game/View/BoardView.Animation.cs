@@ -15,15 +15,6 @@ namespace ShiftRegister.Game.View
     /// </summary>
     public sealed partial class BoardView
     {
-        [Header("Animation")]
-        [SerializeField] bool animate = true;
-        [SerializeField] float shiftTime = 0.13f;
-        [SerializeField] float gateTime = 0.15f;
-        [SerializeField] float flyTime = 0.55f;
-
-        const int FloatBodyOrder = 8, FloatEyesOrder = 9;
-        static readonly Color32 LostEye = new Color32(0xF1, 0xE3, 0xC8, 0xFF);
-
         sealed class Floater
         {
             public Transform Transform;
@@ -47,6 +38,15 @@ namespace ShiftRegister.Game.View
                 AlphaTo = alphaTo;
             }
         }
+
+        const int FloatBodyOrder = 8, FloatEyesOrder = 9;
+        static readonly Color32 LostEye = new Color32(0xF1, 0xE3, 0xC8, 0xFF);
+
+        [Header("Animation")]
+        [SerializeField] bool animate = true;
+        [SerializeField] float shiftTime = 0.13f;
+        [SerializeField] float gateTime = 0.15f;
+        [SerializeField] float flyTime = 0.55f;
 
         readonly List<Floater> pool = new List<Floater>();
         readonly List<Floater> live = new List<Floater>();

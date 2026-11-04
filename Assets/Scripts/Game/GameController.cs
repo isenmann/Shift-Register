@@ -16,6 +16,16 @@ namespace ShiftRegister.Game
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
+        /// <summary>One catalog level, parsed once at startup.</summary>
+        public sealed class LevelEntry
+        {
+            public int Chapter;
+            public int Index;
+            /// <summary>Position in play order.</summary>
+            public int Order;
+            public LevelData Data;
+        }
+
         [SerializeField] LevelCatalog catalog;
         [SerializeField] BoardView boardView;
         [SerializeField] BoardControls controls;
@@ -27,6 +37,10 @@ namespace ShiftRegister.Game
         [SerializeField] int startLevel;
         [Tooltip("Editor only: behave like a phone or tablet (swipe input, portrait layouts).")]
         [SerializeField] bool simulateMobile;
+
+        readonly List<LevelEntry> levels = new List<LevelEntry>();
+        readonly List<Move> moveLog = new List<Move>();
+        bool previewing;
 
         public Board Board { get; private set; }
         public LevelData Level { get; private set; }
@@ -103,19 +117,6 @@ namespace ShiftRegister.Game
         /// <summary>Raised after a reset that undid at least one move.</summary>
         public event Action Restarted;
 
-        /// <summary>One catalog level, parsed once at startup.</summary>
-        public sealed class LevelEntry
-        {
-            public int Chapter;
-            public int Index;
-            /// <summary>Position in play order.</summary>
-            public int Order;
-            public LevelData Data;
-        }
-
-        readonly List<LevelEntry> levels = new List<LevelEntry>();
-        readonly List<Move> moveLog = new List<Move>();
-
         /// <summary>The moves on the board, oldest first: undo takes the last one back, reset clears them.</summary>
         public IReadOnlyList<Move> MoveLog => moveLog;
 
@@ -124,6 +125,9 @@ namespace ShiftRegister.Game
 
         /// <summary>True when testing a fixed level: skip the title screen and load it directly.</summary>
         public bool StartsInLevel => overrideStart;
+
+        /// <summary>True while playing a level from <see cref="Preview"/> (not in the catalog, not saved).</summary>
+        public bool IsPreviewing => previewing;
 
         void Awake()
         {
@@ -282,11 +286,6 @@ namespace ShiftRegister.Game
             Changed?.Invoke();
             return true;
         }
-
-        bool previewing;
-
-        /// <summary>True while playing a level from <see cref="Preview"/> (not in the catalog, not saved).</summary>
-        public bool IsPreviewing => previewing;
 
         void Show(LevelData data)
         {

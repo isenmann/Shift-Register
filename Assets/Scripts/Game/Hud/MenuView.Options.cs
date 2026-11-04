@@ -27,8 +27,6 @@ namespace ShiftRegister.Game.Hud
             public Image Focus;
         }
 
-        OptionRow optionFocus;
-
         enum OptionsMode { Desktop, PhoneLandscape, PhonePortrait }
 
         /// <summary>Sizes of one options arrangement: rows, labels, volume controls and switches.</summary>
@@ -39,6 +37,8 @@ namespace ShiftRegister.Game.Hud
             public float MinusX, ControlsY, Button, CellWidth, CellGap, CellsGap;
             public float ToggleWidth, ToggleHeight;
         }
+
+        OptionRow optionFocus;
 
         static OptionsSpec Spec(OptionsMode mode) => mode switch
         {

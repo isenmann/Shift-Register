@@ -27,10 +27,10 @@ namespace ShiftRegister.Game.Hud
 
         RectTransform helpRoot;
         HelpPanel helpWide, helpPhoneWide, helpPhoneTall;
-        HelpPanel HelpCurrent => !ScreenLayout.Phone ? helpWide : ScreenLayout.Portrait ? helpPhoneTall : helpPhoneWide;
         string helpCheckedLevel;
         bool questionTyped;
 
+        HelpPanel HelpCurrent => !ScreenLayout.Phone ? helpWide : ScreenLayout.Portrait ? helpPhoneTall : helpPhoneWide;
         public bool HelpOpen => helpRoot != null && helpRoot.gameObject.activeSelf;
 
         void BuildHelp(RectTransform canvas)

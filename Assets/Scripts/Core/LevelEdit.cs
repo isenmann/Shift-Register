@@ -33,12 +33,6 @@ namespace ShiftRegister.Core
     /// </summary>
     public sealed class LevelEdit
     {
-        public const int MaxNameLength = 16;
-        /// <summary>The loss count has 6 bits in a share code.</summary>
-        public const int MaxLossCount = 63;
-        const int MaxHistory = 200;
-        const int Last = BoardBits.Size - 1;
-
         /// <summary>A level with its proof, so undo also brings back what was proven about it.</summary>
         sealed class Snapshot
         {
@@ -50,6 +44,12 @@ namespace ShiftRegister.Core
                 Proof = proof;
             }
         }
+
+        public const int MaxNameLength = 16;
+        /// <summary>The loss count has 6 bits in a share code.</summary>
+        public const int MaxLossCount = 63;
+        const int MaxHistory = 200;
+        const int Last = BoardBits.Size - 1;
 
         readonly List<Snapshot> undo = new List<Snapshot>();
         readonly List<Snapshot> redo = new List<Snapshot>();

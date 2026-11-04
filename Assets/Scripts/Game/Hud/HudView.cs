@@ -20,23 +20,6 @@ namespace ShiftRegister.Game.Hud
     /// </summary>
     public sealed partial class HudView : MonoBehaviour
     {
-        [SerializeField] GameController game;
-        [SerializeField] BoardInput input;
-        [SerializeField] ScreenFlow flow;
-        [Tooltip("Silkscreen Bold: level title and banner.")]
-        [SerializeField] TMP_FontAsset displayBold;
-        [Tooltip("Silkscreen Regular: card titles and buttons.")]
-        [SerializeField] TMP_FontAsset display;
-        [Tooltip("JetBrains Mono Regular (its weight table maps <b> to the Bold asset).")]
-        [SerializeField] TMP_FontAsset mono;
-
-        const int BoardSize = BoardBits.Size;
-        const float RowBox = 84f;
-        // Move log rows, newest first; the last ones fade out instead of counting what is hidden.
-        const int LogRows = 7;
-        static readonly float[] LogAlpha = { 1f, 1f, 1f, 1f, 0.55f, 0.3f, 0.12f };
-        static readonly float[] ShortLogAlpha = { 1f, 0.6f, 0.3f };
-
         /// <summary>Everything one arrangement shows that changes during play.</summary>
         sealed class Layout
         {
@@ -66,9 +49,34 @@ namespace ShiftRegister.Game.Hud
             public RectTransform FirstOuterGroup, SecondOuterGroup;
         }
 
+        /// <summary>
+        /// What one board row shows: bits, "now → target" (carry chains read as one 16-bit number), and its tag.
+        /// </summary>
+        struct RowInfo
+        {
+            public string Bits, From, Arrow, To, Tag;
+            public bool Ok, Hint;
+        }
+
+        const int BoardSize = BoardBits.Size;
+        const float RowBox = 84f;
+        // Move log rows, newest first; the last ones fade out instead of counting what is hidden.
+        const int LogRows = 7;
+        static readonly float[] LogAlpha = { 1f, 1f, 1f, 1f, 0.55f, 0.3f, 0.12f };
+        static readonly float[] ShortLogAlpha = { 1f, 0.6f, 0.3f };
+
+        [SerializeField] GameController game;
+        [SerializeField] BoardInput input;
+        [SerializeField] ScreenFlow flow;
+        [Tooltip("Silkscreen Bold: level title and banner.")]
+        [SerializeField] TMP_FontAsset displayBold;
+        [Tooltip("Silkscreen Regular: card titles and buttons.")]
+        [SerializeField] TMP_FontAsset display;
+        [Tooltip("JetBrains Mono Regular (its weight table maps <b> to the Bold asset).")]
+        [SerializeField] TMP_FontAsset mono;
+
         Layout landscape, phoneLandscape, phonePortrait;
         Layout[] layouts;
-        Layout Active => !ScreenLayout.Phone ? landscape : ScreenLayout.Portrait ? phonePortrait : phoneLandscape;
         int shownReadRow = -1;
 
         RectTransform bannerFrame, solvedBanner, brokenBanner;
@@ -77,6 +85,10 @@ namespace ShiftRegister.Game.Hud
         HudButton nextButton, nextRandomButton, saveRandomButton;
         int shownLost;
         bool solvedShown, brokenShown;
+        readonly RowInfo[] rowInfo = new RowInfo[BoardSize];
+        int rowsOk;
+
+        Layout Active => !ScreenLayout.Phone ? landscape : ScreenLayout.Portrait ? phonePortrait : phoneLandscape;
 
         void Awake()
         {
@@ -660,18 +672,6 @@ namespace ShiftRegister.Game.Hud
         }
 
         // ------------------------------------------------------------------ refresh
-
-        /// <summary>
-        /// What one board row shows: bits, "now → target" (carry chains read as one 16-bit number), and its tag.
-        /// </summary>
-        struct RowInfo
-        {
-            public string Bits, From, Arrow, To, Tag;
-            public bool Ok, Hint;
-        }
-
-        readonly RowInfo[] rowInfo = new RowInfo[BoardSize];
-        int rowsOk;
 
         void RefreshBoard()
         {

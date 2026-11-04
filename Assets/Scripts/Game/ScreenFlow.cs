@@ -23,13 +23,21 @@ namespace ShiftRegister.Game
         [SerializeField] MenuView menu;
         [SerializeField] LevelEditor.EditorView editor;
 
-        public GameScreen Current { get; private set; } = GameScreen.Title;
-
         HudView hudView;
         GameScreen customReturn = GameScreen.MyLevels;
 
+        public GameScreen Current { get; private set; } = GameScreen.Title;
+
         /// <summary>Raised after the screen changes.</summary>
         public event Action<GameScreen> Changed;
+
+        /// <summary>
+        /// True where the game can close its own window: desktop builds and the editor. A browser tab
+        /// or a phone app is left by the browser or the system instead.
+        /// </summary>
+        public static bool CanQuit =>
+            Application.platform != RuntimePlatform.WebGLPlayer && !Application.isMobilePlatform
+            && !DeviceMode.IsMobile;
 
         void Start()
         {
@@ -149,14 +157,6 @@ namespace ShiftRegister.Game
             editor.SetLevel(id);
             Show(GameScreen.Editor);
         }
-
-        /// <summary>
-        /// True where the game can close its own window: desktop builds and the editor. A browser tab
-        /// or a phone app is left by the browser or the system instead.
-        /// </summary>
-        public static bool CanQuit =>
-            Application.platform != RuntimePlatform.WebGLPlayer && !Application.isMobilePlatform
-            && !DeviceMode.IsMobile;
 
         /// <summary>QUIT on the title screen. Progress is already saved after every solved level.</summary>
         public void Quit()

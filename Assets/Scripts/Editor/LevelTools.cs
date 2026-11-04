@@ -18,6 +18,15 @@ namespace ShiftRegister.Editor
     /// </summary>
     public static class LevelTools
     {
+        public sealed class CheckResult
+        {
+            public bool Ok;
+            public LevelData Data;
+            public string Message;
+            /// <summary>The file's new text when par or solution changed, else null.</summary>
+            public string NewJson;
+        }
+
         public const string LevelsFolder = "Assets/Levels";
         public const int MaxStates = 5_000_000;
 
@@ -125,15 +134,6 @@ namespace ShiftRegister.Editor
             {
                 Debug.Log(head + "\n" + summary);
             }
-        }
-
-        public sealed class CheckResult
-        {
-            public bool Ok;
-            public LevelData Data;
-            public string Message;
-            /// <summary>The file's new text when par or solution changed, else null.</summary>
-            public string NewJson;
         }
 
         public static CheckResult Check(TextAsset file)

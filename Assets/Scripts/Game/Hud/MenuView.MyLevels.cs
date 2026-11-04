@@ -18,9 +18,6 @@ namespace ShiftRegister.Game.Hud
     /// </summary>
     public sealed partial class MenuView
     {
-        const string NewLevelName = "MY LEVEL";
-        const float DeleteConfirmTime = 3f;
-
         sealed class MyLevelRow
         {
             public RectTransform Root;
@@ -57,14 +54,8 @@ namespace ShiftRegister.Game.Hud
             public bool Desktop;
         }
 
-        int mySelected, myTop, myEnteredFrame;
-        float deleteArmedUntil, myDragY;
-        bool myDragging;
-
-        MyUi CurrentMyLevels => Current.MyLevelsUi;
-        CustomLevelLibrary Library => game.CustomLevels;
-        CustomLevel MySelected =>
-            mySelected >= 0 && mySelected < Library.levels.Count ? Library.levels[mySelected] : null;
+        const string NewLevelName = "MY LEVEL";
+        const float DeleteConfirmTime = 3f;
 
         static readonly MyLayout MyDesktop = new MyLayout
         {
@@ -196,6 +187,15 @@ namespace ShiftRegister.Game.Hud
             Row3Y = 810,
             ButtonHeight = 50
         };
+
+        int mySelected, myTop, myEnteredFrame;
+        float deleteArmedUntil, myDragY;
+        bool myDragging;
+
+        MyUi CurrentMyLevels => Current.MyLevelsUi;
+        CustomLevelLibrary Library => game.CustomLevels;
+        CustomLevel MySelected =>
+            mySelected >= 0 && mySelected < Library.levels.Count ? Library.levels[mySelected] : null;
 
         void BuildMyLevels(Screens screens, MyLayout layout)
         {

@@ -12,13 +12,6 @@ namespace ShiftRegister.Game.View
     /// </summary>
     public sealed partial class BoardView
     {
-        [Tooltip("Font for gate symbols (JetBrains Mono).")]
-        [SerializeField] TMP_FontAsset symbolFont;
-
-        const int OverlayFrameOrder = 5, OverlaySymbolOrder = 6;
-        /// <summary>Gate tab in mockup pixels: sits in the cell's bottom-right corner, below the bit's eyes.</summary>
-        const float TabWidth = 21f, TabHeight = 19f, TabRadius = 6.5f;
-
         sealed class Overlay
         {
             public SpriteRenderer Frame;
@@ -29,6 +22,13 @@ namespace ShiftRegister.Game.View
             /// <summary>The symbol without rich-text tags.</summary>
             public string SymbolText;
         }
+
+        const int OverlayFrameOrder = 5, OverlaySymbolOrder = 6;
+        /// <summary>Gate tab in mockup pixels: sits in the cell's bottom-right corner, below the bit's eyes.</summary>
+        const float TabWidth = 21f, TabHeight = 19f, TabRadius = 6.5f;
+
+        [Tooltip("Font for gate symbols (JetBrains Mono).")]
+        [SerializeField] TMP_FontAsset symbolFont;
 
         Overlay[,] overlays;
 

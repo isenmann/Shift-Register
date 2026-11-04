@@ -12,6 +12,25 @@ namespace ShiftRegister.Game.Hud
     /// </summary>
     public static class Ui
     {
+        /// <summary>Frames after a text field closes in which its closing key still belongs to it.</summary>
+        const int TypingGraceFrames = 2;
+        static int typingEndedFrame = -TypingGraceFrames - 1;
+
+        /// <summary>True while a text field has the keyboard: keys belong to it, not to game shortcuts.</summary>
+        public static bool IsTyping
+        {
+            get
+            {
+                if (Time.frameCount - typingEndedFrame <= TypingGraceFrames)
+                {
+                    return true;
+                }
+
+                var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
+                return selected != null && selected.TryGetComponent<TMP_InputField>(out var field) && field.isFocused;
+            }
+        }
+
         public static RectTransform Rect(Transform parent, string name, float x, float y, float width, float height)
         {
             var gameObject = new GameObject(name, typeof(RectTransform));
@@ -105,30 +124,11 @@ namespace ShiftRegister.Game.Hud
             canvas.sortingOrder = order;
         }
 
-        /// <summary>Frames after a text field closes in which its closing key still belongs to it.</summary>
-        const int TypingGraceFrames = 2;
-        static int typingEndedFrame = -TypingGraceFrames - 1;
-
         /// <summary>
         /// A text field just closed. The field can handle Esc or Enter before the game's own key checks
         /// see the same press, and that press must not also act as a shortcut.
         /// </summary>
         public static void NoteTypingEnded() => typingEndedFrame = Time.frameCount;
-
-        /// <summary>True while a text field has the keyboard: keys belong to it, not to game shortcuts.</summary>
-        public static bool IsTyping
-        {
-            get
-            {
-                if (Time.frameCount - typingEndedFrame <= TypingGraceFrames)
-                {
-                    return true;
-                }
-
-                var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
-                return selected != null && selected.TryGetComponent<TMP_InputField>(out var field) && field.isFocused;
-            }
-        }
 
         /// <summary>"1 move", "6 moves": custom levels can have a par of 1.</summary>
         public static string Moves(int count) => count == 1 ? "1 move" : $"{count} moves";

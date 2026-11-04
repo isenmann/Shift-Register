@@ -10,6 +10,11 @@ namespace ShiftRegister.Tests
     {
         const string TestKey = "ShiftRegister.CustomLevels.Tests";
 
+        /// <summary>One shift right solves Simple; these detours take three moves.</summary>
+        static readonly Move[] Quick = { Move.Row(0, Direction.Right) };
+        static readonly Move[] Detour = { Move.Row(0, Direction.Left), Move.Row(0, Direction.Right),
+            Move.Row(0, Direction.Right) };
+
         [TearDown]
         public void RemoveTestKey() => PlayerPrefs.DeleteKey(TestKey);
 
@@ -95,11 +100,6 @@ namespace ShiftRegister.Tests
             level.solution = "";
             return level;
         }
-
-        /// <summary>One shift right solves Simple; these detours take three moves.</summary>
-        static readonly Move[] Quick = { Move.Row(0, Direction.Right) };
-        static readonly Move[] Detour = { Move.Row(0, Direction.Left), Move.Row(0, Direction.Right),
-            Move.Row(0, Direction.Right) };
 
         [Test]
         public void ApplyWin_WorksOnAnEntryOutsideTheLibrary()

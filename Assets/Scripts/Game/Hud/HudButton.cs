@@ -18,6 +18,34 @@ namespace ShiftRegister.Game.Hud
         Image frame;
         readonly System.Collections.Generic.List<Image> icons = new System.Collections.Generic.List<Image>();
 
+        public string Text
+        {
+            get => label.text;
+            set => label.text = value;
+        }
+
+        /// <summary>Stays filled, for a tool or tab that is on.</summary>
+        public bool Selected
+        {
+            get => selected;
+            set
+            {
+                selected = value;
+                SetHot(false);
+            }
+        }
+
+        /// <summary>Greyed out; a click only makes the blocked sound.</summary>
+        public bool Disabled
+        {
+            get => disabled;
+            set
+            {
+                disabled = value;
+                SetHot(false);
+            }
+        }
+
         /// <summary>Ink-on-background button (top bar).</summary>
         public static HudButton Create(Transform parent, string text, float x, float y, float width, float height,
             TMP_FontAsset font, float size, Action onClick) =>
@@ -55,39 +83,11 @@ namespace ShiftRegister.Game.Hud
             return button;
         }
 
-        public string Text
-        {
-            get => label.text;
-            set => label.text = value;
-        }
-
         /// <summary>Adds a picture to the button that changes colour with its label.</summary>
         public void AddIcon(Image icon)
         {
             icons.Add(icon);
             SetHot(false);
-        }
-
-        /// <summary>Stays filled, for a tool or tab that is on.</summary>
-        public bool Selected
-        {
-            get => selected;
-            set
-            {
-                selected = value;
-                SetHot(false);
-            }
-        }
-
-        /// <summary>Greyed out; a click only makes the blocked sound.</summary>
-        public bool Disabled
-        {
-            get => disabled;
-            set
-            {
-                disabled = value;
-                SetHot(false);
-            }
         }
 
         void OnDisable() => SetHot(false);

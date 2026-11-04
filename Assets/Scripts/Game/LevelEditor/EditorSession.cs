@@ -32,6 +32,9 @@ namespace ShiftRegister.Game.LevelEditor
         public Solver.SolveJob Job { get; private set; }
         public SolveOutcome Outcome { get; private set; }
 
+        public bool IsSolving => Job != null;
+        public bool CanSolve => !IsSolving && Edit.Problems().Count == 0;
+
         public EditorSession(LevelData level, LevelProof proof = LevelProof.None)
         {
             Edit = new LevelEdit(level, proof);
@@ -166,9 +169,6 @@ namespace ShiftRegister.Game.LevelEditor
         }
 
         // ----- Solving -----
-
-        public bool IsSolving => Job != null;
-        public bool CanSolve => !IsSolving && Edit.Problems().Count == 0;
 
         public void StartSolve()
         {

@@ -299,29 +299,6 @@ namespace ShiftRegister.Core
             return ShareCodeError.None;
         }
 
-        sealed class Reader
-        {
-            readonly byte[] bytes;
-            readonly int end;
-            int position;
-            public Reader(byte[] bytes, int end)
-            {
-                this.bytes = bytes;
-                this.end = end;
-            }
-
-            public bool AtEnd => position == end;
-            public byte Next()
-            {
-                if (position >= end)
-                {
-                    throw new IndexOutOfRangeException();
-                }
-
-                return bytes[position++];
-            }
-        }
-
         static void WriteRows(List<byte> bytes, int[] rows)
         {
             int present = 0;
@@ -444,6 +421,31 @@ namespace ShiftRegister.Core
             catch (FormatException)
             {
                 return false;
+            }
+        }
+
+        sealed class Reader
+        {
+            readonly byte[] bytes;
+            readonly int end;
+            int position;
+
+            public bool AtEnd => position == end;
+
+            public Reader(byte[] bytes, int end)
+            {
+                this.bytes = bytes;
+                this.end = end;
+            }
+
+            public byte Next()
+            {
+                if (position >= end)
+                {
+                    throw new IndexOutOfRangeException();
+                }
+
+                return bytes[position++];
             }
         }
     }

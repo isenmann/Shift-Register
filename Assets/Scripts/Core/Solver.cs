@@ -42,25 +42,6 @@ namespace ShiftRegister.Core
         public const int DefaultMaxStates = 2_000_000;
         public const int DefaultMaxDepth = 40;
 
-        readonly struct Key : IEquatable<Key>
-        {
-            readonly ulong bits;
-            readonly int lost;
-            public Key(ulong bits, int lost)
-            {
-                this.bits = bits;
-                this.lost = lost;
-            }
-
-            public bool Equals(Key other) => bits == other.bits && lost == other.lost;
-            public override bool Equals(object obj) => obj is Key key && Equals(key);
-            public override int GetHashCode()
-            {
-                ulong hash = bits * 0x9E3779B97F4A7C15UL ^ (ulong)lost * 0xC2B2AE3D27D4EB4FUL;
-                return (int)(hash ^ (hash >> 32));
-            }
-        }
-
         public static SolveResult Solve(LevelData data, int maxStates = DefaultMaxStates,
             int maxDepth = DefaultMaxDepth) =>
             Solve(LevelRules.Compile(data), maxStates, maxDepth);
@@ -83,6 +64,78 @@ namespace ShiftRegister.Core
         public static SolveJob Begin(LevelRules rules, int maxStates = DefaultMaxStates,
             int maxDepth = DefaultMaxDepth) =>
             new SolveJob(rules, maxStates, maxDepth);
+
+        /// <summary>
+        /// True if playing exactly these moves solves the level, under the same rules as
+        /// <see cref="Board"/>: every move legal, no move after a broken loss rule or after the solve.
+        /// This proves a level solvable without searching it. An empty list never counts.
+        /// </summary>
+        public static bool Replays(LevelRules rules, IReadOnlyList<Move> solution)
+        {
+            if (solution == null || solution.Count == 0)
+            {
+                return false;
+            }
+
+            var board = new Board(rules);
+            foreach (var move in solution)
+            {
+                if (!board.TryMove(move, out _))
+                {
+                    return false;
+                }
+            }
+
+            return board.IsSolved;
+        }
+
+        /// <summary>Prunes states that provably cannot reach the target.</summary>
+        static bool CannotReachTarget(LevelRules rules, ulong board, int lost, int targetCount)
+        {
+            if (rules.HasCreators)
+            {
+                return false;
+            }
+
+            int surplus = BoardBits.PopCount(board) - targetCount;
+            if (surplus < 0)
+            {
+                return true; // nothing can make bits back
+            }
+            // With no gates at all, the only way to drop surplus bits is the bucket.
+            return !rules.HasDestroyers && rules.LossRule != LossRule.Any && lost + surplus > rules.LossCount;
+        }
+
+        static IReadOnlyList<Move> BuildPath(int node, List<int> parent, List<int> moveIndex, IReadOnlyList<Move> moves)
+        {
+            var path = new List<Move>();
+            for (int current = node; parent[current] >= 0; current = parent[current])
+            {
+                path.Add(moves[moveIndex[current]]);
+            }
+
+            path.Reverse();
+            return path;
+        }
+
+        readonly struct Key : IEquatable<Key>
+        {
+            readonly ulong bits;
+            readonly int lost;
+            public Key(ulong bits, int lost)
+            {
+                this.bits = bits;
+                this.lost = lost;
+            }
+
+            public bool Equals(Key other) => bits == other.bits && lost == other.lost;
+            public override bool Equals(object obj) => obj is Key key && Equals(key);
+            public override int GetHashCode()
+            {
+                ulong hash = bits * 0x9E3779B97F4A7C15UL ^ (ulong)lost * 0xC2B2AE3D27D4EB4FUL;
+                return (int)(hash ^ (hash >> 32));
+            }
+        }
 
         /// <summary>
         /// One breadth-first search. <see cref="Solve(LevelRules, int, int)"/> runs it in a single slice, so
@@ -219,59 +272,6 @@ namespace ShiftRegister.Core
                 lost = parent = moveIndex = depth = null;
                 seen = null;
             }
-        }
-
-        /// <summary>
-        /// True if playing exactly these moves solves the level, under the same rules as
-        /// <see cref="Board"/>: every move legal, no move after a broken loss rule or after the solve.
-        /// This proves a level solvable without searching it. An empty list never counts.
-        /// </summary>
-        public static bool Replays(LevelRules rules, IReadOnlyList<Move> solution)
-        {
-            if (solution == null || solution.Count == 0)
-            {
-                return false;
-            }
-
-            var board = new Board(rules);
-            foreach (var move in solution)
-            {
-                if (!board.TryMove(move, out _))
-                {
-                    return false;
-                }
-            }
-
-            return board.IsSolved;
-        }
-
-        /// <summary>Prunes states that provably cannot reach the target.</summary>
-        static bool CannotReachTarget(LevelRules rules, ulong board, int lost, int targetCount)
-        {
-            if (rules.HasCreators)
-            {
-                return false;
-            }
-
-            int surplus = BoardBits.PopCount(board) - targetCount;
-            if (surplus < 0)
-            {
-                return true; // nothing can make bits back
-            }
-            // With no gates at all, the only way to drop surplus bits is the bucket.
-            return !rules.HasDestroyers && rules.LossRule != LossRule.Any && lost + surplus > rules.LossCount;
-        }
-
-        static IReadOnlyList<Move> BuildPath(int node, List<int> parent, List<int> moveIndex, IReadOnlyList<Move> moves)
-        {
-            var path = new List<Move>();
-            for (int current = node; parent[current] >= 0; current = parent[current])
-            {
-                path.Add(moves[moveIndex[current]]);
-            }
-
-            path.Reverse();
-            return path;
         }
     }
 }

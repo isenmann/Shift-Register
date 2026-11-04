@@ -10,10 +10,6 @@ namespace ShiftRegister.Game.View
     /// </summary>
     public sealed partial class BoardView : MonoBehaviour
     {
-        // Shapes in mockup pixels (a cell is 46 px).
-        const float CellPx = 46f, RadiusPx = 8f;
-        const float EyeWidth = 6f, EyeHeight = 8f, EyeRadius = 2f, EyeX = 8f, EyeY = 5f;
-
         enum Layer { Ground = 0, Ghost = 1, Bit = 2, Eyes = 3, Pin = 4 }
 
         sealed class Cell
@@ -24,6 +20,10 @@ namespace ShiftRegister.Game.View
             public GameObject Bit;
             public SpriteRenderer Pin;
         }
+
+        // Shapes in mockup pixels (a cell is 46 px).
+        const float CellPx = 46f, RadiusPx = 8f;
+        const float EyeWidth = 6f, EyeHeight = 8f, EyeRadius = 2f, EyeX = 8f, EyeY = 5f;
 
         [Tooltip("Unlit sprite material, so the palette shows exactly. Empty = the renderer's default.")]
         [SerializeField] Material spriteMaterial;

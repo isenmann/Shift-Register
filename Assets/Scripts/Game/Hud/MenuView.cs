@@ -20,19 +20,6 @@ namespace ShiftRegister.Game.Hud
     /// </summary>
     public sealed partial class MenuView : MonoBehaviour
     {
-        [SerializeField] GameController game;
-        [SerializeField] ScreenFlow flow;
-        [Tooltip("Silkscreen Bold: big titles.")]
-        [SerializeField] TMP_FontAsset displayBold;
-        [Tooltip("Silkscreen Regular: buttons and chapter names.")]
-        [SerializeField] TMP_FontAsset display;
-        [Tooltip("JetBrains Mono Regular.")]
-        [SerializeField] TMP_FontAsset mono;
-
-        const int BoardSize = BoardBits.Size;
-        // The title screen's smiley, as row numbers.
-        static readonly int[] TitleBits = { 60, 66, 165, 129, 165, 153, 66, 60 };
-
         sealed class LevelRow
         {
             public int Chapter, Level;
@@ -70,14 +57,28 @@ namespace ShiftRegister.Game.Hud
             public RectTransform ScrollView;
         }
 
-        Screens wide, phoneWide, phoneTall;
-        Screens Current => !ScreenLayout.Phone ? wide : ScreenLayout.Portrait ? phoneTall : phoneWide;
-        Screens[] AllScreens => new[] { wide, phoneWide, phoneTall };
+        const int BoardSize = BoardBits.Size;
+        // The title screen's smiley, as row numbers.
+        static readonly int[] TitleBits = { 60, 66, 165, 129, 165, 153, 66, 60 };
+
         const float PhoneScrollHeight = 770f;
 
+        [SerializeField] GameController game;
+        [SerializeField] ScreenFlow flow;
+        [Tooltip("Silkscreen Bold: big titles.")]
+        [SerializeField] TMP_FontAsset displayBold;
+        [Tooltip("Silkscreen Regular: buttons and chapter names.")]
+        [SerializeField] TMP_FontAsset display;
+        [Tooltip("JetBrains Mono Regular.")]
+        [SerializeField] TMP_FontAsset mono;
+
+        Screens wide, phoneWide, phoneTall;
         int focusChapter = -1, focusLevel;
         bool built;
         GameScreen shown = GameScreen.Title;
+
+        Screens Current => !ScreenLayout.Phone ? wide : ScreenLayout.Portrait ? phoneTall : phoneWide;
+        Screens[] AllScreens => new[] { wide, phoneWide, phoneTall };
 
         public void Show(GameScreen screen)
         {

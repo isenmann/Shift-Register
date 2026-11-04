@@ -39,11 +39,6 @@ namespace ShiftRegister.Core
     /// </summary>
     public static class LevelGenerator
     {
-        /// <summary>A search this size stays short on every platform; it is what bounds one attempt.</summary>
-        internal const int MaxStates = 300_000;
-        /// <summary>Far above what any difficulty needs; only here so a job always ends.</summary>
-        internal const int MaxAttempts = 500;
-
         [Flags]
         internal enum Mechanic { None = 0, Walls = 1, Rotate = 2, Pin = 4, Chain = 8 }
 
@@ -57,6 +52,11 @@ namespace ShiftRegister.Core
             /// </summary>
             public bool AcceptUnsearched;
         }
+
+        /// <summary>A search this size stays short on every platform; it is what bounds one attempt.</summary>
+        internal const int MaxStates = 300_000;
+        /// <summary>Far above what any difficulty needs; only here so a job always ends.</summary>
+        internal const int MaxAttempts = 500;
 
         static readonly Tier Easy = new Tier
         {
@@ -94,6 +94,8 @@ namespace ShiftRegister.Core
             Mechanic.Walls | Mechanic.Rotate, Mechanic.Pin | Mechanic.Walls | Mechanic.Rotate }
         };
 
+        const int SymmetryCount = 3;
+
         static Tier TierOf(RandomDifficulty difficulty)
         {
             switch (difficulty)
@@ -125,135 +127,6 @@ namespace ShiftRegister.Core
             }
 
             return job.Result;
-        }
-
-        /// <summary>
-        /// One level being made. Tries candidates until one passes or <see cref="MaxAttempts"/> run out.
-        /// </summary>
-        public sealed class GeneratorJob
-        {
-            readonly Tier tier;
-            readonly Random random;
-
-            // The candidate being searched; null between attempts.
-            LevelData candidate;
-            LevelRules rules;
-            List<Move> scrambleSolution;
-            Mechanic mix;
-            Solver.SolveJob search;
-
-            /// <summary>
-            /// The level, or null until <see cref="Step"/> has returned true; still null if every attempt failed.
-            /// </summary>
-            public GeneratedLevel Result { get; private set; }
-            public bool IsDone { get; private set; }
-            /// <summary>Candidates tried so far.</summary>
-            public int Attempts { get; private set; }
-
-            internal GeneratorJob(Tier tier, int seed)
-            {
-                this.tier = tier;
-                random = new Random(seed);
-            }
-
-            /// <summary>
-            /// Expands up to <paramref name="maxNodes"/> search states. Returns true once the job is done.
-            /// </summary>
-            public bool Step(int maxNodes)
-            {
-                if (IsDone)
-                {
-                    return true;
-                }
-
-                while (search == null)
-                {
-                    if (Attempts >= MaxAttempts)
-                    {
-                        IsDone = true;
-                        return true;
-                    }
-
-                    NextCandidate();
-                }
-
-                if (!search.Step(maxNodes))
-                {
-                    return false;
-                }
-
-                Judge(search.Result);
-                search = null;
-                return IsDone;
-            }
-
-            /// <summary>
-            /// Starts the search of a new candidate, or leaves <see cref="search"/> null if it is no good.
-            /// </summary>
-            void NextCandidate()
-            {
-                Attempts++;
-                mix = tier.Mixes[random.Next(tier.Mixes.Length)];
-                candidate = BuildRules(random, tier, mix);
-                if (candidate == null)
-                {
-                    return;
-                }
-
-                // The rules are fixed now, only the start is still the target.
-                rules = LevelRules.Compile(candidate);
-                scrambleSolution = Scramble(rules, random, tier.Scramble, out ulong start);
-                if (scrambleSolution == null)
-                {
-                    return;
-                }
-
-                candidate.start = BoardBits.ToRows(start);
-                if (LevelEdit.AuthoredErrors(candidate).Count > 0)
-                {
-                    return;
-                }
-
-                rules = LevelRules.Compile(candidate);
-                if (!UsesEverything(rules, scrambleSolution, mix))
-                {
-                    return;
-                }
-
-                search = Solver.Begin(rules, MaxStates, tier.Scramble);
-            }
-
-            void Judge(SolveResult found)
-            {
-                if (found.Status == SolveStatus.Solved)
-                {
-                    if (found.Par < tier.ParMin || found.Par > tier.ParMax)
-                    {
-                        return;
-                    }
-
-                    if (!UsesEverything(rules, found.Solution, mix))
-                    {
-                        return;
-                    }
-
-                    Finish(found.Solution, LevelProof.Searched);
-                }
-                else if (found.Status == SolveStatus.LimitReached && tier.AcceptUnsearched
-                && Solver.Replays(rules, scrambleSolution))
-                {
-                    Finish(scrambleSolution, LevelProof.Replayed);
-                }
-            }
-
-            void Finish(IReadOnlyList<Move> solution, LevelProof proof)
-            {
-                candidate.par = solution.Count;
-                candidate.solution = string.Join(" ", solution);
-                candidate.name = $"{tier.Name} {random.Next(0x1000, 0x10000):X4}";
-                Result = new GeneratedLevel(candidate, proof, Attempts);
-                IsDone = true;
-            }
         }
 
         // ----- Building a candidate -----
@@ -314,8 +187,6 @@ namespace ShiftRegister.Core
 
             return LevelEdit.AuthoredErrors(level).Count == 0 ? level : null;
         }
-
-        const int SymmetryCount = 3;
 
         /// <summary>A cell and its mirror images under one of the three symmetries the pictures use.</summary>
         static IEnumerable<(int row, int column)> Images(int symmetry, int row, int column)
@@ -543,6 +414,135 @@ namespace ShiftRegister.Core
             return ((mix & Mechanic.Walls) == 0 || split)
                 && ((mix & Mechanic.Rotate) == 0 || wrap)
                 && ((mix & Mechanic.Chain) == 0 || carry);
+        }
+
+        /// <summary>
+        /// One level being made. Tries candidates until one passes or <see cref="MaxAttempts"/> run out.
+        /// </summary>
+        public sealed class GeneratorJob
+        {
+            readonly Tier tier;
+            readonly Random random;
+
+            // The candidate being searched; null between attempts.
+            LevelData candidate;
+            LevelRules rules;
+            List<Move> scrambleSolution;
+            Mechanic mix;
+            Solver.SolveJob search;
+
+            /// <summary>
+            /// The level, or null until <see cref="Step"/> has returned true; still null if every attempt failed.
+            /// </summary>
+            public GeneratedLevel Result { get; private set; }
+            public bool IsDone { get; private set; }
+            /// <summary>Candidates tried so far.</summary>
+            public int Attempts { get; private set; }
+
+            internal GeneratorJob(Tier tier, int seed)
+            {
+                this.tier = tier;
+                random = new Random(seed);
+            }
+
+            /// <summary>
+            /// Expands up to <paramref name="maxNodes"/> search states. Returns true once the job is done.
+            /// </summary>
+            public bool Step(int maxNodes)
+            {
+                if (IsDone)
+                {
+                    return true;
+                }
+
+                while (search == null)
+                {
+                    if (Attempts >= MaxAttempts)
+                    {
+                        IsDone = true;
+                        return true;
+                    }
+
+                    NextCandidate();
+                }
+
+                if (!search.Step(maxNodes))
+                {
+                    return false;
+                }
+
+                Judge(search.Result);
+                search = null;
+                return IsDone;
+            }
+
+            /// <summary>
+            /// Starts the search of a new candidate, or leaves <see cref="search"/> null if it is no good.
+            /// </summary>
+            void NextCandidate()
+            {
+                Attempts++;
+                mix = tier.Mixes[random.Next(tier.Mixes.Length)];
+                candidate = BuildRules(random, tier, mix);
+                if (candidate == null)
+                {
+                    return;
+                }
+
+                // The rules are fixed now, only the start is still the target.
+                rules = LevelRules.Compile(candidate);
+                scrambleSolution = Scramble(rules, random, tier.Scramble, out ulong start);
+                if (scrambleSolution == null)
+                {
+                    return;
+                }
+
+                candidate.start = BoardBits.ToRows(start);
+                if (LevelEdit.AuthoredErrors(candidate).Count > 0)
+                {
+                    return;
+                }
+
+                rules = LevelRules.Compile(candidate);
+                if (!UsesEverything(rules, scrambleSolution, mix))
+                {
+                    return;
+                }
+
+                search = Solver.Begin(rules, MaxStates, tier.Scramble);
+            }
+
+            void Judge(SolveResult found)
+            {
+                if (found.Status == SolveStatus.Solved)
+                {
+                    if (found.Par < tier.ParMin || found.Par > tier.ParMax)
+                    {
+                        return;
+                    }
+
+                    if (!UsesEverything(rules, found.Solution, mix))
+                    {
+                        return;
+                    }
+
+                    Finish(found.Solution, LevelProof.Searched);
+                }
+                else if (found.Status == SolveStatus.LimitReached && tier.AcceptUnsearched
+                && Solver.Replays(rules, scrambleSolution))
+                {
+                    Finish(scrambleSolution, LevelProof.Replayed);
+                }
+            }
+
+            void Finish(IReadOnlyList<Move> solution, LevelProof proof)
+            {
+                candidate.par = solution.Count;
+                candidate.solution = string.Join(" ", solution);
+                candidate.name = $"{tier.Name} {random.Next(0x1000, 0x10000):X4}";
+                Result = new GeneratedLevel(candidate, proof, Attempts);
+                IsDone = true;
+            }
         }
     }
 }

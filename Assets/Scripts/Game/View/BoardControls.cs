@@ -11,12 +11,6 @@ namespace ShiftRegister.Game.View
     /// </summary>
     public sealed class BoardControls : MonoBehaviour
     {
-        const float PixelsPerUnit = ScreenLayout.PxPerUnit;
-        // Mockup sizes: buttons 46×36 px, 8 px from the board; selection outline 6 px around the cells.
-        const float ButtonLong = 46f, ButtonShort = 36f, ButtonGap = 8f, ButtonRadius = 6f;
-        const float OutlineMargin = 6f, OutlineRadius = 10f, OutlineWidth = 3f;
-        const float DisabledAlpha = 0.25f;
-
         enum Layer { Belt = 4, Outline = 5, ButtonFill = 5, ButtonFrame = 6, ButtonIcon = 7 }
 
         public sealed class ArrowButton
@@ -26,6 +20,12 @@ namespace ShiftRegister.Game.View
             public Rect Rect;
             public SpriteRenderer Frame, Fill, Icon;
         }
+
+        const float PixelsPerUnit = ScreenLayout.PxPerUnit;
+        // Mockup sizes: buttons 46×36 px, 8 px from the board; selection outline 6 px around the cells.
+        const float ButtonLong = 46f, ButtonShort = 36f, ButtonGap = 8f, ButtonRadius = 6f;
+        const float OutlineMargin = 6f, OutlineRadius = 10f, OutlineWidth = 3f;
+        const float DisabledAlpha = 0.25f;
 
         [Tooltip("Unlit sprite material, so the palette shows exactly. Empty = the renderer's default.")]
         [SerializeField] Material spriteMaterial;

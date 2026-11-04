@@ -25,13 +25,12 @@ namespace ShiftRegister.Game.LevelEditor
     /// </summary>
     public sealed class EditorView : MonoBehaviour
     {
-        [SerializeField] GameController game;
-        [SerializeField] ScreenFlow flow;
-        [SerializeField] Camera cam;
-        [Tooltip("Silkscreen Regular: buttons and titles.")]
-        [SerializeField] TMP_FontAsset display;
-        [Tooltip("JetBrains Mono Regular.")]
-        [SerializeField] TMP_FontAsset mono;
+        /// <summary>Where the options beside each row go, in line with the board's rows.</summary>
+        struct RowLayout
+        {
+            public float Top, Pitch, CellHeight, LeftX, RightX, FillWidth, WrapX, GateX, LinkX, Chip, LinkSize, HeaderY,
+                HeaderSize, Font;
+        }
 
         const int BoardSize = BoardBits.Size;
         const double SolveBudgetMs = 8.0;
@@ -42,6 +41,14 @@ namespace ShiftRegister.Game.LevelEditor
         static readonly string[] ToolLabels = { "BIT  1", "WALL  2", "PIN  3", "GATE  4", "ERASE  5" };
         static readonly LossRule[] LossOrder = { LossRule.Any, LossRule.AtMost, LossRule.Exactly };
         static readonly string[] LossLabels = { "ANY", "MAX", "EXACT" };
+
+        [SerializeField] GameController game;
+        [SerializeField] ScreenFlow flow;
+        [SerializeField] Camera cam;
+        [Tooltip("Silkscreen Regular: buttons and titles.")]
+        [SerializeField] TMP_FontAsset display;
+        [Tooltip("JetBrains Mono Regular.")]
+        [SerializeField] TMP_FontAsset mono;
 
         EditorSession session;
         string levelId;
@@ -73,11 +80,11 @@ namespace ShiftRegister.Game.LevelEditor
         Image statusDot;
         RectTransform progressBox, progressFill;
 
-        /// <summary>The level the screen opens next.</summary>
-        public void SetLevel(string id) => levelId = id;
-
         /// <summary>The session being edited, for checks; null until the screen first opens.</summary>
         public EditorSession Session => session;
+
+        /// <summary>The level the screen opens next.</summary>
+        public void SetLevel(string id) => levelId = id;
 
         void Awake()
         {
@@ -936,13 +943,6 @@ namespace ShiftRegister.Game.LevelEditor
                 TextAlignmentOptions.MidlineRight);
             statusDot = Ui.Box(root, "Status Dot", x, 622, 10, 10, 2f, Lcd.Text2);
             statusText = Ui.Text(root, "Status", x + 18, 610, width - 18, 34, mono, 13, Lcd.Text2);
-        }
-
-        /// <summary>Where the options beside each row go, in line with the board's rows.</summary>
-        struct RowLayout
-        {
-            public float Top, Pitch, CellHeight, LeftX, RightX, FillWidth, WrapX, GateX, LinkX, Chip, LinkSize, HeaderY,
-                HeaderSize, Font;
         }
 
         void BuildRows(Transform root, RowLayout layout)
