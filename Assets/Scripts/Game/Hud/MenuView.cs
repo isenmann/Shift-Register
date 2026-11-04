@@ -306,7 +306,8 @@ namespace ShiftRegister.Game.Hud
             HudButton.CreateSolid(bottom, "PLAY", x, 650, w, 64, display, 22, () => flow.Resume());
             HudButton.Create(bottom, "CHAPTERS", x, 726, 184, 54, display, 16, () => flow.Show(GameScreen.Chapters));
             HudButton.Create(bottom, "OPTIONS", x + 196, 726, 184, 54, display, 16, () => flow.Show(GameScreen.Options));
-            HudButton.Create(bottom, "MY LEVELS", x, 788, w, 50, display, 16, () => flow.Show(GameScreen.MyLevels));
+            HudButton.Create(bottom, "RANDOM", x, 788, 184, 50, display, 16, () => flow.Show(GameScreen.Random));
+            HudButton.Create(bottom, "MY LEVELS", x + 196, 788, 184, 50, display, 16, () => flow.Show(GameScreen.MyLevels));
             s.TitleProgress = Ui.Text(bottom, "Progress", x, 848, w, 18, mono, 14, Lcd.Text2, TextAlignmentOptions.Center);
             Credit(bottom, x, 875, w, 13, TextAlignmentOptions.Center);
         }
@@ -325,10 +326,11 @@ namespace ShiftRegister.Game.Hud
             var blurb = Ui.Text(a, "Blurb", x, 204, 430, 44, mono, 15, Lcd.Text2, TextAlignmentOptions.TopLeft,
                 "Slide whole rows of bits to draw the picture. Whatever falls off the edge is gone for good.");
             blurb.textWrappingMode = TextWrappingModes.Normal;
-            HudButton.CreateSolid(a, "PLAY", x, 264, 92, 52, display, 16, () => flow.Resume());
-            HudButton.Create(a, "CHAPTERS", x + 98, 264, 122, 52, display, 13, () => flow.Show(GameScreen.Chapters));
-            HudButton.Create(a, "MY LEVELS", x + 226, 264, 124, 52, display, 13, () => flow.Show(GameScreen.MyLevels));
-            HudButton.Create(a, "OPTIONS", x + 356, 264, 100, 52, display, 13, () => flow.Show(GameScreen.Options));
+            HudButton.CreateSolid(a, "PLAY", x, 264, 72, 52, display, 16, () => flow.Resume());
+            HudButton.Create(a, "CHAPTERS", x + 78, 264, 102, 52, display, 13, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(a, "RANDOM", x + 186, 264, 84, 52, display, 13, () => flow.Show(GameScreen.Random));
+            HudButton.Create(a, "MY LEVELS", x + 276, 264, 110, 52, display, 13, () => flow.Show(GameScreen.MyLevels));
+            HudButton.Create(a, "OPTIONS", x + 392, 264, 90, 52, display, 13, () => flow.Show(GameScreen.Options));
             s.TitleProgress = Ui.Text(a, "Progress", x, 334, 440, 18, mono, 14, Lcd.Text2);
 
             TitleGrid(b, 915f - 32f - 356f, 28f, 38f, 4f, 12f);

@@ -68,10 +68,10 @@ namespace ShiftRegister.Game.Hud
         {
             HeadingX = 16, HeadingY = 28, HeadingW = 280, HeadingH = 36, HeadingSize = 26,
             BackX = 312, BackY = 24, BackW = 84, BackH = 44,
-            ButtonX = 16, ButtonY = 110, ButtonW = 380, ButtonH = 64, ButtonSize = 18, RowPitch = 136,
-            TextX = 16, TextDy = 70, TextW = 380, TextH = 48, TextSize = 15,
-            NoteX = 16, NoteY = 524, NoteW = 380, NoteH = 88, NoteSize = 14,
-            StatusY = 630, StatusH = 28, StatusSize = 16
+            ButtonX = 16, ButtonY = 130, ButtonW = 380, ButtonH = 64, ButtonSize = 18, RowPitch = 144,
+            TextX = 16, TextDy = 70, TextW = 380, TextH = 66, TextSize = 15,
+            NoteX = 16, NoteY = 570, NoteW = 380, NoteH = 88, NoteSize = 14,
+            StatusY = 670, StatusH = 28, StatusSize = 16
         };
 
         void BuildRandom(Screens s, RandomLayout k)
@@ -191,7 +191,8 @@ namespace ShiftRegister.Game.Hud
         void RefreshRandom()
         {
             bool busy = randomSession.IsGenerating;
-            string making = $"Making a {DifficultyName(randomSession.Difficulty).ToLowerInvariant()} level...";
+            string article = randomSession.Difficulty == RandomDifficulty.Easy ? "an" : "a";
+            string making = $"Making {article} {DifficultyName(randomSession.Difficulty).ToLowerInvariant()} level...";
             string status = busy ? (DeviceMode.IsMobile ? making : making + " Esc cancels.")
                 : randomSession.Failed ? "No level came out this time. Try again."
                 : "";
