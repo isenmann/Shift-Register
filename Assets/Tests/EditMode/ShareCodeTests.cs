@@ -96,7 +96,9 @@ namespace ShiftRegister.Tests
         {
             string code = ShareCode.Encode(Simple());
             for (int length = ShareCode.Prefix.Length; length < code.Length; length++)
+            {
                 Assert.That(ShareCode.TryDecode(code.Substring(0, length), out _), Is.Not.EqualTo(ShareCodeError.None), $"length {length}");
+            }
         }
 
         [Test]
@@ -143,8 +145,11 @@ namespace ShiftRegister.Tests
             {
                 crc ^= b << 8;
                 for (int i = 0; i < 8; i++)
+                {
                     crc = (crc & 0x8000) != 0 ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+                }
             }
+
             var all = new List<byte>(payload) { (byte)(crc >> 8), (byte)crc };
             string text = System.Convert.ToBase64String(all.ToArray()).TrimEnd('=').Replace('+', '-').Replace('/', '_');
             return ShareCode.Prefix + text;

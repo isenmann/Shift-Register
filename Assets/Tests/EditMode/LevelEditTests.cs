@@ -146,21 +146,58 @@ namespace ShiftRegister.Tests
                 bool on = rnd.Next(2) == 0;
                 switch (rnd.Next(14))
                 {
-                    case 0: e.SetBit(EditLayer.Start, r, c, on); break;
-                    case 1: e.SetBit(EditLayer.Target, r, c, on); break;
-                    case 2: e.SetWall(r, c, on); break;
-                    case 3: e.SetPin(r, c, on); break;
-                    case 4: e.Erase(r, c); break;
-                    case 5: e.SetRotate(r, on); break;
-                    case 6: e.SetChain(rnd.Next(7), on); break;
-                    case 7: e.SetFill(r, on, rnd.Next(2) == 0); break;
-                    case 8: e.SetGateCell(r, c, (GateOp)rnd.Next(4)); break;
-                    case 9: e.ClearGateCell(r, c); break;
-                    case 10: e.SetGateOp(r, (GateOp)rnd.Next(4)); break;
-                    case 11: e.RemoveGate(r); break;
-                    case 12: e.SetLoss((LossRule)rnd.Next(3), rnd.Next(100)); break;
-                    case 13: if (on) e.Undo(); else e.Redo(); break;
+                    case 0:
+                        e.SetBit(EditLayer.Start, r, c, on);
+                        break;
+                    case 1:
+                        e.SetBit(EditLayer.Target, r, c, on);
+                        break;
+                    case 2:
+                        e.SetWall(r, c, on);
+                        break;
+                    case 3:
+                        e.SetPin(r, c, on);
+                        break;
+                    case 4:
+                        e.Erase(r, c);
+                        break;
+                    case 5:
+                        e.SetRotate(r, on);
+                        break;
+                    case 6:
+                        e.SetChain(rnd.Next(7), on);
+                        break;
+                    case 7:
+                        e.SetFill(r, on, rnd.Next(2) == 0);
+                        break;
+                    case 8:
+                        e.SetGateCell(r, c, (GateOp)rnd.Next(4));
+                        break;
+                    case 9:
+                        e.ClearGateCell(r, c);
+                        break;
+                    case 10:
+                        e.SetGateOp(r, (GateOp)rnd.Next(4));
+                        break;
+                    case 11:
+                        e.RemoveGate(r);
+                        break;
+                    case 12:
+                        e.SetLoss((LossRule)rnd.Next(3), rnd.Next(100));
+                        break;
+                    case 13:
+                        if (on)
+                        {
+                            e.Undo();
+                        }
+                        else
+                        {
+                            e.Redo();
+                        }
+
+                        break;
                 }
+
                 var errors = LevelEdit.AuthoredErrors(e.Level);
                 Assert.That(errors, Is.Empty, $"step {i}: {string.Join("; ", errors)}");
             }
@@ -228,7 +265,11 @@ namespace ShiftRegister.Tests
         {
             var e = Blank();
             e.BeginStroke();
-            for (int c = 0; c < 8; c++) e.SetBit(EditLayer.Start, 2, c, true);
+            for (int c = 0; c < 8; c++)
+            {
+                e.SetBit(EditLayer.Start, 2, c, true);
+            }
+
             e.EndStroke();
             Assert.That(e.Level.start[2], Is.EqualTo(255));
 
@@ -255,7 +296,11 @@ namespace ShiftRegister.Tests
             e.SetBit(EditLayer.Target, 0, 0, true);
             Assert.That(e.Problems(), Is.Empty);
 
-            for (int i = 0; i < 8; i++) e.SetPin(i, i, true);
+            for (int i = 0; i < 8; i++)
+            {
+                e.SetPin(i, i, true);
+            }
+
             Assert.That(e.Problems(), Does.Contain(LevelProblem.NoMoves));
         }
 

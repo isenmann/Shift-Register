@@ -23,12 +23,14 @@ namespace ShiftRegister.Tests
 
             Assert.That(go.transform.Find("Cells").childCount, Is.EqualTo(64));
             for (int r = 0; r < 8; r++)
-            for (int c = 0; c < 8; c++)
             {
-                bool on = board.GetCell(r, c);
-                bool want = BoardBits.GetCell(board.Rules.Target, r, c);
-                Assert.That(view.IsBitShown(r, c), Is.EqualTo(on), $"bit {r},{c}");
-                Assert.That(view.IsGhostShown(r, c), Is.EqualTo(!on && want), $"ghost {r},{c}");
+                for (int c = 0; c < 8; c++)
+                {
+                    bool on = board.GetCell(r, c);
+                    bool want = BoardBits.GetCell(board.Rules.Target, r, c);
+                    Assert.That(view.IsBitShown(r, c), Is.EqualTo(on), $"bit {r},{c}");
+                    Assert.That(view.IsGhostShown(r, c), Is.EqualTo(!on && want), $"ghost {r},{c}");
+                }
             }
 
             board.TryMove(Move.Row(4, Direction.Left), out _);

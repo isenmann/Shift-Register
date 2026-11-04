@@ -31,6 +31,7 @@ namespace ShiftRegister.Game.Input
                 move = default;
                 return false;
             }
+
             bool towardStart = direction == Direction.Left || direction == Direction.Up;
             move = new Move(direction, line, towardStart ? 0 : count - 1);
             return rules.CanMove(move);
@@ -42,10 +43,19 @@ namespace ShiftRegister.Game.Input
             int first = -1, last = -1;
             for (int i = 0; i < BoardBits.Size; i++)
             {
-                if (rules.SegmentOf(axis, line, i) != segment) continue;
-                if (first < 0) first = i;
+                if (rules.SegmentOf(axis, line, i) != segment)
+                {
+                    continue;
+                }
+
+                if (first < 0)
+                {
+                    first = i;
+                }
+
                 last = i;
             }
+
             return (first, last);
         }
     }

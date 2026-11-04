@@ -52,7 +52,10 @@ namespace ShiftRegister.Game.Hud
             field = CodeField(root, x + 24, y + 78, W - 48, 118, mono);
             field.onSubmit.AddListener(_ =>
             {
-                if (import != null) Primary();
+                if (import != null)
+                {
+                    Primary();
+                }
             });
             message = Ui.Text(root, "Message", x + 24, y + 202, W - 48, 34, mono, 13, Lcd.LossText, TextAlignmentOptions.TopLeft);
             message.textWrappingMode = TextWrappingModes.Normal;
@@ -119,6 +122,7 @@ namespace ShiftRegister.Game.Hud
                     : why);
                 primary.Disabled = true;
             }
+
             field.SetTextWithoutNotify(exportCode);
         }
 
@@ -138,14 +142,25 @@ namespace ShiftRegister.Game.Hud
             primary.Disabled = false;
             paste.gameObject.SetActive(true);
             // On a phone that would cover the dialog with the keyboard before PASTE can be tapped.
-            if (!Input.DeviceMode.IsMobile) field.ActivateInputField();
+            if (!Input.DeviceMode.IsMobile)
+            {
+                field.ActivateInputField();
+            }
         }
 
         /// <summary>False if the dialog was not open.</summary>
         public bool Close()
         {
-            if (!IsOpen) return false;
-            if (field.isFocused) field.DeactivateInputField();
+            if (!IsOpen)
+            {
+                return false;
+            }
+
+            if (field.isFocused)
+            {
+                field.DeactivateInputField();
+            }
+
             gameObject.SetActive(false);
             return true;
         }
@@ -155,7 +170,10 @@ namespace ShiftRegister.Game.Hud
             if (waitingForPaste && Clipboard.TryFinishPaste(out string text))
             {
                 waitingForPaste = false;
-                if (!string.IsNullOrWhiteSpace(text)) field.text = Clean(text);
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    field.text = Clean(text);
+                }
             }
         }
 
@@ -167,9 +185,16 @@ namespace ShiftRegister.Game.Hud
                 SetMessage("Copied.", false);
                 return;
             }
+
             string problem = import(field.text);
-            if (problem == null) Close();
-            else SetMessage(problem);
+            if (problem == null)
+            {
+                Close();
+            }
+            else
+            {
+                SetMessage(problem);
+            }
         }
 
         void Paste()
@@ -182,7 +207,14 @@ namespace ShiftRegister.Game.Hud
         static string Clean(string text)
         {
             var kept = new System.Text.StringBuilder();
-            foreach (char ch in text) if (!char.IsWhiteSpace(ch)) kept.Append(ch);
+            foreach (char ch in text)
+            {
+                if (!char.IsWhiteSpace(ch))
+                {
+                    kept.Append(ch);
+                }
+            }
+
             return kept.ToString();
         }
 

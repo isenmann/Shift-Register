@@ -8,7 +8,11 @@ namespace ShiftRegister.Tests
         static void AssertReplays(LevelData d, SolveResult result)
         {
             var board = new Board(d);
-            foreach (var m in result.Solution) Assert.That(board.TryMove(m, out _), Is.True, m.ToString());
+            foreach (var m in result.Solution)
+            {
+                Assert.That(board.TryMove(m, out _), Is.True, m.ToString());
+            }
+
             Assert.That(board.IsSolved, Is.True, BoardBits.ToPicture(board.Bits));
         }
 
@@ -85,7 +89,10 @@ namespace ShiftRegister.Tests
             {
                 var whole = Solver.Solve(d);
                 var job = Solver.Begin(LevelRules.Compile(d));
-                while (!job.Step(slice)) { }
+                while (!job.Step(slice))
+                {
+                }
+
                 Assert.That(job.Result.Status, Is.EqualTo(whole.Status));
                 Assert.That(job.Result.Par, Is.EqualTo(whole.Par));
                 Assert.That(job.Result.StatesVisited, Is.EqualTo(whole.StatesVisited));
@@ -98,7 +105,10 @@ namespace ShiftRegister.Tests
         public void SlicedJob_ReportsLimit_And_DoneJobStaysDone()
         {
             var job = Solver.Begin(LevelRules.Compile(TestLevels.Heart()), maxStates: 50);
-            while (!job.Step(3)) { }
+            while (!job.Step(3))
+            {
+            }
+
             Assert.That(job.Result.Status, Is.EqualTo(SolveStatus.LimitReached));
             Assert.That(job.Step(3), Is.True);
         }
@@ -113,7 +123,10 @@ namespace ShiftRegister.Tests
             for (int slice = 1; slice <= whole.StatesVisited; slice++)
             {
                 var job = Solver.Begin(LevelRules.Compile(d));
-                while (!job.Step(slice)) { }
+                while (!job.Step(slice))
+                {
+                }
+
                 Assert.That(job.Result.Status, Is.EqualTo(SolveStatus.Unsolvable), $"slice {slice}");
             }
         }
@@ -149,11 +162,15 @@ namespace ShiftRegister.Tests
         public void MoveByte_RoundTrips_ForEveryMove()
         {
             foreach (Direction dir in System.Enum.GetValues(typeof(Direction)))
-            for (int line = 0; line < 8; line++)
-            for (int seg = 0; seg < 8; seg++)
             {
-                var m = new Move(dir, line, seg);
-                Assert.That(Move.FromByte(m.ToByte()), Is.EqualTo(m));
+                for (int line = 0; line < 8; line++)
+                {
+                    for (int seg = 0; seg < 8; seg++)
+                    {
+                        var m = new Move(dir, line, seg);
+                        Assert.That(Move.FromByte(m.ToByte()), Is.EqualTo(m));
+                    }
+                }
             }
         }
 

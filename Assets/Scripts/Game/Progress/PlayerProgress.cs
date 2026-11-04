@@ -48,8 +48,16 @@ namespace ShiftRegister.Game.Progress
         /// <summary>True the first time it is asked for a level id, then false.</summary>
         public bool MarkHelpSeen(string id)
         {
-            if (helpSeen == null) helpSeen = new List<string>();
-            if (helpSeen.Contains(id)) return false;
+            if (helpSeen == null)
+            {
+                helpSeen = new List<string>();
+            }
+
+            if (helpSeen.Contains(id))
+            {
+                return false;
+            }
+
             helpSeen.Add(id);
             return true;
         }
@@ -63,7 +71,11 @@ namespace ShiftRegister.Game.Progress
         public int TotalStars()
         {
             int total = 0;
-            foreach (var r in levels) total += r.stars;
+            foreach (var r in levels)
+            {
+                total += r.stars;
+            }
+
             return total;
         }
 
@@ -80,7 +92,11 @@ namespace ShiftRegister.Game.Progress
 
             int previous = record.bestMoves;
             bool better = moves < previous;
-            if (better) record.bestMoves = moves;
+            if (better)
+            {
+                record.bestMoves = moves;
+            }
+
             record.stars = Math.Max(record.stars, stars);
             return new LevelResult(moves, par, stars, better, previous);
         }

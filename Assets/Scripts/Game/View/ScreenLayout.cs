@@ -60,14 +60,22 @@ namespace ShiftRegister.Game.View
         /// <summary>Called every frame by <see cref="CameraFit"/> with the size of the area the game draws into.</summary>
         public static void SetScreen(float width, float height)
         {
-            if (width <= 0f || height <= 0f) return;
+            if (width <= 0f || height <= 0f)
+            {
+                return;
+            }
+
             bool phone = Application.isPlaying && DeviceMode.IsMobile;
             bool portrait = phone && height > width;
             float ratio = portrait ? height / width : width / height;
             bool wasPhone = Phone;
             Phone = phone;
             float extra = Mathf.Round(Mathf.Clamp(ShortPx * ratio, MinLongPx, MaxLongPx) - BaseLongPx);
-            if (phone == wasPhone && portrait == Portrait && Mathf.Approximately(extra, ExtraPx)) return;
+            if (phone == wasPhone && portrait == Portrait && Mathf.Approximately(extra, ExtraPx))
+            {
+                return;
+            }
+
             Portrait = portrait;
             ExtraPx = extra;
             LayoutChanged?.Invoke();

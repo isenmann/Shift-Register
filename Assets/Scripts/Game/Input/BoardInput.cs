@@ -41,7 +41,11 @@ namespace ShiftRegister.Game.Input
 
         void Update()
         {
-            if (game == null || game.Board == null) return;
+            if (game == null || game.Board == null)
+            {
+                return;
+            }
+
             HandlePointer();
             HandleKeyboard();
             controls.Highlight(hovered, row, column);
@@ -51,33 +55,75 @@ namespace ShiftRegister.Game.Input
         {
             var kb = Keyboard.current;
             // The key that closed the help panel or opened the level must not also act on the board.
-            if (kb == null || Time.frameCount == enabledFrame) return;
+            if (kb == null || Time.frameCount == enabledFrame)
+            {
+                return;
+            }
 
             Direction? d = null;
-            if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame) d = Direction.Left;
-            else if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame) d = Direction.Right;
-            else if (kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame) d = Direction.Up;
-            else if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame) d = Direction.Down;
+            if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame)
+            {
+                d = Direction.Left;
+            }
+            else if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame)
+            {
+                d = Direction.Right;
+            }
+            else if (kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame)
+            {
+                d = Direction.Up;
+            }
+            else if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame)
+            {
+                d = Direction.Down;
+            }
 
             if (d.HasValue)
             {
-                if (kb.shiftKey.isPressed) game.TryShiftAt(row, column, d.Value);
-                else MoveCursor(d.Value);
+                if (kb.shiftKey.isPressed)
+                {
+                    game.TryShiftAt(row, column, d.Value);
+                }
+                else
+                {
+                    MoveCursor(d.Value);
+                }
             }
 
-            if (kb.zKey.wasPressedThisFrame || kb.backspaceKey.wasPressedThisFrame) game.Undo();
-            if (kb.rKey.wasPressedThisFrame) game.ResetLevel();
+            if (kb.zKey.wasPressedThisFrame || kb.backspaceKey.wasPressedThisFrame)
+            {
+                game.Undo();
+            }
+
+            if (kb.rKey.wasPressedThisFrame)
+            {
+                game.ResetLevel();
+            }
 
             bool next = kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame
                 || kb.spaceKey.wasPressedThisFrame || kb.nKey.wasPressedThisFrame;
-            if (next && game.Board.IsSolved && game.NextLevel()) Sfx.Play(Sound.Click);
-            if (kb.kKey.wasPressedThisFrame && game.IsRandom && game.Board.IsSolved && game.SaveRandom()) Sfx.Play(Sound.Click);
+            if (next && game.Board.IsSolved && game.NextLevel())
+            {
+                Sfx.Play(Sound.Click);
+            }
+
+            if (kb.kKey.wasPressedThisFrame && game.IsRandom && game.Board.IsSolved && game.SaveRandom())
+            {
+                Sfx.Play(Sound.Click);
+            }
 
             // Testing shortcuts (editor and development builds): jump between levels without solving them.
             if (Debug.isDebugBuild)
             {
-                if (kb.pageDownKey.wasPressedThisFrame) game.NextLevel();
-                if (kb.pageUpKey.wasPressedThisFrame) game.PreviousLevel();
+                if (kb.pageDownKey.wasPressedThisFrame)
+                {
+                    game.NextLevel();
+                }
+
+                if (kb.pageUpKey.wasPressedThisFrame)
+                {
+                    game.PreviousLevel();
+                }
             }
         }
 
@@ -86,12 +132,24 @@ namespace ShiftRegister.Game.Input
             int oldRow = row, oldColumn = column;
             switch (d)
             {
-                case Direction.Left: column = Mathf.Max(0, column - 1); break;
-                case Direction.Right: column = Mathf.Min(BoardBits.Size - 1, column + 1); break;
-                case Direction.Up: row = Mathf.Max(0, row - 1); break;
-                case Direction.Down: row = Mathf.Min(BoardBits.Size - 1, row + 1); break;
+                case Direction.Left:
+                    column = Mathf.Max(0, column - 1);
+                    break;
+                case Direction.Right:
+                    column = Mathf.Min(BoardBits.Size - 1, column + 1);
+                    break;
+                case Direction.Up:
+                    row = Mathf.Max(0, row - 1);
+                    break;
+                case Direction.Down:
+                    row = Mathf.Min(BoardBits.Size - 1, row + 1);
+                    break;
             }
-            if (row != oldRow || column != oldColumn) Sfx.Play(Sound.Tick);
+
+            if (row != oldRow || column != oldColumn)
+            {
+                Sfx.Play(Sound.Tick);
+            }
         }
 
         void HandlePointer()
@@ -102,6 +160,7 @@ namespace ShiftRegister.Game.Input
                 hovered = -1;
                 return;
             }
+
             bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
             Feed(p.position.ReadValue(), p.press.isPressed, p.press.wasPressedThisFrame, overUi);
         }
@@ -112,7 +171,11 @@ namespace ShiftRegister.Game.Input
         /// </summary>
         public void Feed(Vector2 screen, bool down, bool justPressed, bool overUi)
         {
-            if (cam == null) return;
+            if (cam == null)
+            {
+                return;
+            }
+
             Vector3 world = cam.ScreenToWorldPoint(new Vector3(screen.x, screen.y, -cam.transform.position.z));
             Vector2 local = controls.transform.InverseTransformPoint(world);
 
@@ -124,8 +187,13 @@ namespace ShiftRegister.Game.Input
                     swipe.End();
                     return;
                 }
+
                 Direction? d;
-                while ((d = swipe.Step(local)).HasValue) game.TryShiftAt(swipe.Row, swipe.Column, d.Value);
+                while ((d = swipe.Step(local)).HasValue)
+                {
+                    game.TryShiftAt(swipe.Row, swipe.Column, d.Value);
+                }
+
                 return;
             }
 
@@ -143,14 +211,23 @@ namespace ShiftRegister.Game.Input
             if (hovered >= 0)
             {
                 var b = controls.Buttons[hovered];
-                if (pressed && b.Enabled) game.TryShift(b.Move);
-                else if (pressed) Sfx.Play(Sound.Blocked);
+                if (pressed && b.Enabled)
+                {
+                    game.TryShift(b.Move);
+                }
+                else if (pressed)
+                {
+                    Sfx.Play(Sound.Blocked);
+                }
             }
             else if ((moved || pressed) && BoardControls.HitCell(local, out int r, out int c))
             {
                 row = r;
                 column = c;
-                if (pressed && DeviceMode.IsMobile) swipe.Begin(local, r, c);
+                if (pressed && DeviceMode.IsMobile)
+                {
+                    swipe.Begin(local, r, c);
+                }
             }
         }
     }

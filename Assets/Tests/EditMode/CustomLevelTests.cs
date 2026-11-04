@@ -36,7 +36,11 @@ namespace ShiftRegister.Tests
         public void Limit_IsEnforced()
         {
             var lib = new CustomLevelLibrary();
-            for (int i = 0; i < CustomLevelLibrary.MaxLevels; i++) Assert.That(lib.Add(Simple(), LevelProof.None, i), Is.Not.Null);
+            for (int i = 0; i < CustomLevelLibrary.MaxLevels; i++)
+            {
+                Assert.That(lib.Add(Simple(), LevelProof.None, i), Is.Not.Null);
+            }
+
             Assert.That(lib.IsFull, Is.True);
             Assert.That(lib.Add(Simple(), LevelProof.None, 0), Is.Null);
             Assert.That(lib.Duplicate(lib.levels[0].level.id, 0), Is.Null);
@@ -131,7 +135,11 @@ namespace ShiftRegister.Tests
         public void SaveCopy_IsNull_WhenTheLibraryIsFull()
         {
             var lib = new CustomLevelLibrary();
-            for (int i = 0; i < CustomLevelLibrary.MaxLevels; i++) lib.Add(Simple(), LevelProof.Searched, i);
+            for (int i = 0; i < CustomLevelLibrary.MaxLevels; i++)
+            {
+                lib.Add(Simple(), LevelProof.Searched, i);
+            }
+
             Assert.That(lib.SaveCopy(new CustomLevel { level = Simple(), proof = LevelProof.Searched }, 1), Is.Null);
         }
 
@@ -141,7 +149,9 @@ namespace ShiftRegister.Tests
             var session = new RandomSession();
             session.Start(RandomDifficulty.Medium, 11);
             Assert.That(session.IsGenerating, Is.True);
-            while (!session.Tick(1.0)) { }
+            while (!session.Tick(1.0))
+            {
+            }
 
             Assert.That(session.IsGenerating, Is.False);
             Assert.That(session.Failed, Is.False);
@@ -167,7 +177,10 @@ namespace ShiftRegister.Tests
             Assert.That(session.Level, Is.Null);
 
             session.Start(RandomDifficulty.Easy, 1);
-            while (!session.Tick(1.0)) { }
+            while (!session.Tick(1.0))
+            {
+            }
+
             Assert.That(session.Level, Is.Not.Null);
             session.Start(RandomDifficulty.Hard, 2);
             Assert.That(session.Level, Is.Null);
@@ -271,7 +284,11 @@ namespace ShiftRegister.Tests
         public void Import_RefusedWhenFull()
         {
             var lib = new CustomLevelLibrary();
-            for (int i = 0; i < CustomLevelLibrary.MaxLevels; i++) lib.Add(Simple(), LevelProof.None, i);
+            for (int i = 0; i < CustomLevelLibrary.MaxLevels; i++)
+            {
+                lib.Add(Simple(), LevelProof.None, i);
+            }
+
             Assert.That(lib.Import(ShareCode.Encode(Simple()), 1, out var error), Is.Null);
             Assert.That(error, Is.EqualTo(ShareCodeError.None));
             Assert.That(lib.levels.Count, Is.EqualTo(CustomLevelLibrary.MaxLevels));
@@ -281,7 +298,12 @@ namespace ShiftRegister.Tests
         public void EveryImportError_HasWords()
         {
             foreach (ShareCodeError e in System.Enum.GetValues(typeof(ShareCodeError)))
-                if (e != ShareCodeError.None) Assert.That(CustomLevelLibrary.ImportMessage(e), Is.Not.Empty, e.ToString());
+            {
+                if (e != ShareCodeError.None)
+                {
+                    Assert.That(CustomLevelLibrary.ImportMessage(e), Is.Not.Empty, e.ToString());
+                }
+            }
         }
 
         [Test]

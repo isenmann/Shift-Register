@@ -17,19 +17,36 @@ namespace ShiftRegister.Game.View
 
         void LateUpdate()
         {
-            if (cam == null) cam = GetComponent<Camera>();
-            if (Screen.width <= 0 || Screen.height <= 0) return;
+            if (cam == null)
+            {
+                cam = GetComponent<Camera>();
+            }
+
+            if (Screen.width <= 0 || Screen.height <= 0)
+            {
+                return;
+            }
 
             var area = new Rect(0f, 0f, Screen.width, Screen.height);
             if (Application.isPlaying && DeviceMode.IsMobile && cam.targetTexture == null)
             {
                 area = Screen.safeArea;
                 bool inset = area.width < Screen.width || area.height < Screen.height;
-                if (inset) EnsureBackdrop();
-                if (backdrop != null) backdrop.enabled = inset;
+                if (inset)
+                {
+                    EnsureBackdrop();
+                }
+
+                if (backdrop != null)
+                {
+                    backdrop.enabled = inset;
+                }
             }
+
             if (cam.targetTexture == null)
+            {
                 cam.rect = new Rect(area.x / Screen.width, area.y / Screen.height, area.width / Screen.width, area.height / Screen.height);
+            }
 
             ScreenLayout.SetScreen(cam.pixelWidth, cam.pixelHeight);
             var frame = ScreenLayout.FrameSize;
@@ -40,7 +57,11 @@ namespace ShiftRegister.Game.View
         /// <summary>A camera behind the main one that only clears the whole screen to the background colour.</summary>
         void EnsureBackdrop()
         {
-            if (backdrop != null) return;
+            if (backdrop != null)
+            {
+                return;
+            }
+
             var go = new GameObject("Backdrop Camera");
             go.transform.SetParent(transform, false);
             backdrop = go.AddComponent<Camera>();

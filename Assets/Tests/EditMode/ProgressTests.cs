@@ -78,7 +78,11 @@ namespace ShiftRegister.Tests
         static LevelCatalog.Chapter Chapter(int levels)
         {
             var ch = new LevelCatalog.Chapter();
-            for (int i = 0; i < levels; i++) ch.levels.Add(new TextAsset("{}"));
+            for (int i = 0; i < levels; i++)
+            {
+                ch.levels.Add(new TextAsset("{}"));
+            }
+
             return ch;
         }
     }

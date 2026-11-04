@@ -42,7 +42,11 @@ namespace ShiftRegister.Game.View
         {
             ResetAnimationState();
             rules = levelRules;
-            if (cellsRoot != null) DestroySafe(cellsRoot.gameObject);
+            if (cellsRoot != null)
+            {
+                DestroySafe(cellsRoot.gameObject);
+            }
+
             cellsRoot = new GameObject("Cells").transform;
             cellsRoot.SetParent(transform, false);
 
@@ -54,28 +58,31 @@ namespace ShiftRegister.Game.View
 
             cells = new Cell[BoardBits.Size, BoardBits.Size];
             for (int r = 0; r < BoardBits.Size; r++)
-            for (int c = 0; c < BoardBits.Size; c++)
             {
-                var root = new GameObject($"Cell {r + 1},{c + 1}").transform;
-                root.SetParent(cellsRoot, false);
-                root.localPosition = CellCenter(r, c);
-
-                bool isWall = rules.IsWall(r, c);
-                var cell = new Cell
+                for (int c = 0; c < BoardBits.Size; c++)
                 {
-                    Ground = Renderer(root, "Ground", isWall ? wall : ground, isWall ? Color.white : (Color)Lcd.Cell, Layer.Ground),
-                    Ghost = Renderer(root, "Ghost", ghost, Lcd.Text3, Layer.Ghost)
-                };
+                    var root = new GameObject($"Cell {r + 1},{c + 1}").transform;
+                    root.SetParent(cellsRoot, false);
+                    root.localPosition = CellCenter(r, c);
 
-                var bit = Renderer(root, "Bit", ground, Lcd.Ink, Layer.Bit);
-                cell.Bit = bit.gameObject;
-                Renderer(bit.transform, "Eye L", eye, Lcd.Light, Layer.Eyes).transform.localPosition = new Vector2(-EyeX, EyeY) / CellPx;
-                Renderer(bit.transform, "Eye R", eye, Lcd.Light, Layer.Eyes).transform.localPosition = new Vector2(EyeX, EyeY) / CellPx;
+                    bool isWall = rules.IsWall(r, c);
+                    var cell = new Cell
+                    {
+                        Ground = Renderer(root, "Ground", isWall ? wall : ground, isWall ? Color.white : (Color)Lcd.Cell, Layer.Ground),
+                        Ghost = Renderer(root, "Ghost", ghost, Lcd.Text3, Layer.Ghost)
+                    };
 
-                cell.Pin = Renderer(root, "Pin", pin, Lcd.Light, Layer.Pin);
-                cell.Pin.enabled = rules.IsPinned(r, c);
-                cells[r, c] = cell;
+                    var bit = Renderer(root, "Bit", ground, Lcd.Ink, Layer.Bit);
+                    cell.Bit = bit.gameObject;
+                    Renderer(bit.transform, "Eye L", eye, Lcd.Light, Layer.Eyes).transform.localPosition = new Vector2(-EyeX, EyeY) / CellPx;
+                    Renderer(bit.transform, "Eye R", eye, Lcd.Light, Layer.Eyes).transform.localPosition = new Vector2(EyeX, EyeY) / CellPx;
+
+                    cell.Pin = Renderer(root, "Pin", pin, Lcd.Light, Layer.Pin);
+                    cell.Pin.enabled = rules.IsPinned(r, c);
+                    cells[r, c] = cell;
+                }
             }
+
             BuildOverlays();
         }
 
@@ -90,16 +97,23 @@ namespace ShiftRegister.Game.View
         /// <summary>Static bits for <paramref name="bits"/>, ghosts computed from <paramref name="ghostsFrom"/>.</summary>
         void ShowNow(ulong bits, ulong ghostsFrom)
         {
-            if (cells == null) return;
-            for (int r = 0; r < BoardBits.Size; r++)
-            for (int c = 0; c < BoardBits.Size; c++)
+            if (cells == null)
             {
-                var cell = cells[r, c];
-                cell.Bit.SetActive(BoardBits.GetCell(bits, r, c));
-                cell.Bit.transform.localPosition = Vector3.zero;
-                cell.Bit.transform.localScale = Vector3.one;
-                cell.Ghost.enabled = !BoardBits.GetCell(ghostsFrom, r, c) && BoardBits.GetCell(rules.Target, r, c);
+                return;
             }
+
+            for (int r = 0; r < BoardBits.Size; r++)
+            {
+                for (int c = 0; c < BoardBits.Size; c++)
+                {
+                    var cell = cells[r, c];
+                    cell.Bit.SetActive(BoardBits.GetCell(bits, r, c));
+                    cell.Bit.transform.localPosition = Vector3.zero;
+                    cell.Bit.transform.localScale = Vector3.one;
+                    cell.Ghost.enabled = !BoardBits.GetCell(ghostsFrom, r, c) && BoardBits.GetCell(rules.Target, r, c);
+                }
+            }
+
             UpdateOverlays(bits);
         }
 
@@ -114,14 +128,24 @@ namespace ShiftRegister.Game.View
             sr.sprite = sprite;
             sr.color = color;
             sr.sortingOrder = (int)layer;
-            if (spriteMaterial != null) sr.sharedMaterial = spriteMaterial;
+            if (spriteMaterial != null)
+            {
+                sr.sharedMaterial = spriteMaterial;
+            }
+
             return sr;
         }
 
         static void DestroySafe(GameObject go)
         {
-            if (Application.isPlaying) Destroy(go);
-            else DestroyImmediate(go);
+            if (Application.isPlaying)
+            {
+                Destroy(go);
+            }
+            else
+            {
+                DestroyImmediate(go);
+            }
         }
     }
 }

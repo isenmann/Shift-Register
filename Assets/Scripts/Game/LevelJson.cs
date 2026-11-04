@@ -16,7 +16,11 @@ namespace ShiftRegister.Game
         public static LevelData Parse(TextAsset asset)
         {
             var data = Parse(asset.text);
-            if (string.IsNullOrEmpty(data.id)) data.id = asset.name;
+            if (string.IsNullOrEmpty(data.id))
+            {
+                data.id = asset.name;
+            }
+
             return data;
         }
     }

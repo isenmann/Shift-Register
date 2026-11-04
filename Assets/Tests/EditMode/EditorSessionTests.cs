@@ -20,7 +20,9 @@ namespace ShiftRegister.Tests
 
         static void RunToEnd(EditorSession s)
         {
-            while (!s.Tick(50)) { }
+            while (!s.Tick(50))
+            {
+            }
         }
 
         [Test]
@@ -60,7 +62,10 @@ namespace ShiftRegister.Tests
             s.PaintTo(7, 7);
             s.EndPaint();
             Assert.That(s.Edit.Level.start[0], Is.EqualTo(255));
-            for (int r = 1; r < 8; r++) Assert.That(s.Edit.Level.start[r], Is.EqualTo(1), $"row {r}");
+            for (int r = 1; r < 8; r++)
+            {
+                Assert.That(s.Edit.Level.start[r], Is.EqualTo(1), $"row {r}");
+            }
 
             s.Edit.Undo();
             Assert.That(s.Edit.Level.start[0], Is.Zero);
@@ -123,7 +128,11 @@ namespace ShiftRegister.Tests
         public void NextOp_GoesRoundAllFour()
         {
             var op = GateOp.And;
-            for (int i = 0; i < 4; i++) op = EditorSession.NextOp(op);
+            for (int i = 0; i < 4; i++)
+            {
+                op = EditorSession.NextOp(op);
+            }
+
             Assert.That(op, Is.EqualTo(GateOp.And));
             Assert.That(EditorSession.NextOp(GateOp.And), Is.Not.EqualTo(GateOp.And));
         }

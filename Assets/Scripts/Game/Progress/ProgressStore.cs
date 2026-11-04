@@ -10,7 +10,11 @@ namespace ShiftRegister.Game.Progress
         public static PlayerProgress Load()
         {
             string json = PlayerPrefs.GetString(Key, "");
-            if (string.IsNullOrEmpty(json)) return new PlayerProgress();
+            if (string.IsNullOrEmpty(json))
+            {
+                return new PlayerProgress();
+            }
+
             try
             {
                 return JsonUtility.FromJson<PlayerProgress>(json) ?? new PlayerProgress();

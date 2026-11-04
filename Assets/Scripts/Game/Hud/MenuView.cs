@@ -80,11 +80,18 @@ namespace ShiftRegister.Game.Hud
 
         public void Show(GameScreen screen)
         {
-            if (!built) Build();
+            if (!built)
+            {
+                Build();
+            }
             // A layout change shows the same screen again, which must not count as arriving on it.
             bool arriving = screen != shown;
             shown = screen;
-            if (screen != GameScreen.Title) FinishIntro();
+            if (screen != GameScreen.Title)
+            {
+                FinishIntro();
+            }
+
             foreach (var s in Both)
             {
                 bool cur = s == Cur;
@@ -94,13 +101,41 @@ namespace ShiftRegister.Game.Hud
                 s.MyLevels.gameObject.SetActive(cur && screen == GameScreen.MyLevels);
                 s.Random.gameObject.SetActive(cur && screen == GameScreen.Random);
             }
-            if (screen != GameScreen.Random) randomSession.Cancel();
-            if (screen == GameScreen.Random) EnterRandom(arriving);
-            if (screen == GameScreen.MyLevels) EnterMyLevels(arriving);
-            if (screen == GameScreen.Options) RefreshOptions(true);
-            if (screen == GameScreen.Title) RefreshTitle();
-            if (screen == GameScreen.Title && !introPlayed) StartIntro();
-            if (screen == GameScreen.Chapters) RefreshChapters();
+
+            if (screen != GameScreen.Random)
+            {
+                randomSession.Cancel();
+            }
+
+            if (screen == GameScreen.Random)
+            {
+                EnterRandom(arriving);
+            }
+
+            if (screen == GameScreen.MyLevels)
+            {
+                EnterMyLevels(arriving);
+            }
+
+            if (screen == GameScreen.Options)
+            {
+                RefreshOptions(true);
+            }
+
+            if (screen == GameScreen.Title)
+            {
+                RefreshTitle();
+            }
+
+            if (screen == GameScreen.Title && !introPlayed)
+            {
+                StartIntro();
+            }
+
+            if (screen == GameScreen.Chapters)
+            {
+                RefreshChapters();
+            }
         }
 
         void Awake() => Ui.RenderWithMainCamera(GetComponent<Canvas>(), 20);
@@ -111,7 +146,11 @@ namespace ShiftRegister.Game.Hud
         /// <summary>Switches arrangement and shows the current screen in it.</summary>
         void ApplyOrientation()
         {
-            if (!built) Build();
+            if (!built)
+            {
+                Build();
+            }
+
             ApplyFrame();
             Show(shown);
         }
@@ -120,24 +159,43 @@ namespace ShiftRegister.Game.Hud
         void ApplyFrame()
         {
             var scaler = GetComponent<CanvasScaler>();
-            if (scaler != null) scaler.referenceResolution = new Vector2(ScreenLayout.FrameWidthPx, ScreenLayout.FrameHeightPx);
+            if (scaler != null)
+            {
+                scaler.referenceResolution = new Vector2(ScreenLayout.FrameWidthPx, ScreenLayout.FrameHeightPx);
+            }
 
             // The extra length of long phones and wide windows goes between the centre and the outer groups.
             float shift = ScreenLayout.OuterShiftPx;
             foreach (var s in Both)
+            {
                 foreach (var (group, direction) in s.Outer)
+                {
                     group.anchoredPosition = direction * shift;
+                }
+            }
+
             phoneTall.ScrollView.sizeDelta = new Vector2(phoneTall.ScrollView.sizeDelta.x, PhoneScrollH + (ScreenLayout.Portrait ? ScreenLayout.ExtraPx : 0f));
 
             bool mobile = DeviceMode.IsMobile;
             foreach (var s in Both)
             {
-                if (s.TitleKeys != null) s.TitleKeys.SetActive(!mobile);
+                if (s.TitleKeys != null)
+                {
+                    s.TitleKeys.SetActive(!mobile);
+                }
+
                 if (s.ChaptersKeys != null)
+                {
                     s.ChaptersKeys.text = mobile
                         ? (s == phoneTall ? "Tap a level to play it" : "Tap a level to play it · you can skip one unsolved level at a time")
                         : "Arrows choose · Enter play · Esc back · you can skip one unsolved level at a time";
-                if (s.OptionsKeys != null) s.OptionsKeys.gameObject.SetActive(!mobile);
+                }
+
+                if (s.OptionsKeys != null)
+                {
+                    s.OptionsKeys.gameObject.SetActive(!mobile);
+                }
+
                 s.SoundText.text = mobile ? "Turn all sounds off or on." : "M mutes and unmutes anywhere.";
             }
         }
@@ -145,48 +203,109 @@ namespace ShiftRegister.Game.Hud
         void Update()
         {
             var kb = Keyboard.current;
-            if (flow == null || !built) return;
+            if (flow == null || !built)
+            {
+                return;
+            }
             // Phones have no keyboard, but their list still scrolls by dragging.
-            if (flow.Current == GameScreen.MyLevels) UpdateMyLevels(kb);
-            if (flow.Current == GameScreen.Random) UpdateRandom(kb);
-            if (kb == null) return;
+            if (flow.Current == GameScreen.MyLevels)
+            {
+                UpdateMyLevels(kb);
+            }
+
+            if (flow.Current == GameScreen.Random)
+            {
+                UpdateRandom(kb);
+            }
+
+            if (kb == null)
+            {
+                return;
+            }
 
             if (flow.Current == GameScreen.Title && introRunning)
             {
                 // A key or click during the intro only finishes it.
-                if (SkipPressed(kb)) FinishIntro();
+                if (SkipPressed(kb))
+                {
+                    FinishIntro();
+                }
+
                 return;
             }
+
             if (flow.Current == GameScreen.Title)
             {
-                if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame) flow.Resume();
-                else if (kb.cKey.wasPressedThisFrame) flow.Show(GameScreen.Chapters);
-                else if (kb.rKey.wasPressedThisFrame) flow.Show(GameScreen.Random);
-                else if (kb.lKey.wasPressedThisFrame) flow.Show(GameScreen.MyLevels);
-                else if (kb.oKey.wasPressedThisFrame) flow.Show(GameScreen.Options);
-                else if (kb.qKey.wasPressedThisFrame) flow.Quit();
+                if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
+                {
+                    flow.Resume();
+                }
+                else if (kb.cKey.wasPressedThisFrame)
+                {
+                    flow.Show(GameScreen.Chapters);
+                }
+                else if (kb.rKey.wasPressedThisFrame)
+                {
+                    flow.Show(GameScreen.Random);
+                }
+                else if (kb.lKey.wasPressedThisFrame)
+                {
+                    flow.Show(GameScreen.MyLevels);
+                }
+                else if (kb.oKey.wasPressedThisFrame)
+                {
+                    flow.Show(GameScreen.Options);
+                }
+                else if (kb.qKey.wasPressedThisFrame)
+                {
+                    flow.Quit();
+                }
+
                 return;
             }
+
             if (flow.Current == GameScreen.Options)
             {
                 UpdateOptions(kb);
                 return;
             }
-            if (flow.Current != GameScreen.Chapters) return;
 
-            if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame) StepChapter(-1);
-            else if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame) StepChapter(1);
-            else if (kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame) SetFocus(focusChapter, focusLevel - 1);
-            else if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame) SetFocus(focusChapter, focusLevel + 1);
+            if (flow.Current != GameScreen.Chapters)
+            {
+                return;
+            }
+
+            if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame)
+            {
+                StepChapter(-1);
+            }
+            else if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame)
+            {
+                StepChapter(1);
+            }
+            else if (kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame)
+            {
+                SetFocus(focusChapter, focusLevel - 1);
+            }
+            else if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame)
+            {
+                SetFocus(focusChapter, focusLevel + 1);
+            }
             else if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
+            {
                 TryPlay(focusChapter, focusLevel);
+            }
         }
 
         // ---------------------------------------------------------------- build
 
         void Build()
         {
-            if (built) return;
+            if (built)
+            {
+                return;
+            }
+
             built = true;
             var canvas = (RectTransform)transform;
             wide = new Screens
@@ -270,7 +389,11 @@ namespace ShiftRegister.Game.Hud
             HudButton.Create(a, "OPTIONS", x + 468, 458, 104, 52, display, 14, () => flow.Show(GameScreen.Options));
             // Desktop builds only: a browser tab or a phone app is closed from outside the game.
             bool canQuit = ScreenFlow.CanQuit;
-            if (canQuit) HudButton.Create(a, "QUIT", x + 578, 458, 64, 52, display, 14, () => flow.Quit());
+            if (canQuit)
+            {
+                HudButton.Create(a, "QUIT", x + 578, 458, 64, 52, display, 14, () => flow.Quit());
+            }
+
             s.TitleProgress = Ui.Text(a, "Progress", x, 526, 560, 20, mono, 14, Lcd.Text2);
 
             TitleGrid(b, 740f, 120f);
@@ -347,19 +470,25 @@ namespace ShiftRegister.Game.Hud
             float k = cell / 52f;
             Ui.Box(root, "Grid", gx, gy, 2 * pad + N * cell + (N - 1) * gap, 2 * pad + N * cell + (N - 1) * gap, 10f, Lcd.Cell);
             for (int r = 0; r < N; r++)
-            for (int c = 0; c < N; c++)
             {
-                bool on = ((TitleBits[r] >> (7 - c)) & 1) != 0;
-                float cx = gx + pad + c * (cell + gap), cy = gy + pad + r * (cell + gap);
-                var box = Ui.Box(root, $"Cell {r + 1},{c + 1}", cx, cy, cell, cell, 8f * k, on ? Lcd.Ink : Lcd.Background);
-                if (!on) continue;
-                titleBits.Add(new TitleBit
+                for (int c = 0; c < N; c++)
                 {
-                    Column = c,
-                    Body = box,
-                    EyeL = Ui.Box(root, "Eye L", cx + 13 * k, cy + 16 * k, 7 * k, 9 * k, 2f * k, Lcd.Light),
-                    EyeR = Ui.Box(root, "Eye R", cx + 32 * k, cy + 16 * k, 7 * k, 9 * k, 2f * k, Lcd.Light)
-                });
+                    bool on = ((TitleBits[r] >> (7 - c)) & 1) != 0;
+                    float cx = gx + pad + c * (cell + gap), cy = gy + pad + r * (cell + gap);
+                    var box = Ui.Box(root, $"Cell {r + 1},{c + 1}", cx, cy, cell, cell, 8f * k, on ? Lcd.Ink : Lcd.Background);
+                    if (!on)
+                    {
+                        continue;
+                    }
+
+                    titleBits.Add(new TitleBit
+                    {
+                        Column = c,
+                        Body = box,
+                        EyeL = Ui.Box(root, "Eye L", cx + 13 * k, cy + 16 * k, 7 * k, 9 * k, 2f * k, Lcd.Light),
+                        EyeR = Ui.Box(root, "Eye R", cx + 32 * k, cy + 16 * k, 7 * k, 9 * k, 2f * k, Lcd.Light)
+                    });
+                }
             }
         }
 
@@ -413,8 +542,13 @@ namespace ShiftRegister.Game.Hud
                     var row = NewRow(ci, li, rowRoot, rx, ry, rowW, rowH);
                     Ui.Box(rowRoot, "Thumb", 4, 4, 54, 54, 4f, Lcd.Background);
                     for (int r = 0; r < N; r++)
-                    for (int c = 0; c < N; c++)
-                        row.Thumb[r * N + c] = Ui.Shape(rowRoot, "Px", 8 + c * 6, 8 + r * 6, 5, 5, thumbCell, Lcd.Cell);
+                    {
+                        for (int c = 0; c < N; c++)
+                        {
+                            row.Thumb[r * N + c] = Ui.Shape(rowRoot, "Px", 8 + c * 6, 8 + r * 6, 5, 5, thumbCell, Lcd.Cell);
+                        }
+                    }
+
                     row.Id = Ui.Text(rowRoot, "Id", 68, 6, 95, 16, mono, 12, Lcd.Text3);
                     row.Name = Ui.Text(rowRoot, "Name", 68, 22, 95, 18, mono, 13, Lcd.Ink);
                     row.Locked = Ui.Text(rowRoot, "Locked", 68, 42, 95, 14, mono, 11, Lcd.Text3, text: "locked");
@@ -473,7 +607,11 @@ namespace ShiftRegister.Game.Hud
 
                 var list = new List<LevelRow>();
                 s.Rows.Add(list);
-                if (ch.levels.Count == 0) Ui.Text(content, "Soon", 12, y + 110, 300, 20, mono, 14, Lcd.Text3, text: "Coming soon");
+                if (ch.levels.Count == 0)
+                {
+                    Ui.Text(content, "Soon", 12, y + 110, 300, 20, mono, 14, Lcd.Text3, text: "Coming soon");
+                }
+
                 for (int li = 0; li < ch.levels.Count; li++)
                 {
                     float tx = 12f + li * (tileW + tileGap), ty = y + 104f;
@@ -481,8 +619,13 @@ namespace ShiftRegister.Game.Hud
                     var row = NewRow(ci, li, tile, tx, ty, tileW, tileH);
                     Ui.Box(tile, "Thumb", 2, 2, 64, 64, 4f, Lcd.Background);
                     for (int r = 0; r < N; r++)
-                    for (int c = 0; c < N; c++)
-                        row.Thumb[r * N + c] = Ui.Shape(tile, "Px", 6 + c * 7, 6 + r * 7, 6, 6, thumbCell, Lcd.Cell);
+                    {
+                        for (int c = 0; c < N; c++)
+                        {
+                            row.Thumb[r * N + c] = Ui.Shape(tile, "Px", 6 + c * 7, 6 + r * 7, 6, 6, thumbCell, Lcd.Cell);
+                        }
+                    }
+
                     row.Id = Ui.Text(tile, "Id", 2, 70, 64, 16, mono, 13, Lcd.Text3);
                     row.Name = ShrinkingName(tile, 2, 86, 64, 16, 12);
                     row.Locked = Ui.Text(tile, "Locked", 2, 106, 64, 16, mono, 12, Lcd.Text3, text: "locked");
@@ -490,8 +633,10 @@ namespace ShiftRegister.Game.Hud
                     FinishRow(row, tile);
                     list.Add(row);
                 }
+
                 y += cardH + cardGap;
             }
+
             content.sizeDelta = new Vector2(cardW, y);
 
             s.Focus = Ui.Frame(content, "Focus", 0, 0, tileW, tileH, 6f, 3f, Lcd.Ink);
@@ -528,7 +673,11 @@ namespace ShiftRegister.Game.Hud
 
                 var list = new List<LevelRow>();
                 s.Rows.Add(list);
-                if (ch.levels.Count == 0) Ui.Text(root, "Soon", cx + 8, top + 56, w - 16, 20, mono, 13, Lcd.Text3, text: "Coming soon");
+                if (ch.levels.Count == 0)
+                {
+                    Ui.Text(root, "Soon", cx + 8, top + 56, w - 16, 20, mono, 13, Lcd.Text3, text: "Coming soon");
+                }
+
                 for (int li = 0; li < ch.levels.Count; li++)
                 {
                     float rx = cx + 4f, ry = top + 52f + li * rowH;
@@ -536,8 +685,13 @@ namespace ShiftRegister.Game.Hud
                     var row = NewRow(ci, li, rowRoot, rx, ry, rowW, rowH);
                     Ui.Box(rowRoot, "Thumb", 2, 4, 44, 44, 4f, Lcd.Background);
                     for (int r = 0; r < N; r++)
-                    for (int c = 0; c < N; c++)
-                        row.Thumb[r * N + c] = Ui.Shape(rowRoot, "Px", 5 + c * 5, 7 + r * 5, 4, 4, thumbCell, Lcd.Cell);
+                    {
+                        for (int c = 0; c < N; c++)
+                        {
+                            row.Thumb[r * N + c] = Ui.Shape(rowRoot, "Px", 5 + c * 5, 7 + r * 5, 4, 4, thumbCell, Lcd.Cell);
+                        }
+                    }
+
                     row.Id = Ui.Text(rowRoot, "Id", 52, 4, rowW - 54, 16, mono, 13, Lcd.Text3);
                     row.Name = ShrinkingName(rowRoot, 52, 20, rowW - 54, 16, 13);
                     row.Locked = Ui.Text(rowRoot, "Locked", 52, 36, rowW - 54, 14, mono, 12, Lcd.Text3, text: "locked");
@@ -591,9 +745,17 @@ namespace ShiftRegister.Game.Hud
                 row.Id.text = entry.Data.id;
                 row.Name.text = $"<b>{entry.Data.name}</b>";
                 for (int r = 0; r < N; r++)
-                for (int c = 0; c < N; c++)
-                    if (((entry.Data.target[r] >> (7 - c)) & 1) != 0) row.Thumb[r * N + c].color = Lcd.Ink;
+                {
+                    for (int c = 0; c < N; c++)
+                    {
+                        if (((entry.Data.target[r] >> (7 - c)) & 1) != 0)
+                        {
+                            row.Thumb[r * N + c].color = Lcd.Ink;
+                        }
+                    }
+                }
             }
+
             int chapterIndex = row.Chapter, levelIndex = row.Level;
             var hot = UiHotspot.Create(root, "Hotspot", 0, 0, row.Size.x, row.Size.y);
             hot.Enter = () => SetFocus(chapterIndex, levelIndex);
@@ -605,34 +767,58 @@ namespace ShiftRegister.Game.Hud
         void RefreshTitle()
         {
             int solved = 0;
-            foreach (var e in game.Levels) if (game.Progress.IsSolved(e.Data.id)) solved++;
+            foreach (var e in game.Levels)
+            {
+                if (game.Progress.IsSolved(e.Data.id))
+                {
+                    solved++;
+                }
+            }
+
             string text = solved == 0
                 ? $"{game.Levels.Count} levels to solve"
                 : $"{solved} of {game.Levels.Count} levels solved · {game.Progress.TotalStars()} stars";
-            foreach (var s in Both) s.TitleProgress.text = text;
+            foreach (var s in Both)
+            {
+                s.TitleProgress.text = text;
+            }
         }
 
         void RefreshChapters()
         {
             int solved = 0;
-            foreach (var e in game.Levels) if (game.Progress.IsSolved(e.Data.id)) solved++;
+            foreach (var e in game.Levels)
+            {
+                if (game.Progress.IsSolved(e.Data.id))
+                {
+                    solved++;
+                }
+            }
+
             foreach (var s in Both)
             {
                 foreach (var list in s.Rows)
-                foreach (var row in list)
                 {
-                    var entry = game.Entry(row.Chapter, row.Level);
-                    if (entry == null) continue;
-                    bool open = game.IsUnlocked(row.Chapter, row.Level);
-                    int stars = game.Progress.StarsFor(entry.Data.id);
-                    row.Group.alpha = open ? 1f : 0.4f;
-                    row.Locked.enabled = !open;
-                    for (int i = 0; i < row.Stars.Length; i++)
+                    foreach (var row in list)
                     {
-                        row.Stars[i].enabled = open && i < stars;
-                        row.StarOutlines[i].enabled = open;
+                        var entry = game.Entry(row.Chapter, row.Level);
+                        if (entry == null)
+                        {
+                            continue;
+                        }
+
+                        bool open = game.IsUnlocked(row.Chapter, row.Level);
+                        int stars = game.Progress.StarsFor(entry.Data.id);
+                        row.Group.alpha = open ? 1f : 0.4f;
+                        row.Locked.enabled = !open;
+                        for (int i = 0; i < row.Stars.Length; i++)
+                        {
+                            row.Stars[i].enabled = open && i < stars;
+                            row.StarOutlines[i].enabled = open;
+                        }
                     }
                 }
+
                 s.ChaptersStats.text = $"{solved} of {game.Levels.Count} levels · {game.Progress.TotalStars()} stars";
                 s.Focus.enabled = false; // no focus tick when the screen opens
             }
@@ -655,7 +841,11 @@ namespace ShiftRegister.Game.Hud
             var rows = wide.Rows;
             for (int c = focusChapter + delta; c >= 0 && c < rows.Count; c += delta)
             {
-                if (rows[c].Count == 0) continue;
+                if (rows[c].Count == 0)
+                {
+                    continue;
+                }
+
                 SetFocus(c, Mathf.Min(focusLevel, rows[c].Count - 1));
                 return;
             }
@@ -668,11 +858,20 @@ namespace ShiftRegister.Game.Hud
             {
                 // Fall back to the first chapter that has levels.
                 chapter = rows.FindIndex(r => r.Count > 0);
-                if (chapter < 0) return;
+                if (chapter < 0)
+                {
+                    return;
+                }
+
                 level = 0;
             }
+
             level = Mathf.Clamp(level, 0, rows[chapter].Count - 1);
-            if (Cur.Focus.enabled && (chapter != focusChapter || level != focusLevel)) Sfx.Play(Sound.Tick);
+            if (Cur.Focus.enabled && (chapter != focusChapter || level != focusLevel))
+            {
+                Sfx.Play(Sound.Tick);
+            }
+
             focusChapter = chapter;
             focusLevel = level;
             foreach (var s in Both)
@@ -690,6 +889,7 @@ namespace ShiftRegister.Game.Hud
                 Sfx.Play(Sound.Blocked);
                 return;
             }
+
             flow.Play(chapter, level);
         }
     }

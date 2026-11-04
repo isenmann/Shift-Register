@@ -83,14 +83,25 @@ namespace ShiftRegister.Game.Hud
 
         void OnEnable()
         {
-            if (game == null) return;
-            if (Keyboard.current != null) Keyboard.current.onTextInput += OnTextInput;
+            if (game == null)
+            {
+                return;
+            }
+
+            if (Keyboard.current != null)
+            {
+                Keyboard.current.onTextInput += OnTextInput;
+            }
+
             game.Changed += OnChanged;
             game.SettingsChanged += RefreshSound;
             ScreenLayout.LayoutChanged += ApplyOrientation;
             ApplyOrientation();
             RefreshSound();
-            if (game.BoardView != null) game.BoardView.Settled += OnSettled;
+            if (game.BoardView != null)
+            {
+                game.BoardView.Settled += OnSettled;
+            }
             // The level may have changed while the HUD was hidden (menus).
             if (game.Board != null)
             {
@@ -102,18 +113,32 @@ namespace ShiftRegister.Game.Hud
 
         void OnDisable()
         {
-            if (game == null) return;
+            if (game == null)
+            {
+                return;
+            }
+
             CloseHelp();
-            if (Keyboard.current != null) Keyboard.current.onTextInput -= OnTextInput;
+            if (Keyboard.current != null)
+            {
+                Keyboard.current.onTextInput -= OnTextInput;
+            }
+
             game.Changed -= OnChanged;
             game.SettingsChanged -= RefreshSound;
             ScreenLayout.LayoutChanged -= ApplyOrientation;
-            if (game.BoardView != null) game.BoardView.Settled -= OnSettled;
+            if (game.BoardView != null)
+            {
+                game.BoardView.Settled -= OnSettled;
+            }
         }
 
         void Start()
         {
-            if (game != null && game.Board != null) OnChanged();
+            if (game != null && game.Board != null)
+            {
+                OnChanged();
+            }
         }
 
         /// <summary>Board info updates at once; the bucket and banner wait for the move animation to land.</summary>
@@ -122,32 +147,52 @@ namespace ShiftRegister.Game.Hud
             CheckFirstHelp();
             RefreshBoard();
             bool animating = game.BoardView != null && game.BoardView.IsAnimating;
-            if (!animating) RefreshOutcome(false);
+            if (!animating)
+            {
+                RefreshOutcome(false);
+            }
         }
 
         void RefreshSound()
         {
-            foreach (var l in layouts) l.Sound.Text = game.Settings.muted ? "MUTED" : "SOUND";
+            foreach (var l in layouts)
+            {
+                l.Sound.Text = game.Settings.muted ? "MUTED" : "SOUND";
+            }
         }
 
         void OnSettled()
         {
-            if (game.Board != null) RefreshOutcome(true);
+            if (game.Board != null)
+            {
+                RefreshOutcome(true);
+            }
         }
 
         void Update()
         {
             UpdateHelp();
-            if (ScreenLayout.Phone) RefreshReadout();
+            if (ScreenLayout.Phone)
+            {
+                RefreshReadout();
+            }
         }
 
         /// <summary>Shows the arrangement for the current orientation and moves the shared parts with it.</summary>
         void ApplyOrientation()
         {
             var scaler = GetComponent<CanvasScaler>();
-            if (scaler != null) scaler.referenceResolution = new Vector2(ScreenLayout.FrameWidthPx, ScreenLayout.FrameHeightPx);
+            if (scaler != null)
+            {
+                scaler.referenceResolution = new Vector2(ScreenLayout.FrameWidthPx, ScreenLayout.FrameHeightPx);
+            }
+
             var active = Active;
-            foreach (var l in layouts) l.Root.gameObject.SetActive(l == active);
+            foreach (var l in layouts)
+            {
+                l.Root.gameObject.SetActive(l == active);
+            }
+
             bool mobile = DeviceMode.IsMobile;
             landscape.Keys.SetActive(!mobile);
             landscape.SwipeHint.SetActive(mobile);
@@ -159,13 +204,17 @@ namespace ShiftRegister.Game.Hud
                 l.A.anchoredPosition = new Vector2(-shift, 0f);
                 l.B.anchoredPosition = new Vector2(shift, 0f);
             }
+
             phonePortrait.A.anchoredPosition = new Vector2(0f, shift);
             phonePortrait.B.anchoredPosition = new Vector2(0f, -shift);
 
             bannerFrame.sizeDelta = new Vector2(ScreenLayout.BaseWidthPx, ScreenLayout.BaseHeightPx);
             Vector2 centre = ScreenLayout.BoardCenterPx;
             foreach (var banner in new[] { solvedBanner, brokenBanner })
+            {
                 banner.anchoredPosition = new Vector2(centre.x, -centre.y);
+            }
+
             RefreshHelpOrientation();
         }
 
@@ -327,8 +376,15 @@ namespace ShiftRegister.Game.Hud
         /// <summary>A MOVES (filled) or PAR (outlined) tile with its label over a large value.</summary>
         void PhoneTile(Transform f, string label, float x, float y, float w, float h, bool filled, out TextMeshProUGUI value)
         {
-            if (filled) Ui.Box(f, label + " Tile", x, y, w, h, 8f, Lcd.Cell);
-            else Ui.Frame(f, label + " Tile", x, y, w, h, 8f, 2f, Lcd.Ink);
+            if (filled)
+            {
+                Ui.Box(f, label + " Tile", x, y, w, h, 8f, Lcd.Cell);
+            }
+            else
+            {
+                Ui.Frame(f, label + " Tile", x, y, w, h, 8f, 2f, Lcd.Ink);
+            }
+
             Ui.Text(f, label + " Label", x + 10, y + 6, w - 20, 14, mono, 12, Lcd.Text3, text: label.ToUpperInvariant());
             value = Ui.Text(f, label, x + 10, y + 22, w - 20, h - 26, display, 24, Lcd.Ink);
         }
@@ -339,7 +395,11 @@ namespace ShiftRegister.Game.Hud
             l.BucketFrame = Ui.Frame(f, "Bucket Frame", x, y, w, h, 10f, 3f, Lcd.Ink, 8f);
             Ui.Text(f, "Bucket Title", x + 10, y + 10, w - 20, 16, display, 13, Lcd.Ink, text: "BUCKET");
             l.BucketCount = Ui.Text(f, "Bucket Count", x + 10, y + 30, w - 20, 50, display, 40, Lcd.Ink);
-            if (!withText) return;
+            if (!withText)
+            {
+                return;
+            }
+
             l.BucketText = Ui.Text(f, "Bucket Text", x + 10, y + 84, w - 20, h - 92, mono, 13, Lcd.Text2, TextAlignmentOptions.TopLeft);
             l.BucketText.textWrappingMode = TextWrappingModes.Normal;
         }
@@ -363,6 +423,7 @@ namespace ShiftRegister.Game.Hud
                 l.ReadRow = Ui.Text(f, "Readout Row", x + 12, y + 8, 90, 16, mono, 13, Lcd.Text3);
                 l.ReadOk = Ui.Text(f, "Readout OK", x + w - 102, y + 8, 90, 16, mono, 13, Lcd.Text3, TextAlignmentOptions.MidlineRight);
             }
+
             float bitsY = wide ? y + 8 : y + 28, numbersY = bitsY + bitSize + 6;
             l.ReadBits = Ui.Text(f, "Readout Bits", inner, bitsY, innerW + 10, bitSize + 4, mono, bitSize, Lcd.Text3);
             l.ReadBits.characterSpacing = (innerW - 8f * 0.6f * bitSize) / 7f / bitSize * 100f;
@@ -408,8 +469,12 @@ namespace ShiftRegister.Game.Hud
             Ui.Box(f, "Target Card", x, y, w, h, 10f, Lcd.Cell);
             Ui.Text(f, "Target Title", x + pad, y + titleTop, 160, 18, display, titleSize, Lcd.Ink, text: "TARGET");
             for (int r = 0; r < N; r++)
-            for (int c = 0; c < N; c++)
-                l.Thumb[r * N + c] = Ui.Box(f, $"Thumb {r + 1},{c + 1}", x + pad + c * pitch, y + gridTop + r * pitch, cell, cell, 2f, Lcd.Background);
+            {
+                for (int c = 0; c < N; c++)
+                {
+                    l.Thumb[r * N + c] = Ui.Box(f, $"Thumb {r + 1},{c + 1}", x + pad + c * pitch, y + gridTop + r * pitch, cell, cell, 2f, Lcd.Background);
+                }
+            }
         }
 
         void Outlook(Layout l, Transform f, float x, float y, float star, float textSize = 12f)
@@ -420,6 +485,7 @@ namespace ShiftRegister.Game.Hud
                 Ui.Shape(f, $"Outlook Star {i + 1} Outline", sx, y, star, star, ProceduralSprites.Star(star, 1.6f, ui: true), Lcd.Ink);
                 l.OutlookStars[i] = Ui.Shape(f, $"Outlook Star {i + 1}", sx, y, star, star, ProceduralSprites.Star(star, ui: true), Lcd.Ink);
             }
+
             l.Outlook = Ui.Text(f, "Outlook", x + Scoring.MaxStars * (star + 6f) + 4f, y - 1, 200, star + 2, mono, textSize, Lcd.Text2);
         }
 
@@ -475,6 +541,7 @@ namespace ShiftRegister.Game.Hud
                 l.LogIndex[i] = Ui.Text(f, $"Log {i + 1} Index", x, ry, 40, row, mono, size, Lcd.Text3);
                 l.LogMove[i] = Ui.Text(f, $"Log {i + 1} Move", x + 40, ry, w - 40, row, mono, size, Lcd.Text3, TextAlignmentOptions.MidlineRight);
             }
+
             l.LogEmpty = Ui.Text(f, "Log Empty", x, y + firstRow, w, row, mono, size, Lcd.Cell, text: "no moves yet");
         }
 
@@ -508,10 +575,11 @@ namespace ShiftRegister.Game.Hud
                 Ui.Shape(solvedBanner, $"Star {i + 1} Outline", sx, 94, star, star, ProceduralSprites.Star(star, 2f, ui: true), Lcd.Light);
                 stars[i] = Ui.Shape(solvedBanner, $"Star {i + 1}", sx, 94, star, star, ProceduralSprites.Star(star, ui: true), Lcd.Light);
             }
+
             nextButton = HudButton.Create(solvedBanner, "NEXT →", (w - 150f) / 2f, 140, 150, 40, display, 15, Lcd.Light, Lcd.Ink, () => game.NextLevel());
             nextRandomButton = HudButton.Create(solvedBanner, "NEXT RANDOM", 16, 140, 188, 40, display, 15, Lcd.Light, Lcd.Ink, () => game.NextLevel());
             saveRandomButton = HudButton.Create(solvedBanner, "SAVE", 212, 140, 112, 40, display, 15, Lcd.Light, Lcd.Ink, () => game.SaveRandom());
-            lastLevelText =Ui.Text(solvedBanner, "Last Level", 0, 140, w, 40, mono, 13, Lcd.Light, TextAlignmentOptions.Center,
+            lastLevelText = Ui.Text(solvedBanner, "Last Level", 0, 140, w, 40, mono, 13, Lcd.Light, TextAlignmentOptions.Center,
                 "That's every level so far.");
 
             brokenBanner = BannerRoot(frame, "Broken Banner", w, 110f);
@@ -557,7 +625,11 @@ namespace ShiftRegister.Game.Hud
                 int now = board.GetRow(r);
                 int target = BoardBits.GetRow(rules.Target, r);
                 var info = new RowInfo { Bits = RowString(rules, now, r) };
-                if (now == target) rowsOk++;
+                if (now == target)
+                {
+                    rowsOk++;
+                }
+
                 string label = RowHint.Label(rules, r);
 
                 int chainTop = rules.ChainTopOf(r);
@@ -568,6 +640,7 @@ namespace ShiftRegister.Game.Hud
                     now = (board.GetRow(chainTop) << 8) | board.GetRow(chainTop + 1);
                     target = (BoardBits.GetRow(rules.Target, chainTop) << 8) | BoardBits.GetRow(rules.Target, chainTop + 1);
                 }
+
                 info.From = chainBottom ? "" : $"<b>{now}</b>";
                 info.Arrow = chainTop >= 0 ? "" : "→";
                 info.To = chainTop == r ? "" : chainBottom ? $"→ {target}" : target.ToString();
@@ -581,15 +654,32 @@ namespace ShiftRegister.Game.Hud
 
             foreach (var l in layouts)
             {
-                if (game.IsRandom) l.ChapterLabel.text = "RANDOM LEVEL";
-                else if (game.IsCustom) l.ChapterLabel.text = "MY LEVELS";
+                if (game.IsRandom)
+                {
+                    l.ChapterLabel.text = "RANDOM LEVEL";
+                }
+                else if (game.IsCustom)
+                {
+                    l.ChapterLabel.text = "MY LEVELS";
+                }
                 else
+                {
                     l.ChapterLabel.text = l.Phone
                         ? $"CH {game.ChapterIndex + 1} · {game.Chapter.name.ToUpperInvariant()} · {level.id}"
                         : $"CHAPTER {game.ChapterIndex + 1} · {game.Chapter.name.ToUpperInvariant()}";
-                if (l.Rule != null) l.Rule.text = game.IsCustom ? CustomRule() : game.Chapter.description;
+                }
+
+                if (l.Rule != null)
+                {
+                    l.Rule.text = game.IsCustom ? CustomRule() : game.Chapter.description;
+                }
+
                 l.LevelName.text = level.name.ToUpperInvariant();
-                if (l.LevelId != null) l.LevelId.text = game.IsCustom ? "" : $"Level {level.id}";
+                if (l.LevelId != null)
+                {
+                    l.LevelId.text = game.IsCustom ? "" : $"Level {level.id}";
+                }
+
                 l.Moves.text = board.MoveCount.ToString();
                 l.Par.text = level.par > 0 ? level.par.ToString() : "?";
                 RefreshOutlook(l, board.MoveCount, level.par);
@@ -597,9 +687,17 @@ namespace ShiftRegister.Game.Hud
 
                 for (int r = 0; r < N; r++)
                 {
-                    if (l.RowFrom[r] == null) continue;
+                    if (l.RowFrom[r] == null)
+                    {
+                        continue;
+                    }
+
                     var info = rowInfo[r];
-                    if (l.RowBits[r] != null) l.RowBits[r].text = info.Bits;
+                    if (l.RowBits[r] != null)
+                    {
+                        l.RowBits[r].text = info.Bits;
+                    }
+
                     l.RowFrom[r].text = info.From;
                     l.RowArrow[r].text = info.Arrow;
                     l.RowTo[r].text = info.To;
@@ -612,9 +710,14 @@ namespace ShiftRegister.Game.Hud
                 }
 
                 for (int r = 0; r < N; r++)
-                for (int c = 0; c < N; c++)
-                    l.Thumb[r * N + c].color = BoardBits.GetCell(rules.Target, r, c) ? Lcd.Ink : Lcd.Background;
+                {
+                    for (int c = 0; c < N; c++)
+                    {
+                        l.Thumb[r * N + c].color = BoardBits.GetCell(rules.Target, r, c) ? Lcd.Ink : Lcd.Background;
+                    }
+                }
             }
+
             shownReadRow = -1;
             RefreshReadout();
         }
@@ -622,14 +725,26 @@ namespace ShiftRegister.Game.Hud
         /// <summary>The phone layouts' readout follows the cursor row (the row last tapped or swiped).</summary>
         void RefreshReadout()
         {
-            if (input == null || game.Board == null) return;
+            if (input == null || game.Board == null)
+            {
+                return;
+            }
+
             int r = input.CursorRow;
-            if (r == shownReadRow) return;
+            if (r == shownReadRow)
+            {
+                return;
+            }
+
             shownReadRow = r;
             var info = rowInfo[r];
             foreach (var l in layouts)
             {
-                if (l.ReadRow == null) continue;
+                if (l.ReadRow == null)
+                {
+                    continue;
+                }
+
                 l.ReadRow.text = $"ROW {r + 1}";
                 l.ReadOk.text = $"{rowsOk}/{N} OK";
                 l.ReadBits.text = info.Bits;
@@ -672,13 +787,21 @@ namespace ShiftRegister.Game.Hud
             string par = game.Level.par > 0 ? game.Level.par.ToString() : "?";
 
             bool broken = board.IsRuleBroken;
-            if (animate && board.Lost > shownLost) StartCoroutine(Bump(Active.BucketCount.rectTransform));
+            if (animate && board.Lost > shownLost)
+            {
+                StartCoroutine(Bump(Active.BucketCount.rectTransform));
+            }
+
             shownLost = board.Lost;
             foreach (var l in layouts)
             {
                 l.BucketCount.text = board.Lost.ToString();
                 l.BucketCount.color = board.Lost > 0 ? Lcd.Loss : Lcd.Ink;
-                if (l.BucketFrame != null) l.BucketFrame.color = broken ? Lcd.Loss : Lcd.Ink;
+                if (l.BucketFrame != null)
+                {
+                    l.BucketFrame.color = broken ? Lcd.Loss : Lcd.Ink;
+                }
+
                 if (l.BucketText != null)
                 {
                     l.BucketText.text = broken ? (l.Phone ? "rule broken" : "Rule broken. Undo to continue.")
@@ -693,9 +816,17 @@ namespace ShiftRegister.Game.Hud
                 var result = game.LastResult ?? new Progress.LevelResult(board.MoveCount, game.Level.par,
                     Scoring.Stars(board.MoveCount, game.Level.par), false, 0);
                 string best = result.IsNewBest && result.PreviousBest > 0 ? " · new best" : "";
-                if (game.JustProved && game.IsCustom) best = " · proven";
+                if (game.JustProved && game.IsCustom)
+                {
+                    best = " · proven";
+                }
+
                 solvedText.text = $"{Ui.Moves(result.Moves)} · par {par}{best}";
-                for (int i = 0; i < stars.Length; i++) stars[i].enabled = i < result.Stars;
+                for (int i = 0; i < stars.Length; i++)
+                {
+                    stars[i].enabled = i < result.Stars;
+                }
+
                 bool hasNext = game.HasNextLevel;
                 nextButton.gameObject.SetActive(hasNext && !game.IsRandom);
                 nextButton.Text = game.IsCustom ? "BACK" : "NEXT →";
@@ -709,6 +840,7 @@ namespace ShiftRegister.Game.Hud
                     saveRandomButton.Disabled = game.RandomSaved || full;
                 }
             }
+
             ShowBanner(solvedBanner, solved, ref solvedShown, animate);
             ShowBanner(brokenBanner, broken, ref brokenShown, animate);
         }
@@ -716,8 +848,15 @@ namespace ShiftRegister.Game.Hud
         void ShowBanner(RectTransform banner, bool show, ref bool shown, bool animate)
         {
             banner.gameObject.SetActive(show);
-            if (show && !shown && animate) StartCoroutine(PopIn(banner));
-            else banner.localScale = Vector3.one;
+            if (show && !shown && animate)
+            {
+                StartCoroutine(PopIn(banner));
+            }
+            else
+            {
+                banner.localScale = Vector3.one;
+            }
+
             shown = show;
         }
 
@@ -732,6 +871,7 @@ namespace ShiftRegister.Game.Hud
                 rt.localScale = Vector3.one * s;
                 yield return null;
             }
+
             rt.localScale = Vector3.one;
         }
 
@@ -743,6 +883,7 @@ namespace ShiftRegister.Game.Hud
                 rt.localScale = Vector3.one * (1f + 0.35f * Mathf.Sin(Mathf.PI * t / duration));
                 yield return null;
             }
+
             rt.localScale = Vector3.one;
         }
 
@@ -751,14 +892,20 @@ namespace ShiftRegister.Game.Hud
         string CustomRule()
         {
             if (game.IsRandom)
+            {
                 return game.CustomEntry.proof == LevelProof.Searched
                     ? "A random level. Par is the shortest possible."
                     : "A random level. Par is a known solve, and may not be the shortest.";
+            }
+
             switch (game.CustomEntry.proof)
             {
-                case LevelProof.Searched: return "Your level. Par is the shortest possible.";
-                case LevelProof.Replayed: return "Your level. Par is the best solve so far.";
-                default: return "Your level, not proven yet. Beat it to prove it.";
+                case LevelProof.Searched:
+                    return "Your level. Par is the shortest possible.";
+                case LevelProof.Replayed:
+                    return "Your level. Par is the best solve so far.";
+                default:
+                    return "Your level, not proven yet. Beat it to prove it.";
             }
         }
 
@@ -767,8 +914,16 @@ namespace ShiftRegister.Game.Hud
             bool show = par > 0;
             l.Outlook.enabled = show;
             int earned = game.LastResult?.Stars ?? Scoring.Stars(Mathf.Max(moves, par), par);
-            for (int i = 0; i < l.OutlookStars.Length; i++) l.OutlookStars[i].enabled = show && i < earned;
-            if (!show) return;
+            for (int i = 0; i < l.OutlookStars.Length; i++)
+            {
+                l.OutlookStars[i].enabled = show && i < earned;
+            }
+
+            if (!show)
+            {
+                return;
+            }
+
             l.Outlook.text = game.LastResult != null ? $"solved for {earned}"
                 : moves == 0 ? $"{Ui.Moves(par)} for {Scoring.MaxStars}"
                 : earned == Scoring.MaxStars && !l.Phone ? $"still on track for {earned}"
@@ -780,7 +935,10 @@ namespace ShiftRegister.Game.Hud
         {
             var sb = new StringBuilder(N);
             for (int c = 0; c < N; c++)
+            {
                 sb.Append(rules.IsWall(row, c) ? '#' : ((value >> (7 - c)) & 1) != 0 ? '1' : '0');
+            }
+
             return sb.ToString();
         }
 

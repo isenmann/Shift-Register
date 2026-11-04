@@ -50,23 +50,55 @@ namespace ShiftRegister.Game
         void Update()
         {
             var kb = Keyboard.current;
-            if (kb == null || Ui.IsTyping) return;
-            if (kb.mKey.wasPressedThisFrame) game.ChangeSettings(s => s.muted = !s.muted);
-            if (!kb.escapeKey.wasPressedThisFrame) return;
+            if (kb == null || Ui.IsTyping)
+            {
+                return;
+            }
+
+            if (kb.mKey.wasPressedThisFrame)
+            {
+                game.ChangeSettings(s => s.muted = !s.muted);
+            }
+
+            if (!kb.escapeKey.wasPressedThisFrame)
+            {
+                return;
+            }
+
             if (Current == GameScreen.Playing && hudView != null && hudView.HelpOpen)
             {
                 hudView.CloseHelp();
                 return;
             }
+
             if (Current == GameScreen.Editor)
             {
-                if (!editor.CloseShare() && !editor.CancelSolve()) Show(GameScreen.MyLevels);
+                if (!editor.CloseShare() && !editor.CancelSolve())
+                {
+                    Show(GameScreen.MyLevels);
+                }
+
                 return;
             }
-            if (Current == GameScreen.MyLevels && menu.CloseShare()) return;
-            if (Current == GameScreen.Random && menu.CancelRandom()) return;
-            if (Current == GameScreen.Playing) LeaveLevel();
-            else if (Current == GameScreen.Chapters || Current == GameScreen.Options || Current == GameScreen.MyLevels || Current == GameScreen.Random) Show(GameScreen.Title);
+
+            if (Current == GameScreen.MyLevels && menu.CloseShare())
+            {
+                return;
+            }
+
+            if (Current == GameScreen.Random && menu.CancelRandom())
+            {
+                return;
+            }
+
+            if (Current == GameScreen.Playing)
+            {
+                LeaveLevel();
+            }
+            else if (Current == GameScreen.Chapters || Current == GameScreen.Options || Current == GameScreen.MyLevels || Current == GameScreen.Random)
+            {
+                Show(GameScreen.Title);
+            }
         }
 
         /// <summary>PLAY on the title screen: the last level played, or the first open unsolved one.</summary>
@@ -125,7 +157,10 @@ namespace ShiftRegister.Game
         /// <summary>QUIT on the title screen. Progress is already saved after every solved level.</summary>
         public void Quit()
         {
-            if (!CanQuit) return;
+            if (!CanQuit)
+            {
+                return;
+            }
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
 #else
@@ -142,7 +177,11 @@ namespace ShiftRegister.Game
             input.enabled = playing;
             hud.SetActive(playing);
             menu.Show(screen);
-            if (editor != null) editor.gameObject.SetActive(editing);
+            if (editor != null)
+            {
+                editor.gameObject.SetActive(editing);
+            }
+
             Changed?.Invoke(screen);
         }
     }

@@ -87,21 +87,35 @@ namespace ShiftRegister.Game.LevelEditor
             game.BoardLent = true;
             ScreenLayout.LayoutChanged += ApplyFrame;
             ApplyFrame();
-            if (session != null) ResumeAfterTestPlay();
-            else Open();
+            if (session != null)
+            {
+                ResumeAfterTestPlay();
+            }
+            else
+            {
+                Open();
+            }
         }
 
         void OnDisable()
         {
             ScreenLayout.LayoutChanged -= ApplyFrame;
             game.BoardLent = false;
-            if (session == null) return;
+            if (session == null)
+            {
+                return;
+            }
+
             session.EndPaint();
             session.CancelSolve();
             share.Close();
             CommitName();
             Save();
-            if (keepSession) return; // test play comes back here, with the undo history
+            if (keepSession)
+            {
+                return; // test play comes back here, with the undo history
+            }
+
             session.Edit.Changed -= OnEdited;
             session = null;
             shownBoard = null;
@@ -109,18 +123,28 @@ namespace ShiftRegister.Game.LevelEditor
 
         void OnApplicationPause(bool paused)
         {
-            if (paused && session != null) Save();
+            if (paused && session != null)
+            {
+                Save();
+            }
         }
 
         void OnApplicationQuit()
         {
-            if (session != null) Save();
+            if (session != null)
+            {
+                Save();
+            }
         }
 
         void ApplyFrame()
         {
             var scaler = GetComponent<CanvasScaler>();
-            if (scaler != null) scaler.referenceResolution = new Vector2(ScreenLayout.FrameWidthPx, ScreenLayout.FrameHeightPx);
+            if (scaler != null)
+            {
+                scaler.referenceResolution = new Vector2(ScreenLayout.FrameWidthPx, ScreenLayout.FrameHeightPx);
+            }
+
             bool upright = ScreenLayout.Portrait;
             frame.gameObject.SetActive(!upright);
             rotateMessage.gameObject.SetActive(upright);
@@ -131,6 +155,7 @@ namespace ShiftRegister.Game.LevelEditor
                 session?.EndPaint();
                 return;
             }
+
             left.anchoredPosition = new Vector2(-ScreenLayout.OuterShiftPx, 0f);
             right.anchoredPosition = new Vector2(ScreenLayout.OuterShiftPx, 0f);
             game.PlaceBoard();
@@ -141,7 +166,10 @@ namespace ShiftRegister.Game.LevelEditor
         void Open()
         {
             var entry = game.CustomLevels.Get(levelId);
-            if (entry == null) throw new InvalidOperationException($"No custom level '{levelId}' to edit.");
+            if (entry == null)
+            {
+                throw new InvalidOperationException($"No custom level '{levelId}' to edit.");
+            }
 
             session = new EditorSession(entry.level, entry.proof);
             session.Edit.Changed += OnEdited;
@@ -160,7 +188,10 @@ namespace ShiftRegister.Game.LevelEditor
             var level = session.Edit.Level;
             if (entry != null && (entry.proof != session.Edit.Proof || entry.level.par != level.par)
                 && Move.TryParseList(entry.level.solution, out var moves))
+            {
                 session.Edit.SetSolution(moves, entry.proof);
+            }
+
             Refresh();
         }
 
@@ -171,6 +202,7 @@ namespace ShiftRegister.Game.LevelEditor
                 Sfx.Play(Sound.Blocked);
                 return;
             }
+
             session.EndPaint();
             session.CancelSolve();
             CommitName();
@@ -188,7 +220,11 @@ namespace ShiftRegister.Game.LevelEditor
 
         void Save()
         {
-            if (!dirty) return;
+            if (!dirty)
+            {
+                return;
+            }
+
             dirty = false;
             game.CustomLevels.Update(session.Edit.Level, session.Edit.Proof, DateTime.UtcNow.Ticks);
             CustomLevelStore.Save(game.CustomLevels);
@@ -200,14 +236,27 @@ namespace ShiftRegister.Game.LevelEditor
 
         void Update()
         {
-            if (session == null) return;
+            if (session == null)
+            {
+                return;
+            }
 
-            if (session.IsSolving && session.Tick(SolveBudgetMs)) OnSolveFinished();
-            else if (session.IsSolving) RefreshProof();
+            if (session.IsSolving && session.Tick(SolveBudgetMs))
+            {
+                OnSolveFinished();
+            }
+            else if (session.IsSolving)
+            {
+                RefreshProof();
+            }
 
             if (ScreenLayout.Portrait)
             {
-                if (dirty && Time.unscaledTime >= saveAt) Save();
+                if (dirty && Time.unscaledTime >= saveAt)
+                {
+                    Save();
+                }
+
                 return;
             }
 
@@ -216,7 +265,10 @@ namespace ShiftRegister.Game.LevelEditor
             game.Controls.HighlightCell(row, column);
             RefreshCaret();
 
-            if (dirty && Time.unscaledTime >= saveAt && !painting) Save();
+            if (dirty && Time.unscaledTime >= saveAt && !painting)
+            {
+                Save();
+            }
         }
 
         void OnSolveFinished()
@@ -229,7 +281,11 @@ namespace ShiftRegister.Game.LevelEditor
         void HandlePointer()
         {
             var p = Pointer.current;
-            if (p == null || cam == null) return;
+            if (p == null || cam == null)
+            {
+                return;
+            }
+
             bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
             Feed(p.position.ReadValue(), p.press.isPressed, p.press.wasPressedThisFrame, overUi);
         }
@@ -237,14 +293,22 @@ namespace ShiftRegister.Game.LevelEditor
         /// <summary>One frame of pointer input. Public so play-mode checks can drive it without input devices.</summary>
         public void Feed(Vector2 screen, bool down, bool justPressed, bool overUi)
         {
-            if (session == null || cam == null) return;
+            if (session == null || cam == null)
+            {
+                return;
+            }
+
             if (!down && painting)
             {
                 painting = false;
                 session.EndPaint();
                 return;
             }
-            if (Time.frameCount == enabledFrame) return; // the click that opened the screen must not paint
+
+            if (Time.frameCount == enabledFrame)
+            {
+                return; // the click that opened the screen must not paint
+            }
 
             Vector3 world = cam.ScreenToWorldPoint(new Vector3(screen.x, screen.y, -cam.transform.position.z));
             Vector2 local = game.Controls.transform.InverseTransformPoint(world);
@@ -252,13 +316,26 @@ namespace ShiftRegister.Game.LevelEditor
 
             if (painting)
             {
-                if (onCell) PaintTo(r, c);
+                if (onCell)
+                {
+                    PaintTo(r, c);
+                }
+
                 return;
             }
-            if (overUi || !onCell) return;
+
+            if (overUi || !onCell)
+            {
+                return;
+            }
+
             row = r;
             column = c;
-            if (!justPressed) return;
+            if (!justPressed)
+            {
+                return;
+            }
+
             painting = true;
             session.BeginPaint(r, c);
             Sfx.Play(Sound.Tick);
@@ -266,7 +343,11 @@ namespace ShiftRegister.Game.LevelEditor
 
         void PaintTo(int r, int c)
         {
-            if (r == row && c == column) return;
+            if (r == row && c == column)
+            {
+                return;
+            }
+
             row = r;
             column = c;
             session.PaintTo(r, c);
@@ -276,12 +357,27 @@ namespace ShiftRegister.Game.LevelEditor
         void HandleKeyboard()
         {
             var kb = Keyboard.current;
-            if (kb == null || Time.frameCount == enabledFrame || Ui.IsTyping || share.IsOpen) return;
+            if (kb == null || Time.frameCount == enabledFrame || Ui.IsTyping || share.IsOpen)
+            {
+                return;
+            }
 
-            if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame) MoveCursor(0, -1);
-            else if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame) MoveCursor(0, 1);
-            else if (kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame) MoveCursor(-1, 0);
-            else if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame) MoveCursor(1, 0);
+            if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame)
+            {
+                MoveCursor(0, -1);
+            }
+            else if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame)
+            {
+                MoveCursor(0, 1);
+            }
+            else if (kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame)
+            {
+                MoveCursor(-1, 0);
+            }
+            else if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame)
+            {
+                MoveCursor(1, 0);
+            }
 
             if (kb.spaceKey.wasPressedThisFrame)
             {
@@ -289,23 +385,58 @@ namespace ShiftRegister.Game.LevelEditor
                 session.EndPaint();
                 Sfx.Play(Sound.Tick);
             }
-            if (kb.tabKey.wasPressedThisFrame) SwapLayer();
+
+            if (kb.tabKey.wasPressedThisFrame)
+            {
+                SwapLayer();
+            }
+
             for (int i = 0; i < ToolOrder.Length; i++)
-                if (kb[Key.Digit1 + i].wasPressedThisFrame) PickTool(ToolOrder[i]);
-            if (kb.digit6Key.wasPressedThisFrame) CycleOp();
+            {
+                if (kb[Key.Digit1 + i].wasPressedThisFrame)
+                {
+                    PickTool(ToolOrder[i]);
+                }
+            }
 
-            if (kb.yKey.wasPressedThisFrame || (kb.zKey.wasPressedThisFrame && kb.shiftKey.isPressed)) Redo();
-            else if (kb.zKey.wasPressedThisFrame) Undo();
+            if (kb.digit6Key.wasPressedThisFrame)
+            {
+                CycleOp();
+            }
 
-            if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) ToggleSolve();
-            if (kb.tKey.wasPressedThisFrame) TestPlay();
-            if (kb.xKey.wasPressedThisFrame) Export();
+            if (kb.yKey.wasPressedThisFrame || (kb.zKey.wasPressedThisFrame && kb.shiftKey.isPressed))
+            {
+                Redo();
+            }
+            else if (kb.zKey.wasPressedThisFrame)
+            {
+                Undo();
+            }
+
+            if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame)
+            {
+                ToggleSolve();
+            }
+
+            if (kb.tKey.wasPressedThisFrame)
+            {
+                TestPlay();
+            }
+
+            if (kb.xKey.wasPressedThisFrame)
+            {
+                Export();
+            }
         }
 
         void MoveCursor(int dr, int dc)
         {
             int r = Mathf.Clamp(row + dr, 0, N - 1), c = Mathf.Clamp(column + dc, 0, N - 1);
-            if (r == row && c == column) return;
+            if (r == row && c == column)
+            {
+                return;
+            }
+
             row = r;
             column = c;
             Sfx.Play(Sound.Tick);
@@ -337,6 +468,7 @@ namespace ShiftRegister.Game.LevelEditor
                 Sfx.Play(Sound.Blocked);
                 return;
             }
+
             session.Op = EditorSession.NextOp(session.Op);
             Refresh();
         }
@@ -344,7 +476,10 @@ namespace ShiftRegister.Game.LevelEditor
         void CycleRowGate(int r)
         {
             var g = session.Edit.GateOn(r);
-            if (g != null) session.Edit.SetGateOp(r, EditorSession.NextOp(g.op));
+            if (g != null)
+            {
+                session.Edit.SetGateOp(r, EditorSession.NextOp(g.op));
+            }
         }
 
         void StepLoss(int delta)
@@ -355,14 +490,26 @@ namespace ShiftRegister.Game.LevelEditor
 
         void Undo()
         {
-            if (session.Edit.Undo()) Sfx.Play(Sound.Undo);
-            else Sfx.Play(Sound.Blocked);
+            if (session.Edit.Undo())
+            {
+                Sfx.Play(Sound.Undo);
+            }
+            else
+            {
+                Sfx.Play(Sound.Blocked);
+            }
         }
 
         void Redo()
         {
-            if (session.Edit.Redo()) Sfx.Play(Sound.Undo);
-            else Sfx.Play(Sound.Blocked);
+            if (session.Edit.Redo())
+            {
+                Sfx.Play(Sound.Undo);
+            }
+            else
+            {
+                Sfx.Play(Sound.Blocked);
+            }
         }
 
         void ToggleSolve()
@@ -372,11 +519,13 @@ namespace ShiftRegister.Game.LevelEditor
                 Refresh();
                 return;
             }
+
             if (!session.CanSolve)
             {
                 Sfx.Play(Sound.Blocked);
                 return;
             }
+
             session.StartSolve();
             Refresh();
         }
@@ -388,6 +537,7 @@ namespace ShiftRegister.Game.LevelEditor
                 Sfx.Play(Sound.Blocked);
                 return;
             }
+
             CommitName();
             share.OpenExport(session.Edit.Level);
         }
@@ -398,7 +548,11 @@ namespace ShiftRegister.Game.LevelEditor
         /// <summary>Esc while searching stops the search instead of leaving. False if nothing was running.</summary>
         public bool CancelSolve()
         {
-            if (session == null || !session.CancelSolve()) return false;
+            if (session == null || !session.CancelSolve())
+            {
+                return false;
+            }
+
             Refresh();
             return true;
         }
@@ -407,7 +561,11 @@ namespace ShiftRegister.Game.LevelEditor
 
         void Refresh()
         {
-            if (session == null) return;
+            if (session == null)
+            {
+                return;
+            }
+
             RefreshBoard();
 
             var other = session.Layer == EditLayer.Start ? EditLayer.Target : EditLayer.Start;
@@ -419,10 +577,18 @@ namespace ShiftRegister.Game.LevelEditor
             paintLabel.text = "PAINTING " + layerName;
             ghostLabel.text = "dashed = " + otherWord.ToLowerInvariant();
             for (int r = 0; r < N; r++)
-            for (int c = 0; c < N; c++)
-                mini[r * N + c].color = session.Edit.GetBit(other, r, c) ? Lcd.Ink : Lcd.Background;
+            {
+                for (int c = 0; c < N; c++)
+                {
+                    mini[r * N + c].color = session.Edit.GetBit(other, r, c) ? Lcd.Ink : Lcd.Background;
+                }
+            }
+
             for (int i = 0; i < ToolOrder.Length; i++)
+            {
                 toolButtons[i].Selected = session.Tool == ToolOrder[i];
+            }
+
             opButton.Text = "OP " + BoardView.GateSymbol(session.Op);
             opButton.Disabled = session.Tool != PaintTool.Gate;
             RefreshRows();
@@ -452,14 +618,21 @@ namespace ShiftRegister.Game.LevelEditor
                 gate[r].Text = g != null ? BoardView.GateSymbol(g.op) : "·";
                 gate[r].Disabled = g == null;
                 gate[r].Selected = g != null;
-                if (r < N - 1) link[r].Selected = edit.ChainTopOf(r) == r;
+                if (r < N - 1)
+                {
+                    link[r].Selected = edit.ChainTopOf(r) == r;
+                }
             }
         }
 
         void RefreshSettings()
         {
             var level = session.Edit.Level;
-            for (int i = 0; i < LossOrder.Length; i++) lossTabs[i].Selected = level.lossRule == LossOrder[i];
+            for (int i = 0; i < LossOrder.Length; i++)
+            {
+                lossTabs[i].Selected = level.lossRule == LossOrder[i];
+            }
+
             bool counts = level.lossRule != LossRule.Any;
             lossCount.text = counts ? level.lossCount.ToString() : "-";
             lossDown.Disabled = !counts || level.lossCount <= 0;
@@ -486,6 +659,7 @@ namespace ShiftRegister.Game.LevelEditor
                 game.BoardView.Build(rules);
                 game.Controls.Build(rules, withArrows: false, tightBelts: true);
             }
+
             game.BoardView.Show(BoardBits.FromRows(d.start));
             shownBoard = d;
         }
@@ -493,7 +667,11 @@ namespace ShiftRegister.Game.LevelEditor
         /// <summary>True if only the painted picture differs (which <see cref="BoardView.Show"/> can draw alone).</summary>
         static bool SameBoardObjects(LevelData a, LevelData b)
         {
-            if (b == null) return false;
+            if (b == null)
+            {
+                return false;
+            }
+
             var startless = LevelEdit.Clone(a);
             startless.start = b.start;
             return LevelEdit.SamePuzzle(startless, b);
@@ -515,8 +693,20 @@ namespace ShiftRegister.Game.LevelEditor
                 BuildCentrePhone(frame);
                 BuildRows(frame, new RowLayout
                 {
-                    Top = 20f, Pitch = 47.15f, CellH = 41f, LeftX = 198f, RightX = 611f, FillW = 34f,
-                    WrapX = 649f, GateX = 689f, LinkX = 729f, Chip = 36f, LinkSize = 30f, HeaderY = 2f, HeaderSize = 10f, Font = 13f
+                    Top = 20f,
+                    Pitch = 47.15f,
+                    CellH = 41f,
+                    LeftX = 198f,
+                    RightX = 611f,
+                    FillW = 34f,
+                    WrapX = 649f,
+                    GateX = 689f,
+                    LinkX = 729f,
+                    Chip = 36f,
+                    LinkSize = 30f,
+                    HeaderY = 2f,
+                    HeaderSize = 10f,
+                    Font = 13f
                 });
                 BuildRightPhone(right);
             }
@@ -526,11 +716,24 @@ namespace ShiftRegister.Game.LevelEditor
                 BuildCentre(frame);
                 BuildRows(frame, new RowLayout
                 {
-                    Top = 124f, Pitch = 60f, CellH = 52f, LeftX = 312f, RightX = 840f, FillW = 40f,
-                    WrapX = 892f, GateX = 938f, LinkX = 984f, Chip = 40f, LinkSize = 32f, HeaderY = 100f, HeaderSize = 11f, Font = 14f
+                    Top = 124f,
+                    Pitch = 60f,
+                    CellH = 52f,
+                    LeftX = 312f,
+                    RightX = 840f,
+                    FillW = 40f,
+                    WrapX = 892f,
+                    GateX = 938f,
+                    LinkX = 984f,
+                    Chip = 40f,
+                    LinkSize = 32f,
+                    HeaderY = 100f,
+                    HeaderSize = 11f,
+                    Font = 14f
                 });
                 BuildRight(right);
             }
+
             share = ShareDialog.Create(frame, w, h, display, mono); // last, so it covers the screen
             BuildRotateMessage(canvas);
         }
@@ -570,8 +773,13 @@ namespace ShiftRegister.Game.LevelEditor
             const float cardY = 90f, cardH = 84f, cell = 8f, gap = 1f;
             Ui.Box(root, "Other Picture", x, cardY, w, cardH, 8f, Lcd.Cell);
             for (int r = 0; r < N; r++)
-            for (int c = 0; c < N; c++)
-                mini[r * N + c] = Ui.Box(root, $"Mini {r + 1},{c + 1}", x + 8 + c * (cell + gap), cardY + 6 + r * (cell + gap), cell, cell, 1f, Lcd.Background);
+            {
+                for (int c = 0; c < N; c++)
+                {
+                    mini[r * N + c] = Ui.Box(root, $"Mini {r + 1},{c + 1}", x + 8 + c * (cell + gap), cardY + 6 + r * (cell + gap), cell, cell, 1f, Lcd.Background);
+                }
+            }
+
             otherName = Ui.Text(root, "Other Name", x + 88, cardY + 20, 88, 20, display, 12, Lcd.Ink);
             Ui.Text(root, "Other Hint", x + 88, cardY + 42, 88, 18, mono, 12, Lcd.Text2, text: "tap to swap");
             UiHotspot.Create(root, "Other Picture Hotspot", x, cardY, w, cardH).Click = SwapLayer;
@@ -585,6 +793,7 @@ namespace ShiftRegister.Game.LevelEditor
                 toolButtons[i] = HudButton.Create(root, labels[i], x + (i % 2) * (toolW + toolGap), toolY + (i / 2) * (toolH + toolGap),
                     toolW, toolH, display, 12, () => PickTool(tool));
             }
+
             opButton = HudButton.Create(root, "OP &", x + toolW + toolGap, toolY + 2 * (toolH + toolGap), toolW, toolH, display, 12, CycleOp);
 
             undoButton = HudButton.Create(root, "UNDO", x, 312, toolW, 44, display, 12, Undo);
@@ -610,6 +819,7 @@ namespace ShiftRegister.Game.LevelEditor
                 lossTabs[i] = HudButton.Create(root, LossLabels[i], x + i * 45f, 20, 45, 32, display, 9, () =>
                     session.Edit.SetLoss(rule, session.Edit.Level.lossCount));
             }
+
             Ui.Text(root, "Loss Count Label", x, 56, 40, 32, mono, 11, Lcd.Text2, text: "Bits");
             lossDown = HudButton.Create(root, "Fewer", x + w - 92, 56, 32, 32, mono, 15, () => StepLoss(-1));
             lossDown.Text = "-";
@@ -659,8 +869,13 @@ namespace ShiftRegister.Game.LevelEditor
             const float cardY = 204f, cardH = 130f, cell = 12f, gap = 2f;
             Ui.Box(root, "Other Picture", x, cardY, w, cardH, 10f, Lcd.Cell);
             for (int r = 0; r < N; r++)
-            for (int c = 0; c < N; c++)
-                mini[r * N + c] = Ui.Box(root, $"Mini {r + 1},{c + 1}", x + 14 + c * (cell + gap), cardY + 10 + r * (cell + gap), cell, cell, 2f, Lcd.Background);
+            {
+                for (int c = 0; c < N; c++)
+                {
+                    mini[r * N + c] = Ui.Box(root, $"Mini {r + 1},{c + 1}", x + 14 + c * (cell + gap), cardY + 10 + r * (cell + gap), cell, cell, 2f, Lcd.Background);
+                }
+            }
+
             otherName = Ui.Text(root, "Other Name", x + 138, cardY + 24, 90, 20, display, 13, Lcd.Ink);
             Ui.Text(root, "Other Hint", x + 138, cardY + 48, 90, 18, mono, 12, Lcd.Text2, text: "click or");
             Ui.Frame(root, "Tab Key", x + 138, cardY + 70, 40, 26, 5f, 2f, Lcd.Ink);
@@ -723,7 +938,11 @@ namespace ShiftRegister.Game.LevelEditor
 
                 gate[r] = HudButton.Create(root, $"Gate {r + 1}", k.GateX, chipY, k.Chip, k.Chip, mono, k.Font + 1f, () => CycleRowGate(r));
 
-                if (r == N - 1) continue;
+                if (r == N - 1)
+                {
+                    continue;
+                }
+
                 float gap = k.Pitch - k.CellH;
                 link[r] = HudButton.Create(root, $"Link {r + 1}", k.LinkX, y + k.CellH + gap / 2f - k.LinkSize / 2f, k.LinkSize, k.LinkSize, mono, k.Font,
                     () => session.Edit.SetChain(r, session.Edit.ChainTopOf(r) != r));
@@ -745,6 +964,7 @@ namespace ShiftRegister.Game.LevelEditor
                 lossTabs[i] = HudButton.Create(root, LossLabels[i], x + i * 64f, 62, 64, 36, display, 11, () =>
                     session.Edit.SetLoss(rule, session.Edit.Level.lossCount));
             }
+
             Ui.Text(root, "Loss Count Label", x, 106, 60, 32, mono, 13, Lcd.Text2, text: "Bits");
             lossDown = HudButton.Create(root, "Fewer", x + w - 96, 106, 32, 32, mono, 15, () => StepLoss(-1));
             lossDown.Text = "-";
@@ -797,8 +1017,12 @@ namespace ShiftRegister.Game.LevelEditor
                 caretShownAt = pos;
                 caretMovedTime = Time.unscaledTime;
             }
+
             nameCaret.enabled = focused && Mathf.Repeat(Time.unscaledTime - caretMovedTime, 2f * CaretBlink) < CaretBlink;
-            if (!nameCaret.enabled) return;
+            if (!nameCaret.enabled)
+            {
+                return;
+            }
 
             var info = nameText.textInfo;
             int count = info.characterCount;

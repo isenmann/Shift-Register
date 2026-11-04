@@ -46,7 +46,12 @@ namespace ShiftRegister.Core
         {
             readonly ulong bits;
             readonly int lost;
-            public Key(ulong bits, int lost) { this.bits = bits; this.lost = lost; }
+            public Key(ulong bits, int lost)
+            {
+                this.bits = bits;
+                this.lost = lost;
+            }
+
             public bool Equals(Key o) => bits == o.bits && lost == o.lost;
             public override bool Equals(object obj) => obj is Key k && Equals(k);
             public override int GetHashCode()
@@ -62,7 +67,10 @@ namespace ShiftRegister.Core
         public static SolveResult Solve(LevelRules rules, int maxStates = DefaultMaxStates, int maxDepth = DefaultMaxDepth)
         {
             var job = Begin(rules, maxStates, maxDepth);
-            while (!job.Step(int.MaxValue)) { }
+            while (!job.Step(int.MaxValue))
+            {
+            }
+
             return job.Result;
         }
 
@@ -113,13 +121,19 @@ namespace ShiftRegister.Core
                 seen = new HashSet<Key> { new Key(rules.Start, 0) };
 
                 if (rules.IsSolved(rules.Start, 0))
+                {
                     Finish(SolveStatus.Solved, Array.Empty<Move>());
+                }
             }
 
             /// <summary>Expands up to <paramref name="maxNodes"/> states. Returns true once <see cref="Result"/> is set.</summary>
             public bool Step(int maxNodes)
             {
-                if (Result != null) return true;
+                if (Result != null)
+                {
+                    return true;
+                }
+
                 var moves = rules.Moves;
                 for (int n = 0; n < maxNodes; n++)
                 {
@@ -140,13 +154,27 @@ namespace ShiftRegister.Core
                     int lostSoFar = lost[node];
                     for (int i = 0; i < moves.Count; i++)
                     {
-                        if (!rules.TryApply(board, moves[i], out var o)) continue;
+                        if (!rules.TryApply(board, moves[i], out var o))
+                        {
+                            continue;
+                        }
+
                         int newLost = lostSoFar + o.LostCount;
-                        if (rules.IsBroken(newLost)) continue;
-                        if (CannotReachTarget(rules, o.After, newLost, targetCount)) continue;
+                        if (rules.IsBroken(newLost))
+                        {
+                            continue;
+                        }
+
+                        if (CannotReachTarget(rules, o.After, newLost, targetCount))
+                        {
+                            continue;
+                        }
 
                         var key = new Key(o.After, trackLost ? newLost : 0);
-                        if (!seen.Add(key)) continue;
+                        if (!seen.Add(key))
+                        {
+                            continue;
+                        }
 
                         bits.Add(o.After);
                         lost.Add(newLost);
@@ -169,7 +197,11 @@ namespace ShiftRegister.Core
                 }
 
                 // The last node of this slice may have been the last one of the search.
-                if (head < bits.Count) return false;
+                if (head < bits.Count)
+                {
+                    return false;
+                }
+
                 Finish(cut ? SolveStatus.LimitReached : SolveStatus.Unsolvable, null);
                 return true;
             }
@@ -191,19 +223,36 @@ namespace ShiftRegister.Core
         /// </summary>
         public static bool Replays(LevelRules rules, IReadOnlyList<Move> solution)
         {
-            if (solution == null || solution.Count == 0) return false;
+            if (solution == null || solution.Count == 0)
+            {
+                return false;
+            }
+
             var board = new Board(rules);
             foreach (var move in solution)
-                if (!board.TryMove(move, out _)) return false;
+            {
+                if (!board.TryMove(move, out _))
+                {
+                    return false;
+                }
+            }
+
             return board.IsSolved;
         }
 
         /// <summary>Prunes states that provably cannot reach the target.</summary>
         static bool CannotReachTarget(LevelRules rules, ulong board, int lost, int targetCount)
         {
-            if (rules.HasCreators) return false;
+            if (rules.HasCreators)
+            {
+                return false;
+            }
+
             int surplus = BoardBits.PopCount(board) - targetCount;
-            if (surplus < 0) return true; // nothing can make bits back
+            if (surplus < 0)
+            {
+                return true; // nothing can make bits back
+            }
             // With no gates at all, the only way to drop surplus bits is the bucket.
             return !rules.HasDestroyers && rules.LossRule != LossRule.Any && lost + surplus > rules.LossCount;
         }
@@ -211,7 +260,11 @@ namespace ShiftRegister.Core
         static IReadOnlyList<Move> BuildPath(int node, List<int> parent, List<int> via, IReadOnlyList<Move> moves)
         {
             var path = new List<Move>();
-            for (int n = node; parent[n] >= 0; n = parent[n]) path.Add(moves[via[n]]);
+            for (int n = node; parent[n] >= 0; n = parent[n])
+            {
+                path.Add(moves[via[n]]);
+            }
+
             path.Reverse();
             return path;
         }

@@ -54,8 +54,14 @@ namespace ShiftRegister.Tests
         {
             var entries = HelpText.Mechanics(new LevelData { lossRule = rule, lossCount = count });
             var bucket = entries.Where(e => e.Title == "BIT BUCKET").ToList();
-            if (expected == null) Assert.That(bucket, Is.Empty);
-            else Assert.That(bucket.Single().Text, Does.Contain(expected));
+            if (expected == null)
+            {
+                Assert.That(bucket, Is.Empty);
+            }
+            else
+            {
+                Assert.That(bucket.Single().Text, Does.Contain(expected));
+            }
         }
 
         [Test]

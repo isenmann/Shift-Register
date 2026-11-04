@@ -1,0 +1,24 @@
+# Code style for Shift Register. Rider, Visual Studio, VS Code and `dotnet format` all read this file.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+
+# Braces go on their own line and are required, also around a single statement.
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_prefer_braces = true:warning
+dotnet_diagnostic.IDE0011.severity = warning
+
+# One statement per line. Short blocks such as { get; set; } may stay on one line.
+csharp_preserve_single_line_statements = false
+csharp_preserve_single_line_blocks = true

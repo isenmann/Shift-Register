@@ -14,9 +14,19 @@ namespace ShiftRegister.Game.Hud
         /// </summary>
         public static bool ArithmeticHintsApply(LevelRules rules)
         {
-            if (rules.Walls != 0 || rules.HasCreators || rules.HasDestroyers) return false;
+            if (rules.Walls != 0 || rules.HasCreators || rules.HasDestroyers)
+            {
+                return false;
+            }
+
             for (int r = 0; r < BoardBits.Size; r++)
-                if (rules.IsRotating(r) || rules.ChainTopOf(r) >= 0) return false;
+            {
+                if (rules.IsRotating(r) || rules.ChainTopOf(r) >= 0)
+                {
+                    return false;
+                }
+            }
+
             return true;
         }
 
@@ -26,35 +36,80 @@ namespace ShiftRegister.Game.Hud
         /// </summary>
         public static string Label(LevelRules rules, int row)
         {
-            if (rules.ChainTopOf(row) >= 0) return "carry";
-            if (rules.IsRotating(row)) return "wrap";
+            if (rules.ChainTopOf(row) >= 0)
+            {
+                return "carry";
+            }
+
+            if (rules.IsRotating(row))
+            {
+                return "wrap";
+            }
 
             string gate = null;
             int gates = 0;
             foreach (var g in rules.Data.gates ?? Array.Empty<RowGate>())
             {
-                if (g.row != row) continue;
+                if (g.row != row)
+                {
+                    continue;
+                }
+
                 gates++;
                 gate ??= g.op.ToString().ToUpperInvariant();
             }
-            if (gate != null) return gates > 1 ? gate + "+" : gate;
 
-            foreach (int r in rules.Data.fillLeftRows ?? Array.Empty<int>()) if (r == row) return "1-IN";
-            foreach (int r in rules.Data.fillRightRows ?? Array.Empty<int>()) if (r == row) return "1-IN";
+            if (gate != null)
+            {
+                return gates > 1 ? gate + "+" : gate;
+            }
+
+            foreach (int r in rules.Data.fillLeftRows ?? Array.Empty<int>())
+            {
+                if (r == row)
+                {
+                    return "1-IN";
+                }
+            }
+
+            foreach (int r in rules.Data.fillRightRows ?? Array.Empty<int>())
+            {
+                if (r == row)
+                {
+                    return "1-IN";
+                }
+            }
+
             return "";
         }
 
         /// <summary>"OK" when equal; "need ×4" / "need ÷2" when that many plain shifts get there; else "".</summary>
         public static string For(int now, int target, bool arithmetic)
         {
-            if (now == target) return Ok;
-            if (!arithmetic || now == 0) return "";
+            if (now == target)
+            {
+                return Ok;
+            }
+
+            if (!arithmetic || now == 0)
+            {
+                return "";
+            }
+
             for (int k = 1; k < BoardBits.Size; k++)
             {
                 // Only exact arithmetic: no bit may fall off the edge on the way.
-                if ((now << k) == target) return $"need ×{1 << k}";
-                if ((now >> k) == target && (now & ((1 << k) - 1)) == 0) return $"need ÷{1 << k}";
+                if ((now << k) == target)
+                {
+                    return $"need ×{1 << k}";
+                }
+
+                if ((now >> k) == target && (now & ((1 << k) - 1)) == 0)
+                {
+                    return $"need ÷{1 << k}";
+                }
             }
+
             return "";
         }
     }

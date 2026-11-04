@@ -72,7 +72,14 @@ namespace ShiftRegister.Tests
                 Assert.That(root.Find("Wrap belt 2"), Is.Not.Null);
                 Assert.That(root.Find("Chain belt 3-4"), Is.Not.Null);
                 int belts = 0;
-                foreach (Transform t in root) if (t.name.Contains("belt")) belts++;
+                foreach (Transform t in root)
+                {
+                    if (t.name.Contains("belt"))
+                    {
+                        belts++;
+                    }
+                }
+
                 Assert.That(belts, Is.EqualTo(2));
             }
             finally

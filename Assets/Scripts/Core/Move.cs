@@ -20,8 +20,16 @@ namespace ShiftRegister.Core
 
         public Move(Direction direction, int line, int segment = 0)
         {
-            if (line < 0 || line >= BoardBits.Size) throw new ArgumentOutOfRangeException(nameof(line));
-            if (segment < 0 || segment >= BoardBits.Size) throw new ArgumentOutOfRangeException(nameof(segment));
+            if (line < 0 || line >= BoardBits.Size)
+            {
+                throw new ArgumentOutOfRangeException(nameof(line));
+            }
+
+            if (segment < 0 || segment >= BoardBits.Size)
+            {
+                throw new ArgumentOutOfRangeException(nameof(segment));
+            }
+
             Direction = direction;
             Line = (byte)line;
             Segment = (byte)segment;
@@ -30,14 +38,20 @@ namespace ShiftRegister.Core
         public static Move Row(int row, Direction direction, int segment = 0)
         {
             if (direction != Direction.Left && direction != Direction.Right)
+            {
                 throw new ArgumentException("Rows shift left or right.", nameof(direction));
+            }
+
             return new Move(direction, row, segment);
         }
 
         public static Move Column(int column, Direction direction, int segment = 0)
         {
             if (direction != Direction.Up && direction != Direction.Down)
+            {
                 throw new ArgumentException("Columns shift up or down.", nameof(direction));
+            }
+
             return new Move(direction, column, segment);
         }
 
@@ -56,41 +70,83 @@ namespace ShiftRegister.Core
         public static bool TryParseList(string text, out List<Move> moves)
         {
             moves = new List<Move>();
-            if (string.IsNullOrWhiteSpace(text)) return true;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return true;
+            }
+
             foreach (string token in text.Split((char[])null, StringSplitOptions.RemoveEmptyEntries))
             {
-                if (!TryParse(token, out var move)) return false;
+                if (!TryParse(token, out var move))
+                {
+                    return false;
+                }
+
                 moves.Add(move);
             }
+
             return true;
         }
 
         static bool TryParse(string s, out Move move)
         {
             move = default;
-            if (s.Length < 3) return false;
+            if (s.Length < 3)
+            {
+                return false;
+            }
+
             bool isRow = s[0] == 'R';
-            if (!isRow && s[0] != 'C') return false;
+            if (!isRow && s[0] != 'C')
+            {
+                return false;
+            }
 
             Direction direction;
             switch (s[s.Length - 1])
             {
-                case '←': direction = Direction.Left; break;
-                case '→': direction = Direction.Right; break;
-                case '↑': direction = Direction.Up; break;
-                case '↓': direction = Direction.Down; break;
-                default: return false;
+                case '←':
+                    direction = Direction.Left;
+                    break;
+                case '→':
+                    direction = Direction.Right;
+                    break;
+                case '↑':
+                    direction = Direction.Up;
+                    break;
+                case '↓':
+                    direction = Direction.Down;
+                    break;
+                default:
+                    return false;
             }
+
             bool rowDirection = direction == Direction.Left || direction == Direction.Right;
-            if (rowDirection != isRow) return false;
+            if (rowDirection != isRow)
+            {
+                return false;
+            }
 
             int line = s[1] - '1';
-            if (line < 0 || line >= BoardBits.Size) return false;
+            if (line < 0 || line >= BoardBits.Size)
+            {
+                return false;
+            }
 
             int segment = 0;
-            if (s.Length == 5 && s[2] == '.') segment = s[3] - '1';
-            else if (s.Length != 3) return false;
-            if (segment < 0 || segment >= BoardBits.Size) return false;
+            if (s.Length == 5 && s[2] == '.')
+            {
+                segment = s[3] - '1';
+            }
+            else if (s.Length != 3)
+            {
+                return false;
+            }
+
+            if (segment < 0 || segment >= BoardBits.Size)
+            {
+                return false;
+            }
 
             move = new Move(direction, line, segment);
             return true;

@@ -9,7 +9,14 @@ namespace ShiftRegister.Tests
         public static int Bits(string row)
         {
             int v = 0;
-            for (int i = 0; i < 8; i++) if (row[i] == '1') v |= 0x80 >> i;
+            for (int i = 0; i < 8; i++)
+            {
+                if (row[i] == '1')
+                {
+                    v |= 0x80 >> i;
+                }
+            }
+
             return v;
         }
 
@@ -17,7 +24,14 @@ namespace ShiftRegister.Tests
         public static int Walls(string row)
         {
             int v = 0;
-            for (int i = 0; i < 8; i++) if (row[i] == '#') v |= 0x80 >> i;
+            for (int i = 0; i < 8; i++)
+            {
+                if (row[i] == '#')
+                {
+                    v |= 0x80 >> i;
+                }
+            }
+
             return v;
         }
 
@@ -26,7 +40,11 @@ namespace ShiftRegister.Tests
         {
             var d = new LevelData { id = "one-row" };
             d.start[3] = Bits(row);
-            if (walls != null) d.walls[3] = Walls(walls);
+            if (walls != null)
+            {
+                d.walls[3] = Walls(walls);
+            }
+
             return d;
         }
 

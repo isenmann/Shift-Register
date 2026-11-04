@@ -32,7 +32,11 @@ namespace ShiftRegister.Game.CustomLevels
         /// <summary>False if nothing was being made.</summary>
         public bool Cancel()
         {
-            if (job == null) return false;
+            if (job == null)
+            {
+                return false;
+            }
+
             job = null;
             return true;
         }
@@ -40,17 +44,30 @@ namespace ShiftRegister.Game.CustomLevels
         /// <summary>Works for about this long. Returns true on the call that finishes the level.</summary>
         public bool Tick(double budgetMs)
         {
-            if (job == null) return false;
+            if (job == null)
+            {
+                return false;
+            }
+
             var clock = Stopwatch.StartNew();
             while (clock.Elapsed.TotalMilliseconds < budgetMs)
             {
-                if (!job.Step(NodesPerCheck)) continue;
+                if (!job.Step(NodesPerCheck))
+                {
+                    continue;
+                }
+
                 var made = job.Result;
                 job = null;
                 Failed = made == null;
-                if (made != null) Level = new CustomLevel { level = made.Level, proof = made.Proof };
+                if (made != null)
+                {
+                    Level = new CustomLevel { level = made.Level, proof = made.Proof };
+                }
+
                 return true;
             }
+
             return false;
         }
     }

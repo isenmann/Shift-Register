@@ -51,6 +51,7 @@ namespace ShiftRegister.Game.View
                     float phase = Mathf.Repeat(s + dash * Scale * 0.5f, period);
                     a *= phase < dash * Scale ? 1f : 0f;
                 }
+
                 return new Color(1, 1, 1, a);
             });
 
@@ -62,7 +63,11 @@ namespace ShiftRegister.Game.View
             Get($"ring {radius} {thickness}", radius, radius, false, (px, py, hw, hh) =>
             {
                 float x = px + hw, y = py + hh;
-                if (x < 0f || y < 0f) return new Color(1, 1, 1, 0);
+                if (x < 0f || y < 0f)
+                {
+                    return new Color(1, 1, 1, 0);
+                }
+
                 float d = Mathf.Sqrt(x * x + y * y) - radius * Scale;
                 return new Color(1, 1, 1, Fill(d) * Mathf.Clamp01(0.5f + d + thickness * Scale));
             });
@@ -100,7 +105,11 @@ namespace ShiftRegister.Game.View
                 float r = hw * 0.92f;
                 float d = StarDistance(new Vector2(px, py + hh * 0.06f), r, 0.45f) - r * 0.06f;
                 float a = Fill(d);
-                if (thickness > 0f) a *= Mathf.Clamp01(0.5f + d + thickness * Scale);
+                if (thickness > 0f)
+                {
+                    a *= Mathf.Clamp01(0.5f + d + thickness * Scale);
+                }
+
                 return new Color(1, 1, 1, a);
             });
 
@@ -130,19 +139,28 @@ namespace ShiftRegister.Game.View
 
         static Sprite Get(string key, float w, float h, bool ui, PixelFn shade)
         {
-            if (ui) key = "ui " + key;
-            if (cache.TryGetValue(key, out var sprite) && sprite != null) return sprite;
+            if (ui)
+            {
+                key = "ui " + key;
+            }
+
+            if (cache.TryGetValue(key, out var sprite) && sprite != null)
+            {
+                return sprite;
+            }
 
             int tw = Mathf.CeilToInt(w * Scale) + 2 * Pad;
             int th = Mathf.CeilToInt(h * Scale) + 2 * Pad;
             float hw = w * Scale * 0.5f, hh = h * Scale * 0.5f;
             var pixels = new Color[tw * th];
             for (int y = 0; y < th; y++)
-            for (int x = 0; x < tw; x++)
             {
-                float px = x + 0.5f - tw * 0.5f;
-                float py = y + 0.5f - th * 0.5f;
-                pixels[y * tw + x] = shade(px, py, hw, hh);
+                for (int x = 0; x < tw; x++)
+                {
+                    float px = x + 0.5f - tw * 0.5f;
+                    float py = y + 0.5f - th * 0.5f;
+                    pixels[y * tw + x] = shade(px, py, hw, hh);
+                }
             }
 
             var tex = new Texture2D(tw, th, TextureFormat.RGBA32, true)

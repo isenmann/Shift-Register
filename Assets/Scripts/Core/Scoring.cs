@@ -12,8 +12,16 @@ namespace ShiftRegister.Core
         /// </summary>
         public static int Stars(int moves, int par)
         {
-            if (par <= 0) return 1;
-            if (moves <= par) return 3;
+            if (par <= 0)
+            {
+                return 1;
+            }
+
+            if (moves <= par)
+            {
+                return 3;
+            }
+
             int slack = Math.Max(2, (par + 1) / 2);
             return moves <= par + slack ? 2 : 1;
         }

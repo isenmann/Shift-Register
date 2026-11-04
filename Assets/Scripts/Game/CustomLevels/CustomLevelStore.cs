@@ -10,12 +10,20 @@ namespace ShiftRegister.Game.CustomLevels
         public static CustomLevelLibrary Load(string key = Key)
         {
             string json = PlayerPrefs.GetString(key, "");
-            if (string.IsNullOrEmpty(json)) return new CustomLevelLibrary();
+            if (string.IsNullOrEmpty(json))
+            {
+                return new CustomLevelLibrary();
+            }
+
             try
             {
                 var library = JsonUtility.FromJson<CustomLevelLibrary>(json) ?? new CustomLevelLibrary();
                 int dropped = library.RemoveInvalid();
-                if (dropped > 0) Debug.LogWarning($"{dropped} saved custom level(s) were damaged and were dropped.");
+                if (dropped > 0)
+                {
+                    Debug.LogWarning($"{dropped} saved custom level(s) were damaged and were dropped.");
+                }
+
                 return library;
             }
             catch (System.ArgumentException e)

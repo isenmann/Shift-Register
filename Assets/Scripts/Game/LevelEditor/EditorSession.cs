@@ -40,7 +40,11 @@ namespace ShiftRegister.Game.LevelEditor
 
         void OnEdited()
         {
-            if (storingResult) return;
+            if (storingResult)
+            {
+                return;
+            }
+
             Job = null;
             Outcome = SolveOutcome.None;
         }
@@ -62,6 +66,7 @@ namespace ShiftRegister.Game.LevelEditor
                 d.start = d.target;
                 d.target = start;
             }
+
             return d;
         }
 
@@ -82,7 +87,11 @@ namespace ShiftRegister.Game.LevelEditor
         /// <summary>Continues the stroke to a cell, filling the cells between when the pointer moved fast.</summary>
         public void PaintTo(int row, int column)
         {
-            if (!strokeOn || (row == lastRow && column == lastColumn)) return;
+            if (!strokeOn || (row == lastRow && column == lastColumn))
+            {
+                return;
+            }
+
             int steps = Math.Max(Math.Abs(row - lastRow), Math.Abs(column - lastColumn));
             for (int i = 1; i <= steps; i++)
             {
@@ -90,13 +99,18 @@ namespace ShiftRegister.Game.LevelEditor
                 int c = lastColumn + (int)Math.Round((column - lastColumn) * (double)i / steps, MidpointRounding.AwayFromZero);
                 Apply(r, c);
             }
+
             lastRow = row;
             lastColumn = column;
         }
 
         public void EndPaint()
         {
-            if (!strokeOn) return;
+            if (!strokeOn)
+            {
+                return;
+            }
+
             strokeOn = false;
             Edit.EndStroke();
         }
@@ -105,13 +119,17 @@ namespace ShiftRegister.Game.LevelEditor
         {
             switch (Tool)
             {
-                case PaintTool.Bit: return Edit.GetBit(Layer, row, column);
-                case PaintTool.Wall: return Edit.IsWall(row, column);
-                case PaintTool.Pin: return Edit.IsPin(row, column);
+                case PaintTool.Bit:
+                    return Edit.GetBit(Layer, row, column);
+                case PaintTool.Wall:
+                    return Edit.IsWall(row, column);
+                case PaintTool.Pin:
+                    return Edit.IsPin(row, column);
                 case PaintTool.Gate:
                     var gate = Edit.GateOn(row);
                     return gate != null && (gate.mask & (0x80 >> column)) != 0;
-                default: return false;
+                default:
+                    return false;
             }
         }
 
@@ -119,14 +137,29 @@ namespace ShiftRegister.Game.LevelEditor
         {
             switch (Tool)
             {
-                case PaintTool.Bit: Edit.SetBit(Layer, row, column, strokeValue); break;
-                case PaintTool.Wall: Edit.SetWall(row, column, strokeValue); break;
-                case PaintTool.Pin: Edit.SetPin(row, column, strokeValue); break;
-                case PaintTool.Gate:
-                    if (strokeValue) Edit.SetGateCell(row, column, Op);
-                    else Edit.ClearGateCell(row, column);
+                case PaintTool.Bit:
+                    Edit.SetBit(Layer, row, column, strokeValue);
                     break;
-                default: Edit.Erase(row, column); break;
+                case PaintTool.Wall:
+                    Edit.SetWall(row, column, strokeValue);
+                    break;
+                case PaintTool.Pin:
+                    Edit.SetPin(row, column, strokeValue);
+                    break;
+                case PaintTool.Gate:
+                    if (strokeValue)
+                    {
+                        Edit.SetGateCell(row, column, Op);
+                    }
+                    else
+                    {
+                        Edit.ClearGateCell(row, column);
+                    }
+
+                    break;
+                default:
+                    Edit.Erase(row, column);
+                    break;
             }
         }
 
@@ -137,7 +170,11 @@ namespace ShiftRegister.Game.LevelEditor
 
         public void StartSolve()
         {
-            if (!CanSolve) return;
+            if (!CanSolve)
+            {
+                return;
+            }
+
             Outcome = SolveOutcome.None;
             Job = Solver.Begin(LevelRules.Compile(Edit.Level));
         }
@@ -145,7 +182,11 @@ namespace ShiftRegister.Game.LevelEditor
         /// <summary>False if no search was running.</summary>
         public bool CancelSolve()
         {
-            if (Job == null) return false;
+            if (Job == null)
+            {
+                return false;
+            }
+
             Job = null;
             return true;
         }
@@ -153,14 +194,23 @@ namespace ShiftRegister.Game.LevelEditor
         /// <summary>Runs the search for about this long. Returns true on the call that finishes it.</summary>
         public bool Tick(double budgetMs)
         {
-            if (Job == null) return false;
+            if (Job == null)
+            {
+                return false;
+            }
+
             var clock = Stopwatch.StartNew();
             while (clock.Elapsed.TotalMilliseconds < budgetMs)
             {
-                if (!Job.Step(NodesPerCheck)) continue;
+                if (!Job.Step(NodesPerCheck))
+                {
+                    continue;
+                }
+
                 Finish(Job.Result);
                 return true;
             }
+
             return false;
         }
 
@@ -190,11 +240,31 @@ namespace ShiftRegister.Game.LevelEditor
         {
             var problems = Edit.Problems();
             isProblem = problems.Count > 0;
-            if (problems.Contains(LevelProblem.SameStartAndTarget)) return "Start and target are the same picture.";
-            if (problems.Contains(LevelProblem.NoMoves)) return "Pins and walls leave no move at all.";
-            if (IsSolving) return "Searching. An edit stops the search.";
-            if (Outcome == SolveOutcome.TooBig) return "The solver gave up. Only test play can prove this level.";
-            if (Outcome == SolveOutcome.NoSolution) return "Change the start or the target, then solve again.";
+            if (problems.Contains(LevelProblem.SameStartAndTarget))
+            {
+                return "Start and target are the same picture.";
+            }
+
+            if (problems.Contains(LevelProblem.NoMoves))
+            {
+                return "Pins and walls leave no move at all.";
+            }
+
+            if (IsSolving)
+            {
+                return "Searching. An edit stops the search.";
+            }
+
+            if (Outcome == SolveOutcome.TooBig)
+            {
+                return "The solver gave up. Only test play can prove this level.";
+            }
+
+            if (Outcome == SolveOutcome.NoSolution)
+            {
+                return "Change the start or the target, then solve again.";
+            }
+
             return Edit.Proof == LevelProof.None ? "Ready to solve." : "Proven. Any edit clears the proof.";
         }
 
@@ -202,9 +272,21 @@ namespace ShiftRegister.Game.LevelEditor
         {
             get
             {
-                if (IsSolving) return "SEARCHING";
-                if (Outcome == SolveOutcome.TooBig) return "TOO BIG";
-                if (Outcome == SolveOutcome.NoSolution) return "NO SOLUTION";
+                if (IsSolving)
+                {
+                    return "SEARCHING";
+                }
+
+                if (Outcome == SolveOutcome.TooBig)
+                {
+                    return "TOO BIG";
+                }
+
+                if (Outcome == SolveOutcome.NoSolution)
+                {
+                    return "NO SOLUTION";
+                }
+
                 return Edit.Proof == LevelProof.None ? "NOT PROVEN" : $"PAR {Edit.Level.par}";
             }
         }
@@ -213,11 +295,31 @@ namespace ShiftRegister.Game.LevelEditor
         {
             get
             {
-                if (IsSolving) return $"{Job.StatesVisited:N0} of {Job.MaxStates:N0} states.";
-                if (Outcome == SolveOutcome.TooBig) return "Too many states to search. Beat it in test play to prove it.";
-                if (Outcome == SolveOutcome.NoSolution) return "The solver tried every state. This target cannot be reached.";
-                if (Edit.Proof == LevelProof.Searched) return "Shortest possible. The solver proved it.";
-                if (Edit.Proof == LevelProof.Replayed) return "Your best, not proven shortest. Beat it again to lower par.";
+                if (IsSolving)
+                {
+                    return $"{Job.StatesVisited:N0} of {Job.MaxStates:N0} states.";
+                }
+
+                if (Outcome == SolveOutcome.TooBig)
+                {
+                    return "Too many states to search. Beat it in test play to prove it.";
+                }
+
+                if (Outcome == SolveOutcome.NoSolution)
+                {
+                    return "The solver tried every state. This target cannot be reached.";
+                }
+
+                if (Edit.Proof == LevelProof.Searched)
+                {
+                    return "Shortest possible. The solver proved it.";
+                }
+
+                if (Edit.Proof == LevelProof.Replayed)
+                {
+                    return "Your best, not proven shortest. Beat it again to lower par.";
+                }
+
                 return "Solve finds the shortest way. You can also beat it yourself in test play.";
             }
         }

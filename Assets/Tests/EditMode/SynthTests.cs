@@ -29,7 +29,11 @@ namespace ShiftRegister.Tests
         {
             var samples = Synth.Render(Note.Glide(wave, 300f, 600f, 0f, 0.2f));
             float max = 0f;
-            foreach (float s in samples) max = Math.Max(max, Math.Abs(s));
+            foreach (float s in samples)
+            {
+                max = Math.Max(max, Math.Abs(s));
+            }
+
             Assert.That(max, Is.EqualTo(Synth.Peak).Within(1e-4f));
             Assert.That(Math.Abs(samples[0]), Is.LessThan(0.05f), "starts without a click");
             Assert.That(Math.Abs(samples[samples.Length - 1]), Is.LessThan(0.05f), "ends without a click");
@@ -40,7 +44,10 @@ namespace ShiftRegister.Tests
         {
             var samples = Synth.Render(Note.Of(Wave.Square, 440f, 0.1f, 0.1f));
             int start = (int)(0.1f * Synth.SampleRate);
-            for (int i = 0; i < start; i++) Assert.That(samples[i], Is.EqualTo(0f));
+            for (int i = 0; i < start; i++)
+            {
+                Assert.That(samples[i], Is.EqualTo(0f));
+            }
         }
 
         [Test]
@@ -68,7 +75,10 @@ namespace ShiftRegister.Tests
         {
             Assert.That(SoundBank.ShiftNotes.Length, Is.EqualTo(BoardBits.Size));
             for (int i = 1; i < SoundBank.ShiftNotes.Length; i++)
+            {
                 Assert.That(SoundBank.ShiftNotes[i], Is.GreaterThan(SoundBank.ShiftNotes[i - 1]));
+            }
+
             for (int line = 0; line < BoardBits.Size; line++)
             {
                 Assert.That(SoundBank.Shift(Axis.Row, line, true).Length, Is.GreaterThan(0));

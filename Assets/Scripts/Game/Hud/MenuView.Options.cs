@@ -44,18 +44,63 @@ namespace ShiftRegister.Game.Hud
         {
             OptionsMode.PhonePortrait => new OptionsSpec
             {
-                X = 16, Top = 96, W = 380, H = 120, Pitch = 136, LabelSize = 18, TextSize = 14, TextW = 230, TextH = 60,
-                MinusX = 12, ControlsY = 66, Button = 44, CellW = 22, CellGap = 4, CellsGap = 8, ToggleW = 110, ToggleH = 48
+                X = 16,
+                Top = 96,
+                W = 380,
+                H = 120,
+                Pitch = 136,
+                LabelSize = 18,
+                TextSize = 14,
+                TextW = 230,
+                TextH = 60,
+                MinusX = 12,
+                ControlsY = 66,
+                Button = 44,
+                CellW = 22,
+                CellGap = 4,
+                CellsGap = 8,
+                ToggleW = 110,
+                ToggleH = 48
             },
             OptionsMode.PhoneLandscape => new OptionsSpec
             {
-                X = (915 - 560) / 2f, Top = 76, W = 560, H = 86, Pitch = 98, LabelSize = 18, TextSize = 14, TextW = 300, TextH = 40,
-                MinusX = 230, ControlsY = 20, Button = 44, CellW = 18, CellGap = 4, CellsGap = 8, ToggleW = 110, ToggleH = 48
+                X = (915 - 560) / 2f,
+                Top = 76,
+                W = 560,
+                H = 86,
+                Pitch = 98,
+                LabelSize = 18,
+                TextSize = 14,
+                TextW = 300,
+                TextH = 40,
+                MinusX = 230,
+                ControlsY = 20,
+                Button = 44,
+                CellW = 18,
+                CellGap = 4,
+                CellsGap = 8,
+                ToggleW = 110,
+                ToggleH = 48
             },
             _ => new OptionsSpec
             {
-                X = (1280 - 760) / 2f, Top = 160, W = 760, H = 76, Pitch = 92, LabelSize = 18, TextSize = 13, TextW = 560, TextH = 20,
-                MinusX = 330, ControlsY = 16, Button = 44, CellW = 24, CellGap = 6, CellsGap = 14, ToggleW = 120, ToggleH = 44
+                X = (1280 - 760) / 2f,
+                Top = 160,
+                W = 760,
+                H = 76,
+                Pitch = 92,
+                LabelSize = 18,
+                TextSize = 13,
+                TextW = 560,
+                TextH = 20,
+                MinusX = 330,
+                ControlsY = 16,
+                Button = 44,
+                CellW = 24,
+                CellGap = 6,
+                CellsGap = 14,
+                ToggleW = 120,
+                ToggleH = 44
             }
         };
 
@@ -99,6 +144,7 @@ namespace ShiftRegister.Game.Hud
                 UiHotspot.Create(volume, $"Volume {i + 1} Hotspot", cx - spec.CellGap / 2f, spec.ControlsY, spec.CellW + spec.CellGap, 44).Click =
                     () => SetVolume(game.Settings.volume == step && step == 1 ? 0 : step);
             }
+
             float plusX = cellsX + o.VolumeCells.Length * (spec.CellW + spec.CellGap) - spec.CellGap + spec.CellsGap;
             HudButton.Create(volume, "+", plusX, spec.ControlsY, spec.Button, 44, display, 18, () => StepVolume(1));
 
@@ -112,12 +158,17 @@ namespace ShiftRegister.Game.Hud
 
             o.Focus = Ui.Frame(rows, "Focus", o.X, o.Top, o.W, o.H, 10f, 3f, Lcd.Ink);
             if (mode == OptionsMode.Desktop)
+            {
                 s.OptionsKeys = Ui.Text(left, "Keys", 56, 690, 1168, 20, mono, 13, Lcd.Text3, text: "Arrows choose and change · Enter switch · M mute · Esc back");
+            }
         }
 
         void OnDestroy()
         {
-            if (game != null) game.SettingsChanged -= OnSettingsChanged;
+            if (game != null)
+            {
+                game.SettingsChanged -= OnSettingsChanged;
+            }
         }
 
         /// <summary>A card row that focuses on hover; its controls are children so hovering them keeps the focus.</summary>
@@ -138,11 +189,21 @@ namespace ShiftRegister.Game.Hud
         void UpdateOptions(Keyboard kb)
         {
             if (kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame)
+            {
                 SetOptionFocus((OptionRow)Mathf.Max(0, (int)optionFocus - 1));
+            }
             else if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame)
+            {
                 SetOptionFocus((OptionRow)Mathf.Min((int)OptionRow.Motion, (int)optionFocus + 1));
-            else if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame) Change(-1);
-            else if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame) Change(1);
+            }
+            else if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame)
+            {
+                Change(-1);
+            }
+            else if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame)
+            {
+                Change(1);
+            }
             else if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
             {
                 if (optionFocus != OptionRow.Volume)
@@ -161,12 +222,14 @@ namespace ShiftRegister.Game.Hud
                 StepVolume(delta);
                 return;
             }
+
             bool on = delta > 0;
             if (IsOn(optionFocus) == on)
             {
                 Sfx.Play(Sound.Blocked);
                 return;
             }
+
             Toggle(optionFocus);
             Sfx.Play(Sound.Click);
         }
@@ -176,8 +239,14 @@ namespace ShiftRegister.Game.Hud
         void Toggle(OptionRow row)
         {
             SetOptionFocus(row);
-            if (row == OptionRow.Sound) game.ChangeSettings(s => s.muted = !s.muted);
-            else if (row == OptionRow.Motion) game.ChangeSettings(s => s.reducedMotion = !s.reducedMotion);
+            if (row == OptionRow.Sound)
+            {
+                game.ChangeSettings(s => s.muted = !s.muted);
+            }
+            else if (row == OptionRow.Motion)
+            {
+                game.ChangeSettings(s => s.reducedMotion = !s.reducedMotion);
+            }
         }
 
         void StepVolume(int delta) => SetVolume(game.Settings.volume + delta);
@@ -202,7 +271,10 @@ namespace ShiftRegister.Game.Hud
 
         void OnSettingsChanged()
         {
-            if (built && shown == GameScreen.Options) RefreshOptions(false);
+            if (built && shown == GameScreen.Options)
+            {
+                RefreshOptions(false);
+            }
         }
 
         void RefreshOptions(bool resetFocus)
@@ -212,18 +284,32 @@ namespace ShiftRegister.Game.Hud
             {
                 var o = s.Opt;
                 for (int i = 0; i < o.VolumeCells.Length; i++)
+                {
                     o.VolumeCells[i].color = i < settings.volume ? (settings.muted ? Lcd.Text3 : Lcd.Ink) : Lcd.Cell;
+                }
+
                 o.VolumeText.text = settings.muted ? $"{settings.volume * 10}% · muted" : $"{settings.volume * 10}%";
                 o.Sound.Text = settings.muted ? "OFF" : "ON";
                 o.Motion.Text = settings.reducedMotion ? "ON" : "OFF";
-                if (resetFocus) o.Focus.enabled = false; // no focus tick when the screen opens
+                if (resetFocus)
+                {
+                    o.Focus.enabled = false; // no focus tick when the screen opens
+                }
             }
-            if (resetFocus) SetOptionFocus(OptionRow.Volume);
+
+            if (resetFocus)
+            {
+                SetOptionFocus(OptionRow.Volume);
+            }
         }
 
         void SetOptionFocus(OptionRow row)
         {
-            if (Cur.Opt.Focus.enabled && row != optionFocus) Sfx.Play(Sound.Tick);
+            if (Cur.Opt.Focus.enabled && row != optionFocus)
+            {
+                Sfx.Play(Sound.Tick);
+            }
+
             optionFocus = row;
             foreach (var s in Both)
             {

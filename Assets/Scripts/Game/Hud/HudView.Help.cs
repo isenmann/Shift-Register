@@ -109,14 +109,21 @@ namespace ShiftRegister.Game.Hud
             bool mobile = DeviceMode.IsMobile;
             var p = HelpCur;
             foreach (var panel in new[] { helpWide, helpPhoneWide, helpPhoneTall })
+            {
                 panel.Frame.parent.gameObject.SetActive(panel == p);
+            }
+
             Clear(p.Controls);
             Clear(p.Board);
 
             var controls = mobile ? HelpText.TouchControls : HelpText.Controls;
             for (int i = 0; i < controls.Length; i++)
             {
-                if (i > 0) Gap(p.Controls, 8f);
+                if (i > 0)
+                {
+                    Gap(p.Controls, 8f);
+                }
+
                 Wrapped(p.Controls, controls[i].Title, mono, 15, Lcd.Ink, $"<b>{controls[i].Title}</b>");
                 Wrapped(p.Controls, controls[i].Title + " Text", mono, p.TextSize, Lcd.Text2, controls[i].Text);
             }
@@ -134,12 +141,16 @@ namespace ShiftRegister.Game.Hud
                 Gap(p.Board, 2f);
                 Wrapped(p.Board, e.Title + " Text", mono, p.TextSize, Lcd.Text2, e.Text);
             }
+
             p.CloseHint.text = mobile ? "Tap CLOSE or outside the panel to go back" : "H, Esc, Enter or a click outside closes this panel";
         }
 
         static void Clear(Transform column)
         {
-            for (int i = column.childCount - 1; i >= 0; i--) Destroy(column.GetChild(i).gameObject);
+            for (int i = column.childCount - 1; i >= 0; i--)
+            {
+                Destroy(column.GetChild(i).gameObject);
+            }
         }
 
         /// <summary>A wrapped text in a column; the column's layout group sizes it.</summary>
@@ -159,38 +170,77 @@ namespace ShiftRegister.Game.Hud
         /// <summary>After a rotation an open panel switches to the other arrangement.</summary>
         void RefreshHelpOrientation()
         {
-            if (HelpOpen) FillHelp();
+            if (HelpOpen)
+            {
+                FillHelp();
+            }
         }
 
         void ToggleHelp()
         {
-            if (HelpOpen) CloseHelp();
-            else OpenHelp();
+            if (HelpOpen)
+            {
+                CloseHelp();
+            }
+            else
+            {
+                OpenHelp();
+            }
         }
 
         void OpenHelp()
         {
-            if (helpRoot == null || game.Level == null) return;
+            if (helpRoot == null || game.Level == null)
+            {
+                return;
+            }
+
             helpRoot.gameObject.SetActive(true);
             FillHelp();
-            if (input != null) input.enabled = false;
+            if (input != null)
+            {
+                input.enabled = false;
+            }
         }
 
         public void CloseHelp()
         {
-            if (!HelpOpen) return;
+            if (!HelpOpen)
+            {
+                return;
+            }
+
             helpRoot.gameObject.SetActive(false);
-            if (input != null && flow != null && flow.Current == GameScreen.Playing) input.enabled = true;
+            if (input != null && flow != null && flow.Current == GameScreen.Playing)
+            {
+                input.enabled = true;
+            }
         }
 
         /// <summary>Each chapter's first level opens the help once (saved in the progress).</summary>
         void CheckFirstHelp()
         {
-            if (game.Level == null || game.Level.id == helpCheckedLevel) return;
+            if (game.Level == null || game.Level.id == helpCheckedLevel)
+            {
+                return;
+            }
+
             helpCheckedLevel = game.Level.id;
-            if (HelpOpen) FillHelp();
-            if (game.LevelIndex != 0 || game.IsPreviewing || game.Progress == null) return;
-            if (!game.Progress.MarkHelpSeen(game.Level.id)) return;
+            if (HelpOpen)
+            {
+                FillHelp();
+            }
+
+            if (game.LevelIndex != 0 || game.IsPreviewing || game.Progress == null)
+            {
+                return;
+            }
+
+            if (!game.Progress.MarkHelpSeen(game.Level.id))
+            {
+                return;
+            }
+
             ProgressStore.Save(game.Progress);
             OpenHelp();
         }
@@ -198,7 +248,10 @@ namespace ShiftRegister.Game.Hud
         void OnTextInput(char c)
         {
             // '?' sits on different keys per keyboard layout, so it is read as typed text.
-            if (c == '?') questionTyped = true;
+            if (c == '?')
+            {
+                questionTyped = true;
+            }
         }
 
         void UpdateHelp()
@@ -206,7 +259,10 @@ namespace ShiftRegister.Game.Hud
             var kb = Keyboard.current;
             bool question = questionTyped;
             questionTyped = false;
-            if (kb == null) return;
+            if (kb == null)
+            {
+                return;
+            }
 
             if (kb.hKey.wasPressedThisFrame || question)
             {

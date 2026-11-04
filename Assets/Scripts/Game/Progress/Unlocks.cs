@@ -16,7 +16,13 @@ namespace ShiftRegister.Game.Progress
         {
             int unsolved = 0;
             for (int i = 0; i < index && i < solvedInOrder.Count; i++)
-                if (!solvedInOrder[i] && ++unsolved > skips) return false;
+            {
+                if (!solvedInOrder[i] && ++unsolved > skips)
+                {
+                    return false;
+                }
+            }
+
             return true;
         }
     }

@@ -48,27 +48,52 @@ namespace ShiftRegister.Game.Hud
             };
 
             if (Any(level.walls))
+            {
                 list.Add(new Entry("WALLS", "Hatched cells hold no bits. They split a row or column into parts that shift on their own."));
+            }
+
             if (Any(level.pins))
+            {
                 list.Add(new Entry("PINS", "A pinned bit never moves, so its whole row and column are locked."));
+            }
+
             if (level.rotateRows != null && level.rotateRows.Length > 0)
+            {
                 list.Add(new Entry("WRAP BELT", "A row in a dashed belt wraps around: bits leaving one end come back at the other."));
+            }
+
             if (level.chainTopRows != null && level.chainTopRows.Length > 0)
+            {
                 list.Add(new Entry("CARRY BELT", "Two rows in one belt shift as one 16-bit register: bits carry over from one row into the other."));
+            }
+
             if ((level.fillLeftRows != null && level.fillLeftRows.Length > 0) || (level.fillRightRows != null && level.fillRightRows.Length > 0))
+            {
                 list.Add(new Entry("1-IN EDGE", "An end cell with an ink bar feeds in a 1 when its row shifts away from that edge."));
+            }
 
             var gates = Gates(level);
-            if (gates != null) list.Add(gates.Value);
+            if (gates != null)
+            {
+                list.Add(gates.Value);
+            }
 
             var bucket = Bucket(level);
-            if (bucket != null) list.Add(bucket.Value);
+            if (bucket != null)
+            {
+                list.Add(bucket.Value);
+            }
+
             return list;
         }
 
         static Entry? Gates(LevelData level)
         {
-            if (level.gates == null || level.gates.Length == 0) return null;
+            if (level.gates == null || level.gates.Length == 0)
+            {
+                return null;
+            }
+
             var parts = new List<string>();
             var ops = level.gates.Select(g => g.op).Distinct().OrderBy(op => (int)op);
             foreach (var op in ops)
@@ -81,6 +106,7 @@ namespace ShiftRegister.Game.Hud
                     _ => "~ NOT inverts the whole row if a bit sits on it"
                 });
             }
+
             string when = level.gatesOnColumnMoves
                 ? "They act after every move of their row, and of every column through it."
                 : "They act after every move of their row.";

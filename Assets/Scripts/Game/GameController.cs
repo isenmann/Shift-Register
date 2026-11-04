@@ -123,8 +123,12 @@ namespace ShiftRegister.Game
             CustomLevels = CustomLevelStore.Load();
             ApplySettings();
             foreach (var (c, l, file) in catalog.AllLevels())
+            {
                 if (file != null)
+                {
                     levels.Add(new LevelEntry { Chapter = c, Index = l, Order = levels.Count, Data = LevelJson.Parse(file) });
+                }
+            }
         }
 
         /// <summary>Changes, saves and applies the options.</summary>
@@ -139,7 +143,10 @@ namespace ShiftRegister.Game
         void ApplySettings()
         {
             AudioListener.volume = Settings.EffectiveVolume;
-            if (boardView != null) boardView.Animate = !Settings.reducedMotion;
+            if (boardView != null)
+            {
+                boardView.Animate = !Settings.reducedMotion;
+            }
         }
 
         /// <summary>Loads the inspector's test level (see <see cref="StartsInLevel"/>).</summary>
@@ -150,9 +157,17 @@ namespace ShiftRegister.Game
         public bool IsUnlocked(int chapter, int level)
         {
             var entry = Entry(chapter, level);
-            if (entry == null) return false;
+            if (entry == null)
+            {
+                return false;
+            }
+
             var solved = new List<bool>(levels.Count);
-            foreach (var e in levels) solved.Add(Progress.IsSolved(e.Data.id));
+            foreach (var e in levels)
+            {
+                solved.Add(Progress.IsSolved(e.Data.id));
+            }
+
             return Unlocks.IsUnlocked(solved, entry.Order);
         }
 
@@ -160,9 +175,19 @@ namespace ShiftRegister.Game
         public (int chapter, int level) ResumeTarget()
         {
             var last = levels.Find(e => e.Data.id == Progress.lastLevelId);
-            if (last != null) return (last.Chapter, last.Index);
+            if (last != null)
+            {
+                return (last.Chapter, last.Index);
+            }
+
             foreach (var e in levels)
-                if (!Progress.IsSolved(e.Data.id) && IsUnlocked(e.Chapter, e.Index)) return (e.Chapter, e.Index);
+            {
+                if (!Progress.IsSolved(e.Data.id) && IsUnlocked(e.Chapter, e.Index))
+                {
+                    return (e.Chapter, e.Index);
+                }
+            }
+
             return levels.Count > 0 ? (levels[0].Chapter, levels[0].Index) : (0, 0);
         }
 
@@ -215,13 +240,18 @@ namespace ShiftRegister.Game
         /// <summary>Keeps the random level being played in MY LEVELS. False if it cannot, as the library is full.</summary>
         public bool SaveRandom()
         {
-            if (!IsRandom || RandomSaved) return false;
+            if (!IsRandom || RandomSaved)
+            {
+                return false;
+            }
+
             var saved = CustomLevels.SaveCopy(CustomEntry, DateTime.UtcNow.Ticks);
             if (saved == null)
             {
                 Blocked?.Invoke();
                 return false;
             }
+
             CustomLevelStore.Save(CustomLevels);
             CustomEntry = saved;
             Level.id = saved.level.id;
@@ -244,7 +274,11 @@ namespace ShiftRegister.Game
 
             PlaceBoard();
             boardView.Build(Board.Rules);
-            if (controls != null) controls.Build(Board.Rules);
+            if (controls != null)
+            {
+                controls.Build(Board.Rules);
+            }
+
             Refresh();
         }
 
@@ -262,7 +296,10 @@ namespace ShiftRegister.Game
         void OnOrientationChanged()
         {
             PlaceBoard();
-            if (Board != null && controls != null && !BoardLent) controls.Build(Board.Rules);
+            if (Board != null && controls != null && !BoardLent)
+            {
+                controls.Build(Board.Rules);
+            }
         }
 
         public bool NextLevel()
@@ -272,32 +309,51 @@ namespace ShiftRegister.Game
                 NextRandom?.Invoke();
                 return true;
             }
+
             if (IsCustom)
             {
                 LeaveCustom?.Invoke();
                 return true;
             }
-            if (!catalog.TryNext(ChapterIndex, LevelIndex, out int c, out int l)) return false;
+
+            if (!catalog.TryNext(ChapterIndex, LevelIndex, out int c, out int l))
+            {
+                return false;
+            }
+
             Load(c, l);
             return true;
         }
 
         public bool PreviousLevel()
         {
-            if (IsCustom) return false;
-            if (!catalog.TryPrevious(ChapterIndex, LevelIndex, out int c, out int l)) return false;
+            if (IsCustom)
+            {
+                return false;
+            }
+
+            if (!catalog.TryPrevious(ChapterIndex, LevelIndex, out int c, out int l))
+            {
+                return false;
+            }
+
             Load(c, l);
             return true;
         }
 
         public bool TryShift(Move move)
         {
-            if (Board == null) return false;
+            if (Board == null)
+            {
+                return false;
+            }
+
             if (!Board.TryMove(move, out var outcome))
             {
                 Blocked?.Invoke();
                 return false;
             }
+
             moveLog.Add(move);
 
             if (Board.IsSolved)
@@ -320,8 +376,12 @@ namespace ShiftRegister.Game
                     result = Progress != null && !previewing
                         ? Progress.Record(Level.id, Board.MoveCount, Level.par)
                         : new LevelResult(Board.MoveCount, Level.par, Scoring.Stars(Board.MoveCount, Level.par), true, 0);
-                    if (Progress != null && !previewing) ProgressStore.Save(Progress);
+                    if (Progress != null && !previewing)
+                    {
+                        ProgressStore.Save(Progress);
+                    }
                 }
+
                 LastResult = result;
                 Solved?.Invoke(result);
             }
@@ -335,28 +395,51 @@ namespace ShiftRegister.Game
         /// <summary>Shifts the line part under a cursor cell; false on a wall cell or a locked line.</summary>
         public bool TryShiftAt(int row, int column, Direction direction)
         {
-            if (Board == null) return false;
-            if (InputMapping.TryCursorMove(Board.Rules, row, column, direction, out var move)) return TryShift(move);
+            if (Board == null)
+            {
+                return false;
+            }
+
+            if (InputMapping.TryCursorMove(Board.Rules, row, column, direction, out var move))
+            {
+                return TryShift(move);
+            }
+
             Blocked?.Invoke();
             return false;
         }
 
         public void Undo()
         {
-            if (Board == null || !Board.Undo()) return;
-            if (moveLog.Count > 0) moveLog.RemoveAt(moveLog.Count - 1);
+            if (Board == null || !Board.Undo())
+            {
+                return;
+            }
+
+            if (moveLog.Count > 0)
+            {
+                moveLog.RemoveAt(moveLog.Count - 1);
+            }
+
             Refresh();
             Undone?.Invoke();
         }
 
         public void ResetLevel()
         {
-            if (Board == null) return;
+            if (Board == null)
+            {
+                return;
+            }
+
             bool moved = Board.MoveCount > 0;
             Board.Reset();
             moveLog.Clear();
             Refresh();
-            if (moved) Restarted?.Invoke();
+            if (moved)
+            {
+                Restarted?.Invoke();
+            }
         }
 
         void Refresh()

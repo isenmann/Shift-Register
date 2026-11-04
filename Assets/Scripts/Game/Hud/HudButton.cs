@@ -100,15 +100,23 @@ namespace ShiftRegister.Game.Hud
                 Sfx.Play(Sound.Blocked);
                 return;
             }
+
             Sfx.Play(Sound.Click);
             onClick?.Invoke();
         }
 
         void SetHot(bool hot)
         {
-            if (fill == null) return;
+            if (fill == null)
+            {
+                return;
+            }
+
             Paint(hot);
-            foreach (var icon in icons) icon.color = label.color;
+            foreach (var icon in icons)
+            {
+                icon.color = label.color;
+            }
         }
 
         void Paint(bool hot)
@@ -120,6 +128,7 @@ namespace ShiftRegister.Game.Hud
                 label.color = Lcd.Text3;
                 return;
             }
+
             frame.color = ink;
             if (selected)
             {
@@ -128,6 +137,7 @@ namespace ShiftRegister.Game.Hud
                 label.color = paper;
                 return;
             }
+
             if (solid)
             {
                 fill.enabled = true;
@@ -135,6 +145,7 @@ namespace ShiftRegister.Game.Hud
                 label.color = paper;
                 return;
             }
+
             fill.enabled = hot;
             label.color = hot ? paper : ink;
         }

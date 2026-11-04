@@ -51,14 +51,31 @@ namespace ShiftRegister.Game.View
             var data = rules.Data;
 
             foreach (var g in data.gates ?? System.Array.Empty<RowGate>())
+            {
                 for (int c = 0; c < BoardBits.Size; c++)
+                {
                     if ((g.mask & (0x80 >> c)) != 0 && overlays[g.row, c] == null)
+                    {
                         overlays[g.row, c] = CreateOverlay(g.row, c, GateSymbol(g.op), 0);
+                    }
+                }
+            }
 
             foreach (int r in data.fillLeftRows ?? System.Array.Empty<int>())
-                if (overlays[r, 0] == null) overlays[r, 0] = CreateOverlay(r, 0, "1›", -1);
+            {
+                if (overlays[r, 0] == null)
+                {
+                    overlays[r, 0] = CreateOverlay(r, 0, "1›", -1);
+                }
+            }
+
             foreach (int r in data.fillRightRows ?? System.Array.Empty<int>())
-                if (overlays[r, BoardBits.Size - 1] == null) overlays[r, BoardBits.Size - 1] = CreateOverlay(r, BoardBits.Size - 1, "‹1", 1);
+            {
+                if (overlays[r, BoardBits.Size - 1] == null)
+                {
+                    overlays[r, BoardBits.Size - 1] = CreateOverlay(r, BoardBits.Size - 1, "‹1", 1);
+                }
+            }
         }
 
         /// <param name="barSide">-1 bar on the left edge, 1 on the right, 0 none (a gate). The tab sits in
@@ -91,10 +108,24 @@ namespace ShiftRegister.Game.View
             // '~' are bigger to read as heavy as '&', '|' is smaller to keep clear of the tab's edges, and
             // '^' drops a little because its mesh centre sits above its visible middle.
             float size = 3.9f, drop = 0f;
-            if (symbol == "~") size = 5.4f;
-            else if (symbol == "^") { size = 4.8f; drop = 1.5f; }
-            else if (symbol == "|") size = 3.3f;
-            else if (symbol.Length > 1) size = 3.2f; // "1›" / "‹1" need two glyphs' width
+            if (symbol == "~")
+            {
+                size = 5.4f;
+            }
+            else if (symbol == "^")
+            {
+                size = 4.8f;
+                drop = 1.5f;
+            }
+            else if (symbol == "|")
+            {
+                size = 3.3f;
+            }
+            else if (symbol.Length > 1)
+            {
+                size = 3.2f; // "1›" / "‹1" need two glyphs' width
+            }
+
             var t = CreateSymbol(root, symbol, size, TextAlignmentOptions.CenterGeoAligned);
             t.rectTransform.sizeDelta = new Vector2(TabW, TabH) / CellPx;
             t.transform.localPosition = centre + new Vector3(0f, -drop / CellPx, 0f);
@@ -108,7 +139,11 @@ namespace ShiftRegister.Game.View
             var go = new GameObject("Gate Symbol");
             go.transform.SetParent(root, false);
             var t = go.AddComponent<TextMeshPro>();
-            if (symbolFont != null) t.font = symbolFont;
+            if (symbolFont != null)
+            {
+                t.font = symbolFont;
+            }
+
             t.text = text;
             t.fontSize = size;
             t.fontStyle = FontStyles.Bold;
@@ -120,19 +155,33 @@ namespace ShiftRegister.Game.View
 
         void UpdateOverlays(ulong bits)
         {
-            if (overlays == null) return;
-            for (int r = 0; r < BoardBits.Size; r++)
-            for (int c = 0; c < BoardBits.Size; c++)
+            if (overlays == null)
             {
-                var o = overlays[r, c];
-                if (o == null) continue;
-                bool bit = BoardBits.GetCell(bits, r, c);
-                Color ink = bit ? Lcd.Light : Lcd.Ink;
-                // The frame marks only empty cells; the tab flips so it reads on a bit too.
-                o.Frame.enabled = !bit;
-                o.Tab.color = ink;
-                if (o.Bar != null) o.Bar.color = ink;
-                o.Symbol.color = bit ? Lcd.Ink : Lcd.Light;
+                return;
+            }
+
+            for (int r = 0; r < BoardBits.Size; r++)
+            {
+                for (int c = 0; c < BoardBits.Size; c++)
+                {
+                    var o = overlays[r, c];
+                    if (o == null)
+                    {
+                        continue;
+                    }
+
+                    bool bit = BoardBits.GetCell(bits, r, c);
+                    Color ink = bit ? Lcd.Light : Lcd.Ink;
+                    // The frame marks only empty cells; the tab flips so it reads on a bit too.
+                    o.Frame.enabled = !bit;
+                    o.Tab.color = ink;
+                    if (o.Bar != null)
+                    {
+                        o.Bar.color = ink;
+                    }
+
+                    o.Symbol.color = bit ? Lcd.Ink : Lcd.Light;
+                }
             }
         }
     }

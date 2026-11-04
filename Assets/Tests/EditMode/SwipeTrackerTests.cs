@@ -39,7 +39,11 @@ namespace ShiftRegister.Tests
         {
             Started(out var t);
             int shifts = 0;
-            while (t.Step(new Vector2(0f, 2.5f)) == Direction.Up) shifts++;
+            while (t.Step(new Vector2(0f, 2.5f)) == Direction.Up)
+            {
+                shifts++;
+            }
+
             Assert.That(shifts, Is.EqualTo(3), "0.4, 1.4 and 2.4 are crossed");
         }
 

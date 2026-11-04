@@ -87,7 +87,11 @@ namespace ShiftRegister.Game.Hud
         public static void RenderWithMainCamera(Canvas canvas, int order)
         {
             var cam = Camera.main;
-            if (canvas == null || cam == null) return;
+            if (canvas == null || cam == null)
+            {
+                return;
+            }
+
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = cam;
             canvas.planeDistance = 5f;
@@ -109,7 +113,11 @@ namespace ShiftRegister.Game.Hud
         {
             get
             {
-                if (Time.frameCount - typingEndedFrame <= TypingGraceFrames) return true;
+                if (Time.frameCount - typingEndedFrame <= TypingGraceFrames)
+                {
+                    return true;
+                }
+
                 var selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
                 return selected != null && selected.TryGetComponent<TMP_InputField>(out var field) && field.isFocused;
             }

@@ -12,7 +12,11 @@ namespace ShiftRegister.Core
         {
             public readonly ulong Bits;
             public readonly int Lost;
-            public Snapshot(ulong bits, int lost) { Bits = bits; Lost = lost; }
+            public Snapshot(ulong bits, int lost)
+            {
+                Bits = bits;
+                Lost = lost;
+            }
         }
 
         readonly List<Snapshot> history = new List<Snapshot>();
@@ -48,6 +52,7 @@ namespace ShiftRegister.Core
                 outcome = default;
                 return false;
             }
+
             history.Add(new Snapshot(Bits, Lost));
             Bits = outcome.After;
             Lost += outcome.LostCount;
@@ -56,7 +61,11 @@ namespace ShiftRegister.Core
 
         public bool Undo()
         {
-            if (history.Count == 0) return false;
+            if (history.Count == 0)
+            {
+                return false;
+            }
+
             var s = history[history.Count - 1];
             history.RemoveAt(history.Count - 1);
             Bits = s.Bits;

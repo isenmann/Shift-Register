@@ -43,7 +43,11 @@ namespace ShiftRegister.Game.Audio
         public static float[] Render(params Note[] notes)
         {
             float length = 0f;
-            foreach (var n in notes) length = Math.Max(length, n.Start + n.Duration);
+            foreach (var n in notes)
+            {
+                length = Math.Max(length, n.Start + n.Duration);
+            }
+
             var samples = new float[Math.Max(1, (int)Math.Ceiling(length * SampleRate))];
 
             uint noise = 0x9E3779B9u;
@@ -59,7 +63,10 @@ namespace ShiftRegister.Game.Audio
                     float u = t / n.Duration;
                     // Exponential glide sounds even across octaves.
                     float hz = n.FromHz * (float)Math.Pow(n.ToHz / n.FromHz, u);
-                    if (n.Vibrato > 0f) hz *= 1f + n.Vibrato * (float)Math.Sin(2.0 * Math.PI * n.VibratoHz * t);
+                    if (n.Vibrato > 0f)
+                    {
+                        hz *= 1f + n.Vibrato * (float)Math.Sin(2.0 * Math.PI * n.VibratoHz * t);
+                    }
 
                     double before = phase;
                     phase += hz / SampleRate;
@@ -78,9 +85,12 @@ namespace ShiftRegister.Game.Audio
                             // Sample-and-hold noise: a new random value every cycle, so the pitch colours it.
                             if (phase < before)
                             {
-                                noise ^= noise << 13; noise ^= noise >> 17; noise ^= noise << 5;
+                                noise ^= noise << 13;
+                                noise ^= noise >> 17;
+                                noise ^= noise << 5;
                                 noiseValue = (noise & 0xFFFF) / 32767.5f - 1f;
                             }
+
                             v = noiseValue;
                             break;
                     }
@@ -97,7 +107,11 @@ namespace ShiftRegister.Game.Audio
         /// <summary>Quick attack, exponential decay, and a short fade so every note ends at zero.</summary>
         public static float Envelope(float t, float duration)
         {
-            if (t < 0f || t >= duration) return 0f;
+            if (t < 0f || t >= duration)
+            {
+                return 0f;
+            }
+
             float attack = Math.Min(1f, t / Attack);
             float decay = (float)Math.Exp(-3.0 * t / duration);
             float release = Math.Min(1f, (duration - t) / 0.01f);
@@ -119,10 +133,21 @@ namespace ShiftRegister.Game.Audio
         static void Normalize(float[] samples)
         {
             float max = 0f;
-            foreach (float s in samples) max = Math.Max(max, Math.Abs(s));
-            if (max <= 0f) return;
+            foreach (float s in samples)
+            {
+                max = Math.Max(max, Math.Abs(s));
+            }
+
+            if (max <= 0f)
+            {
+                return;
+            }
+
             float k = Peak / max;
-            for (int i = 0; i < samples.Length; i++) samples[i] *= k;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                samples[i] *= k;
+            }
         }
     }
 }

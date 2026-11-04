@@ -33,7 +33,10 @@ namespace ShiftRegister.Core
             int bit = 7 - column;
             int value = 0;
             for (int r = 0; r < Size; r++)
+            {
                 value |= (int)((board >> (r * 8 + bit)) & 1UL) << (7 - r);
+            }
+
             return (byte)value;
         }
 
@@ -43,9 +46,16 @@ namespace ShiftRegister.Core
             for (int r = 0; r < Size; r++)
             {
                 ulong mask = 1UL << (r * 8 + bit);
-                if (((value >> (7 - r)) & 1) != 0) board |= mask;
-                else board &= ~mask;
+                if (((value >> (7 - r)) & 1) != 0)
+                {
+                    board |= mask;
+                }
+                else
+                {
+                    board &= ~mask;
+                }
             }
+
             return board;
         }
 
@@ -55,16 +65,27 @@ namespace ShiftRegister.Core
         public static ulong FromRows(IReadOnlyList<int> rows)
         {
             ulong board = 0;
-            if (rows == null) return board;
+            if (rows == null)
+            {
+                return board;
+            }
+
             for (int r = 0; r < Size && r < rows.Count; r++)
+            {
                 board = SetRow(board, r, (byte)rows[r]);
+            }
+
             return board;
         }
 
         public static int[] ToRows(ulong board)
         {
             var rows = new int[Size];
-            for (int r = 0; r < Size; r++) rows[r] = GetRow(board, r);
+            for (int r = 0; r < Size; r++)
+            {
+                rows[r] = GetRow(board, r);
+            }
+
             return rows;
         }
 
@@ -79,7 +100,11 @@ namespace ShiftRegister.Core
         public static string ToBinary(byte value)
         {
             var chars = new char[8];
-            for (int i = 0; i < 8; i++) chars[i] = ((value >> (7 - i)) & 1) != 0 ? '1' : '0';
+            for (int i = 0; i < 8; i++)
+            {
+                chars[i] = ((value >> (7 - i)) & 1) != 0 ? '1' : '0';
+            }
+
             return new string(chars);
         }
 
@@ -89,9 +114,17 @@ namespace ShiftRegister.Core
             var sb = new System.Text.StringBuilder(Size * (Size + 1));
             for (int r = 0; r < Size; r++)
             {
-                for (int c = 0; c < Size; c++) sb.Append(GetCell(board, r, c) ? '#' : '.');
-                if (r < Size - 1) sb.Append('\n');
+                for (int c = 0; c < Size; c++)
+                {
+                    sb.Append(GetCell(board, r, c) ? '#' : '.');
+                }
+
+                if (r < Size - 1)
+                {
+                    sb.Append('\n');
+                }
             }
+
             return sb.ToString();
         }
     }

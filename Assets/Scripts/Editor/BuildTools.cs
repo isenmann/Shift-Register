@@ -32,14 +32,20 @@ namespace ShiftRegister.Editor
             // Smallest download for the web build. This setting lives in Library/, not in the
             // project settings, so set it here for every machine.
             if (target == BuildTarget.WebGL)
+            {
                 UnityEditor.WebGL.UserBuildSettings.codeOptimization = UnityEditor.WebGL.WasmCodeOptimization.DiskSizeLTO;
+            }
             // Web-only engine types (WebGLInput) are missing from the scripts' references while another
             // target is active, so a web build right after an Android build would not compile.
             if (target == BuildTarget.WebGL && EditorUserBuildSettings.activeBuildTarget != BuildTarget.WebGL)
+            {
                 EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.WebGL, BuildTarget.WebGL);
+            }
             // An APK installs directly; an app bundle (.aab) only goes through the Play Store.
             if (target == BuildTarget.Android)
+            {
                 EditorUserBuildSettings.buildAppBundle = false;
+            }
 
             var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
             if (scenes.Length == 0)
@@ -61,8 +67,15 @@ namespace ShiftRegister.Editor
             string where = Path.GetFullPath(target == BuildTarget.WebGL ? path : Path.GetDirectoryName(path));
             string line = $"{target} build {s.result}: {s.totalSize / (1024f * 1024f):F1} MB in {s.totalTime.TotalSeconds:F0} s, " +
                           $"{s.totalErrors} errors, {s.totalWarnings} warnings → {where}";
-            if (s.result == BuildResult.Succeeded) Debug.Log(line);
-            else Debug.LogError(line);
+            if (s.result == BuildResult.Succeeded)
+            {
+                Debug.Log(line);
+            }
+            else
+            {
+                Debug.LogError(line);
+            }
+
             return report;
         }
     }

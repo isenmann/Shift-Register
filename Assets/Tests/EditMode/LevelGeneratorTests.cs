@@ -123,7 +123,10 @@ namespace ShiftRegister.Tests
         public void SlicedJob_GivesTheSameLevelAsOneGo([ValueSource(nameof(All))] RandomDifficulty difficulty)
         {
             var job = LevelGenerator.Begin(difficulty, 3);
-            while (!job.Step(500)) { }
+            while (!job.Step(500))
+            {
+            }
+
             Assert.That(job.IsDone, Is.True);
             Assert.That(job.Result, Is.Not.Null);
 

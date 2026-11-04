@@ -56,19 +56,35 @@ namespace ShiftRegister.Core
 
         static readonly Tier Easy = new Tier
         {
-            Name = "EASY", Scramble = 5, ParMin = 3, ParMax = 5, StampsMin = 3, StampsMax = 4,
+            Name = "EASY",
+            Scramble = 5,
+            ParMin = 3,
+            ParMax = 5,
+            StampsMin = 3,
+            StampsMax = 4,
             Mixes = new[] { Mechanic.None }
         };
 
         static readonly Tier Medium = new Tier
         {
-            Name = "MEDIUM", Scramble = 7, ParMin = 5, ParMax = 7, StampsMin = 3, StampsMax = 5,
+            Name = "MEDIUM",
+            Scramble = 7,
+            ParMin = 5,
+            ParMax = 7,
+            StampsMin = 3,
+            StampsMax = 5,
             Mixes = new[] { Mechanic.Walls, Mechanic.Rotate, Mechanic.Walls | Mechanic.Rotate, Mechanic.Pin | Mechanic.Walls, Mechanic.Pin | Mechanic.Rotate }
         };
 
         static readonly Tier Hard = new Tier
         {
-            Name = "HARD", Scramble = 11, ParMin = 8, ParMax = 11, StampsMin = 4, StampsMax = 6, AcceptUnsearched = true,
+            Name = "HARD",
+            Scramble = 11,
+            ParMin = 8,
+            ParMax = 11,
+            StampsMin = 4,
+            StampsMax = 6,
+            AcceptUnsearched = true,
             Mixes = new[] { Mechanic.Chain, Mechanic.Chain | Mechanic.Walls, Mechanic.Chain | Mechanic.Rotate, Mechanic.Walls | Mechanic.Rotate, Mechanic.Pin | Mechanic.Walls | Mechanic.Rotate }
         };
 
@@ -76,10 +92,14 @@ namespace ShiftRegister.Core
         {
             switch (difficulty)
             {
-                case RandomDifficulty.Easy: return Easy;
-                case RandomDifficulty.Medium: return Medium;
-                case RandomDifficulty.Hard: return Hard;
-                default: throw new ArgumentOutOfRangeException(nameof(difficulty));
+                case RandomDifficulty.Easy:
+                    return Easy;
+                case RandomDifficulty.Medium:
+                    return Medium;
+                case RandomDifficulty.Hard:
+                    return Hard;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(difficulty));
             }
         }
 
@@ -93,7 +113,10 @@ namespace ShiftRegister.Core
         public static GeneratedLevel Generate(RandomDifficulty difficulty, int seed)
         {
             var job = Begin(difficulty, seed);
-            while (!job.Step(int.MaxValue)) { }
+            while (!job.Step(int.MaxValue))
+            {
+            }
+
             return job.Result;
         }
 
@@ -125,7 +148,11 @@ namespace ShiftRegister.Core
             /// <summary>Expands up to <paramref name="maxNodes"/> search states. Returns true once the job is done.</summary>
             public bool Step(int maxNodes)
             {
-                if (IsDone) return true;
+                if (IsDone)
+                {
+                    return true;
+                }
+
                 while (search == null)
                 {
                     if (Attempts >= MaxAttempts)
@@ -133,10 +160,15 @@ namespace ShiftRegister.Core
                         IsDone = true;
                         return true;
                     }
+
                     NextCandidate();
                 }
 
-                if (!search.Step(maxNodes)) return false;
+                if (!search.Step(maxNodes))
+                {
+                    return false;
+                }
+
                 Judge(search.Result);
                 search = null;
                 return IsDone;
@@ -148,17 +180,31 @@ namespace ShiftRegister.Core
                 Attempts++;
                 mix = tier.Mixes[rng.Next(tier.Mixes.Length)];
                 candidate = BuildRules(rng, tier, mix);
-                if (candidate == null) return;
+                if (candidate == null)
+                {
+                    return;
+                }
 
                 // The rules are fixed now, only the start is still the target.
                 rules = LevelRules.Compile(candidate);
                 scrambleSolution = Scramble(rules, rng, tier.Scramble, out ulong start);
-                if (scrambleSolution == null) return;
+                if (scrambleSolution == null)
+                {
+                    return;
+                }
+
                 candidate.start = BoardBits.ToRows(start);
-                if (LevelEdit.AuthoredErrors(candidate).Count > 0) return;
+                if (LevelEdit.AuthoredErrors(candidate).Count > 0)
+                {
+                    return;
+                }
 
                 rules = LevelRules.Compile(candidate);
-                if (!UsesEverything(rules, scrambleSolution, mix)) return;
+                if (!UsesEverything(rules, scrambleSolution, mix))
+                {
+                    return;
+                }
+
                 search = Solver.Begin(rules, MaxStates, tier.Scramble);
             }
 
@@ -166,8 +212,16 @@ namespace ShiftRegister.Core
             {
                 if (found.Status == SolveStatus.Solved)
                 {
-                    if (found.Par < tier.ParMin || found.Par > tier.ParMax) return;
-                    if (!UsesEverything(rules, found.Solution, mix)) return;
+                    if (found.Par < tier.ParMin || found.Par > tier.ParMax)
+                    {
+                        return;
+                    }
+
+                    if (!UsesEverything(rules, found.Solution, mix))
+                    {
+                        return;
+                    }
+
                     Finish(found.Solution, LevelProof.Searched);
                 }
                 else if (found.Status == SolveStatus.LimitReached && tier.AcceptUnsearched && Solver.Replays(rules, scrambleSolution))
@@ -215,16 +269,33 @@ namespace ShiftRegister.Core
                 int wanted = rng.Next(1, 3);
                 foreach (int r in ShuffledRows(rng))
                 {
-                    if (rotate.Count == wanted) break;
-                    if (taken[r]) continue;
+                    if (rotate.Count == wanted)
+                    {
+                        break;
+                    }
+
+                    if (taken[r])
+                    {
+                        continue;
+                    }
+
                     taken[r] = true;
                     rotate.Add(r);
                 }
+
                 d.rotateRows = rotate.ToArray();
             }
 
-            if ((mix & Mechanic.Pin) != 0 && !PlacePin(d, rng, taken)) return null;
-            if ((mix & Mechanic.Walls) != 0 && !PlaceWalls(d, rng, symmetry, taken)) return null;
+            if ((mix & Mechanic.Pin) != 0 && !PlacePin(d, rng, taken))
+            {
+                return null;
+            }
+
+            if ((mix & Mechanic.Walls) != 0 && !PlaceWalls(d, rng, symmetry, taken))
+            {
+                return null;
+            }
+
             return LevelEdit.AuthoredErrors(d).Count == 0 ? d : null;
         }
 
@@ -261,8 +332,12 @@ namespace ShiftRegister.Core
                 int r = rng.Next(BoardBits.Size - (across ? 0 : length - 1));
                 int c = rng.Next(BoardBits.Size - (across ? length - 1 : 0));
                 for (int k = 0; k < length; k++)
+                {
                     foreach (var (ir, ic) in Images(symmetry, across ? r : r + k, across ? c + k : c))
+                    {
                         rows[ir] |= 0x80 >> ic;
+                    }
+                }
             }
         }
 
@@ -270,17 +345,26 @@ namespace ShiftRegister.Core
         {
             foreach (int r in ShuffledRows(rng))
             {
-                if (taken[r] || d.target[r] == 0) continue;
+                if (taken[r] || d.target[r] == 0)
+                {
+                    continue;
+                }
+
                 int c = rng.Next(BoardBits.Size);
                 for (int k = 0; k < BoardBits.Size; k++, c = (c + 1) % BoardBits.Size)
                 {
                     int bit = 0x80 >> c;
-                    if ((d.target[r] & bit) == 0) continue;
+                    if ((d.target[r] & bit) == 0)
+                    {
+                        continue;
+                    }
+
                     d.pins[r] |= bit;
                     taken[r] = true;
                     return true;
                 }
             }
+
             return false;
         }
 
@@ -293,24 +377,43 @@ namespace ShiftRegister.Core
                 int r = rng.Next(BoardBits.Size), c = rng.Next(BoardBits.Size);
                 bool fits = true;
                 foreach (var (ir, ic) in Images(symmetry, r, c))
-                    if (taken[ir] || (d.target[ir] & (0x80 >> ic)) != 0) fits = false;
-                if (!fits) continue;
+                {
+                    if (taken[ir] || (d.target[ir] & (0x80 >> ic)) != 0)
+                    {
+                        fits = false;
+                    }
+                }
+
+                if (!fits)
+                {
+                    continue;
+                }
+
                 foreach (var (ir, ic) in Images(symmetry, r, c))
+                {
                     d.walls[ir] |= 0x80 >> ic;
+                }
+
                 placed++;
             }
+
             return placed > 0;
         }
 
         static int[] ShuffledRows(Random rng)
         {
             var rows = new int[BoardBits.Size];
-            for (int i = 0; i < rows.Length; i++) rows[i] = i;
+            for (int i = 0; i < rows.Length; i++)
+            {
+                rows[i] = i;
+            }
+
             for (int i = rows.Length - 1; i > 0; i--)
             {
                 int j = rng.Next(i + 1);
                 (rows[i], rows[j]) = (rows[j], rows[i]);
             }
+
             return rows;
         }
 
@@ -325,17 +428,29 @@ namespace ShiftRegister.Core
             board = rules.Target;
             var moves = rules.Moves;
             var undo = new List<Move>(count);
-            if (moves.Count == 0) return null;
+            if (moves.Count == 0)
+            {
+                return null;
+            }
 
             var seen = new HashSet<ulong> { board };
             for (int guard = 0; undo.Count < count && guard < count * 50; guard++)
             {
                 var m = moves[rng.Next(moves.Count)];
-                if (!rules.TryApply(board, m, out var o) || o.LostCount > 0 || !seen.Add(o.After)) continue;
+                if (!rules.TryApply(board, m, out var o) || o.LostCount > 0 || !seen.Add(o.After))
+                {
+                    continue;
+                }
+
                 board = o.After;
                 undo.Add(Opposite(m));
             }
-            if (undo.Count < count) return null;
+
+            if (undo.Count < count)
+            {
+                return null;
+            }
+
             undo.Reverse();
             return undo;
         }
@@ -345,11 +460,20 @@ namespace ShiftRegister.Core
             Direction back;
             switch (m.Direction)
             {
-                case Direction.Left: back = Direction.Right; break;
-                case Direction.Right: back = Direction.Left; break;
-                case Direction.Up: back = Direction.Down; break;
-                default: back = Direction.Up; break;
+                case Direction.Left:
+                    back = Direction.Right;
+                    break;
+                case Direction.Right:
+                    back = Direction.Left;
+                    break;
+                case Direction.Up:
+                    back = Direction.Down;
+                    break;
+                default:
+                    back = Direction.Up;
+                    break;
             }
+
             return new Move(back, m.Line, m.Segment);
         }
 
@@ -362,22 +486,39 @@ namespace ShiftRegister.Core
             ulong board = rules.Start;
             foreach (var m in solution)
             {
-                if (!rules.TryApply(board, m, out var o)) return false;
-                if (rules.SegmentCount(m.Axis, m.Line) > 1) split = true;
+                if (!rules.TryApply(board, m, out var o))
+                {
+                    return false;
+                }
+
+                if (rules.SegmentCount(m.Axis, m.Line) > 1)
+                {
+                    split = true;
+                }
+
                 if (m.Axis == Axis.Row)
                 {
                     int row = BoardBits.GetRow(board, m.Line);
                     // Rotating rows have no walls here, so the bit that wraps is the one at the row's edge.
-                    if (rules.IsRotating(m.Line) && (row & (m.TowardStart ? 0x80 : 0x01)) != 0) wrap = true;
+                    if (rules.IsRotating(m.Line) && (row & (m.TowardStart ? 0x80 : 0x01)) != 0)
+                    {
+                        wrap = true;
+                    }
+
                     int top = rules.ChainTopOf(m.Line);
                     if (top >= 0)
                     {
                         int crossing = m.TowardStart ? BoardBits.GetRow(board, top + 1) & 0x80 : BoardBits.GetRow(board, top) & 0x01;
-                        if (crossing != 0) carry = true;
+                        if (crossing != 0)
+                        {
+                            carry = true;
+                        }
                     }
                 }
+
                 board = o.After;
             }
+
             return ((mix & Mechanic.Walls) == 0 || split)
                 && ((mix & Mechanic.Rotate) == 0 || wrap)
                 && ((mix & Mechanic.Chain) == 0 || carry);

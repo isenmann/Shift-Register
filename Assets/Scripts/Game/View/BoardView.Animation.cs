@@ -40,7 +40,11 @@ namespace ShiftRegister.Game.View
 
             public Slide(Floater f, Vector2 from, Vector2 to, float alphaFrom = 1f, float alphaTo = 1f)
             {
-                F = f; From = from; To = to; AlphaFrom = alphaFrom; AlphaTo = alphaTo;
+                F = f;
+                From = from;
+                To = to;
+                AlphaFrom = alphaFrom;
+                AlphaTo = alphaTo;
             }
         }
 
@@ -57,7 +61,10 @@ namespace ShiftRegister.Game.View
             set
             {
                 animate = value;
-                if (!value) StopAnimation();
+                if (!value)
+                {
+                    StopAnimation();
+                }
             }
         }
 
@@ -84,25 +91,42 @@ namespace ShiftRegister.Game.View
             if (!animate || !Application.isPlaying || !isActiveAndEnabled || cells == null)
             {
                 ShowNow(outcome.After, outcome.After);
-                if (outcome.After != outcome.AfterShift) GatesSwitched?.Invoke(outcome);
+                if (outcome.After != outcome.AfterShift)
+                {
+                    GatesSwitched?.Invoke(outcome);
+                }
+
                 Reacted?.Invoke(outcome, solved, broken);
                 Settled?.Invoke();
                 return;
             }
+
             busy = true;
             StartCoroutine(Run(outcome, solved, broken));
         }
 
         void StopAnimation()
         {
-            if (!busy && !hopping && live.Count == 0) return;
+            if (!busy && !hopping && live.Count == 0)
+            {
+                return;
+            }
+
             StopAllCoroutines();
-            foreach (var f in live) f.T.gameObject.SetActive(false);
+            foreach (var f in live)
+            {
+                f.T.gameObject.SetActive(false);
+            }
+
             pool.AddRange(live);
             live.Clear();
             flights = 0;
             hopping = false;
-            if (cellsRoot != null) cellsRoot.localPosition = Vector3.zero;
+            if (cellsRoot != null)
+            {
+                cellsRoot.localPosition = Vector3.zero;
+            }
+
             ShowNow(settledBits, settledBits);
             if (busy)
             {
@@ -114,7 +138,10 @@ namespace ShiftRegister.Game.View
         void OnDisable()
         {
             // Coroutines die with the object; finish the animation so the board is never left half-way.
-            if (busy || hopping || live.Count > 0) StopAnimation();
+            if (busy || hopping || live.Count > 0)
+            {
+                StopAnimation();
+            }
         }
 
         /// <summary>Called by Build: the old cells (and floaters under them) are about to be destroyed.</summary>
@@ -138,28 +165,35 @@ namespace ShiftRegister.Game.View
             var slides = new List<Slide>();
             ulong arrived = 0;
             for (int r = 0; r < BoardBits.Size; r++)
-            for (int c = 0; c < BoardBits.Size; c++)
             {
-                if (!BoardBits.GetCell(moving, r, c)) continue;
-                Vector2 p = CellCenter(r, c);
-                if ((o.LostCells & BoardBits.CellMask(r, c)) != 0)
+                for (int c = 0; c < BoardBits.Size; c++)
                 {
-                    StartCoroutine(FlyToBucket(Spawn(p), p, p + step));
-                    continue;
-                }
-                var (r2, c2, wrap) = Destination(m, r, c);
-                arrived |= BoardBits.CellMask(r2, c2);
-                Vector2 q = CellCenter(r2, c2);
-                if (!wrap)
-                {
-                    slides.Add(new Slide(Spawn(p), p, q));
-                }
-                else
-                {
-                    // Wrap (rotate) or carry into the chained row: slide out, slide back in at the destination.
-                    Vector2 outside = q - step * 0.6f;
-                    slides.Add(new Slide(Spawn(p), p, p + step * 0.6f, 1f, 0f));
-                    slides.Add(new Slide(Spawn(outside), outside, q, 0f, 1f));
+                    if (!BoardBits.GetCell(moving, r, c))
+                    {
+                        continue;
+                    }
+
+                    Vector2 p = CellCenter(r, c);
+                    if ((o.LostCells & BoardBits.CellMask(r, c)) != 0)
+                    {
+                        StartCoroutine(FlyToBucket(Spawn(p), p, p + step));
+                        continue;
+                    }
+
+                    var (r2, c2, wrap) = Destination(m, r, c);
+                    arrived |= BoardBits.CellMask(r2, c2);
+                    Vector2 q = CellCenter(r2, c2);
+                    if (!wrap)
+                    {
+                        slides.Add(new Slide(Spawn(p), p, q));
+                    }
+                    else
+                    {
+                        // Wrap (rotate) or carry into the chained row: slide out, slide back in at the destination.
+                        Vector2 outside = q - step * 0.6f;
+                        slides.Add(new Slide(Spawn(p), p, p + step * 0.6f, 1f, 0f));
+                        slides.Add(new Slide(Spawn(outside), outside, q, 0f, 1f));
+                    }
                 }
             }
 
@@ -172,13 +206,19 @@ namespace ShiftRegister.Game.View
                     SetAlpha(s.F, Mathf.Lerp(s.AlphaFrom, s.AlphaTo, t));
                 }
             });
-            foreach (var s in slides) Release(s.F);
+            foreach (var s in slides)
+            {
+                Release(s.F);
+            }
 
             // Bits that came from nowhere (a 1-IN edge) pop in.
             ulong kept = o.Before & ~moving;
             ulong fresh = o.AfterShift & ~kept & ~arrived;
             ShowNow(o.AfterShift, o.After);
-            if (fresh != 0) yield return Pop(fresh, 0, gateTime);
+            if (fresh != 0)
+            {
+                yield return Pop(fresh, 0, gateTime);
+            }
 
             // 2. Gates: changed cells pop in or shrink away.
             ulong appear = o.After & ~o.AfterShift;
@@ -189,16 +229,27 @@ namespace ShiftRegister.Game.View
                 GatesSwitched?.Invoke(o);
                 yield return Pop(appear, vanish, gateTime);
             }
+
             ShowNow(o.After, o.After);
 
             // 3. Wait for lost bits to land, then react.
-            while (flights > 0) yield return null;
+            while (flights > 0)
+            {
+                yield return null;
+            }
+
             Reacted?.Invoke(o, solved, broken);
-            if (broken) yield return Shake(0.3f);
+            if (broken)
+            {
+                yield return Shake(0.3f);
+            }
 
             busy = false;
             Settled?.Invoke();
-            if (solved) StartCoroutine(Hop());
+            if (solved)
+            {
+                StartCoroutine(Hop());
+            }
         }
 
         /// <summary>Static bits in <paramref name="appear"/> grow in; floaters at <paramref name="vanish"/> shrink away.</summary>
@@ -206,21 +257,44 @@ namespace ShiftRegister.Game.View
         {
             var shrinking = new List<Floater>();
             for (int r = 0; r < BoardBits.Size; r++)
-            for (int c = 0; c < BoardBits.Size; c++)
             {
-                if (BoardBits.GetCell(vanish, r, c)) shrinking.Add(Spawn(CellCenter(r, c)));
-                if (BoardBits.GetCell(appear, r, c)) cells[r, c].Bit.transform.localScale = Vector3.zero;
+                for (int c = 0; c < BoardBits.Size; c++)
+                {
+                    if (BoardBits.GetCell(vanish, r, c))
+                    {
+                        shrinking.Add(Spawn(CellCenter(r, c)));
+                    }
+
+                    if (BoardBits.GetCell(appear, r, c))
+                    {
+                        cells[r, c].Bit.transform.localScale = Vector3.zero;
+                    }
+                }
             }
 
             yield return Tween(duration, t =>
             {
                 float grow = EaseOutBack(t);
                 for (int r = 0; r < BoardBits.Size; r++)
-                for (int c = 0; c < BoardBits.Size; c++)
-                    if (BoardBits.GetCell(appear, r, c)) cells[r, c].Bit.transform.localScale = Vector3.one * grow;
-                foreach (var f in shrinking) f.T.localScale = Vector3.one * (1f - EaseOutCubic(t));
+                {
+                    for (int c = 0; c < BoardBits.Size; c++)
+                    {
+                        if (BoardBits.GetCell(appear, r, c))
+                        {
+                            cells[r, c].Bit.transform.localScale = Vector3.one * grow;
+                        }
+                    }
+                }
+
+                foreach (var f in shrinking)
+                {
+                    f.T.localScale = Vector3.one * (1f - EaseOutCubic(t));
+                }
             });
-            foreach (var f in shrinking) Release(f);
+            foreach (var f in shrinking)
+            {
+                Release(f);
+            }
         }
 
         IEnumerator FlyToBucket(Floater f, Vector2 from, Vector2 edge)
@@ -260,15 +334,21 @@ namespace ShiftRegister.Game.View
             {
                 float time = t * total;
                 for (int r = 0; r < BoardBits.Size; r++)
-                for (int c = 0; c < BoardBits.Size; c++)
                 {
-                    var bit = cells[r, c].Bit;
-                    if (!bit.activeSelf) continue;
-                    float local = Mathf.Clamp01((time - c * stagger) / duration);
-                    float h = local < 0.5f
-                        ? Mathf.Sin(Mathf.PI * local / 0.5f) * 8f
-                        : Mathf.Sin(Mathf.PI * (local - 0.5f) / 0.5f) * 5f;
-                    bit.transform.localPosition = new Vector3(0f, h / CellPx, 0f);
+                    for (int c = 0; c < BoardBits.Size; c++)
+                    {
+                        var bit = cells[r, c].Bit;
+                        if (!bit.activeSelf)
+                        {
+                            continue;
+                        }
+
+                        float local = Mathf.Clamp01((time - c * stagger) / duration);
+                        float h = local < 0.5f
+                            ? Mathf.Sin(Mathf.PI * local / 0.5f) * 8f
+                            : Mathf.Sin(Mathf.PI * (local - 0.5f) / 0.5f) * 5f;
+                        bit.transform.localPosition = new Vector3(0f, h / CellPx, 0f);
+                    }
                 }
             });
             hopping = false;
@@ -281,13 +361,26 @@ namespace ShiftRegister.Game.View
             if (m.Axis == Axis.Row)
             {
                 int top = rules.ChainTopOf(m.Line);
-                if (top >= 0) return (0xFFUL << (top * 8)) | (0xFFUL << ((top + 1) * 8));
+                if (top >= 0)
+                {
+                    return (0xFFUL << (top * 8)) | (0xFFUL << ((top + 1) * 8));
+                }
+
                 var (first, last) = InputMapping.SegmentRange(rules, Axis.Row, m.Line, m.Segment);
-                for (int c = first; c <= last; c++) mask |= BoardBits.CellMask(m.Line, c);
+                for (int c = first; c <= last; c++)
+                {
+                    mask |= BoardBits.CellMask(m.Line, c);
+                }
+
                 return mask;
             }
+
             var (top2, bottom) = InputMapping.SegmentRange(rules, Axis.Column, m.Line, m.Segment);
-            for (int r = top2; r <= bottom; r++) mask |= BoardBits.CellMask(r, m.Line);
+            for (int r = top2; r <= bottom; r++)
+            {
+                mask |= BoardBits.CellMask(r, m.Line);
+            }
+
             return mask;
         }
 
@@ -302,21 +395,48 @@ namespace ShiftRegister.Game.View
                 {
                     int i = (r - top) * BoardBits.Size + c + d;
                     bool wrapped = false;
-                    if (i < 0) { i = 2 * BoardBits.Size - 1; wrapped = true; }
-                    else if (i >= 2 * BoardBits.Size) { i = 0; wrapped = true; }
+                    if (i < 0)
+                    {
+                        i = 2 * BoardBits.Size - 1;
+                        wrapped = true;
+                    }
+                    else if (i >= 2 * BoardBits.Size)
+                    {
+                        i = 0;
+                        wrapped = true;
+                    }
+
                     int nr = top + i / BoardBits.Size, nc = i % BoardBits.Size;
                     return (nr, nc, wrapped || nr != r);
                 }
+
                 var (first, last) = InputMapping.SegmentRange(rules, Axis.Row, r, m.Segment);
                 int n = c + d;
-                if (n < first) return (r, last, true);
-                if (n > last) return (r, first, true);
+                if (n < first)
+                {
+                    return (r, last, true);
+                }
+
+                if (n > last)
+                {
+                    return (r, first, true);
+                }
+
                 return (r, n, false);
             }
+
             var (top2, bottom) = InputMapping.SegmentRange(rules, Axis.Column, c, m.Segment);
             int nrow = r + d;
-            if (nrow < top2) return (bottom, c, true);
-            if (nrow > bottom) return (top2, c, true);
+            if (nrow < top2)
+            {
+                return (bottom, c, true);
+            }
+
+            if (nrow > bottom)
+            {
+                return (top2, c, true);
+            }
+
             return (nrow, c, false);
         }
 
@@ -340,6 +460,7 @@ namespace ShiftRegister.Game.View
             {
                 f = CreateFloater();
             }
+
             f.T.gameObject.SetActive(true);
             f.T.localPosition = localPosition;
             f.T.localScale = Vector3.one;
@@ -351,7 +472,11 @@ namespace ShiftRegister.Game.View
 
         void Release(Floater f)
         {
-            if (!live.Remove(f)) return;
+            if (!live.Remove(f))
+            {
+                return;
+            }
+
             f.T.gameObject.SetActive(false);
             pool.Add(f);
         }
@@ -384,23 +509,45 @@ namespace ShiftRegister.Game.View
             f.Eyes[1].transform.localPosition = f.FlatEyes[1].transform.localPosition = new Vector2(EyeX, EyeY) / CellPx;
             f.FlatEyes[0].transform.localPosition += new Vector3(0f, -1.5f / CellPx, 0f);
             f.FlatEyes[1].transform.localPosition += new Vector3(0f, -1.5f / CellPx, 0f);
-            foreach (var e in f.Eyes) e.sortingOrder = FloatEyesOrder;
-            foreach (var e in f.FlatEyes) e.sortingOrder = FloatEyesOrder;
+            foreach (var e in f.Eyes)
+            {
+                e.sortingOrder = FloatEyesOrder;
+            }
+
+            foreach (var e in f.FlatEyes)
+            {
+                e.sortingOrder = FloatEyesOrder;
+            }
+
             return f;
         }
 
         static void SetLost(Floater f, bool lost)
         {
             f.Body.color = WithAlpha(lost ? Lcd.Loss : Lcd.Ink, f.Body.color.a);
-            foreach (var e in f.Eyes) e.enabled = !lost;
-            foreach (var e in f.FlatEyes) e.enabled = lost;
+            foreach (var e in f.Eyes)
+            {
+                e.enabled = !lost;
+            }
+
+            foreach (var e in f.FlatEyes)
+            {
+                e.enabled = lost;
+            }
         }
 
         static void SetAlpha(Floater f, float a)
         {
             f.Body.color = WithAlpha(f.Body.color, a);
-            foreach (var e in f.Eyes) e.color = WithAlpha(e.color, a);
-            foreach (var e in f.FlatEyes) e.color = WithAlpha(e.color, a);
+            foreach (var e in f.Eyes)
+            {
+                e.color = WithAlpha(e.color, a);
+            }
+
+            foreach (var e in f.FlatEyes)
+            {
+                e.color = WithAlpha(e.color, a);
+            }
         }
 
         static Color WithAlpha(Color c, float a)
@@ -416,6 +563,7 @@ namespace ShiftRegister.Game.View
                 apply(t / duration);
                 yield return null;
             }
+
             apply(1f);
         }
 

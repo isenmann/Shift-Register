@@ -30,7 +30,11 @@ namespace ShiftRegister.Game.Hud
         public static bool TryFinishPaste(out string text)
         {
             text = "";
-            if (SRClipboardPasteState() == 0) return false;
+            if (SRClipboardPasteState() == 0)
+            {
+                return false;
+            }
+
             text = SRClipboardTakePaste();
             WebGLInput.captureAllKeyboardInput = true;
             return true;

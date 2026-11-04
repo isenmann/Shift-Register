@@ -39,7 +39,11 @@ namespace ShiftRegister.Game.CustomLevels
         /// <summary>Adds a copy under a new id. Returns null if the library is full.</summary>
         public CustomLevel Add(LevelData level, LevelProof proof, long nowTicks)
         {
-            if (IsFull) return null;
+            if (IsFull)
+            {
+                return null;
+            }
+
             var copy = LevelEdit.Clone(level);
             copy.id = IdPrefix + Guid.NewGuid().ToString("N");
             var entry = new CustomLevel { level = copy, proof = proof, editedTicks = nowTicks };
@@ -51,8 +55,16 @@ namespace ShiftRegister.Game.CustomLevels
         public bool Update(LevelData level, LevelProof proof, long nowTicks)
         {
             var entry = Get(level.id);
-            if (entry == null) return false;
-            if (!LevelEdit.SamePuzzle(entry.level, level)) entry.bestMoves = 0;
+            if (entry == null)
+            {
+                return false;
+            }
+
+            if (!LevelEdit.SamePuzzle(entry.level, level))
+            {
+                entry.bestMoves = 0;
+            }
+
             entry.level = LevelEdit.Clone(level);
             entry.proof = proof;
             entry.editedTicks = nowTicks;
@@ -63,7 +75,11 @@ namespace ShiftRegister.Game.CustomLevels
         public CustomLevel Duplicate(string id, long nowTicks)
         {
             var entry = Get(id);
-            if (entry == null) return null;
+            if (entry == null)
+            {
+                return null;
+            }
+
             var copy = Add(entry.level, entry.proof, nowTicks);
             if (copy != null)
             {
@@ -72,6 +88,7 @@ namespace ShiftRegister.Game.CustomLevels
                     : entry.level.name;
                 copy.level.name = name + " COPY";
             }
+
             return copy;
         }
 
@@ -81,7 +98,11 @@ namespace ShiftRegister.Game.CustomLevels
         public bool RecordSolve(string id, int moves)
         {
             var entry = Get(id);
-            if (entry == null || (entry.bestMoves != 0 && entry.bestMoves <= moves)) return false;
+            if (entry == null || (entry.bestMoves != 0 && entry.bestMoves <= moves))
+            {
+                return false;
+            }
+
             entry.bestMoves = moves;
             return true;
         }
@@ -93,7 +114,11 @@ namespace ShiftRegister.Game.CustomLevels
         public CustomLevel Import(string code, long nowTicks, out ShareCodeError error)
         {
             error = ShareCode.TryDecode(code, out var level);
-            if (error != ShareCodeError.None) return null;
+            if (error != ShareCodeError.None)
+            {
+                return null;
+            }
+
             return Add(level, LevelProof.Replayed, nowTicks);
         }
 
@@ -102,12 +127,18 @@ namespace ShiftRegister.Game.CustomLevels
         {
             switch (error)
             {
-                case ShareCodeError.NotACode: return "That is not a share code.";
-                case ShareCodeError.UnknownVersion: return "This code needs a newer version of the game.";
-                case ShareCodeError.Damaged: return "This code is damaged or cut off.";
-                case ShareCodeError.InvalidLevel: return "This code holds a level that breaks the rules.";
-                case ShareCodeError.BadSolution: return "This code's solution does not solve its level.";
-                default: return "";
+                case ShareCodeError.NotACode:
+                    return "That is not a share code.";
+                case ShareCodeError.UnknownVersion:
+                    return "This code needs a newer version of the game.";
+                case ShareCodeError.Damaged:
+                    return "This code is damaged or cut off.";
+                case ShareCodeError.InvalidLevel:
+                    return "This code holds a level that breaks the rules.";
+                case ShareCodeError.BadSolution:
+                    return "This code's solution does not solve its level.";
+                default:
+                    return "";
             }
         }
 
@@ -142,7 +173,11 @@ namespace ShiftRegister.Game.CustomLevels
 
             int previous = entry.bestMoves;
             bool better = previous == 0 || moves.Count < previous;
-            if (better) entry.bestMoves = moves.Count;
+            if (better)
+            {
+                entry.bestMoves = moves.Count;
+            }
+
             return new LevelResult(moves.Count, d.par, Scoring.Stars(moves.Count, d.par), better, previous);
         }
 
@@ -150,7 +185,11 @@ namespace ShiftRegister.Game.CustomLevels
         public CustomLevel SaveCopy(CustomLevel entry, long nowTicks)
         {
             var copy = Add(entry.level, entry.proof, nowTicks);
-            if (copy != null) copy.bestMoves = entry.bestMoves;
+            if (copy != null)
+            {
+                copy.bestMoves = entry.bestMoves;
+            }
+
             return copy;
         }
 

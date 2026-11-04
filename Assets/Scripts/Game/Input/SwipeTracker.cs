@@ -42,22 +42,37 @@ namespace ShiftRegister.Game.Input
         /// <summary>The next shift the drag has earned, if any; call again until it returns null.</summary>
         public Direction? Step(Vector2 local)
         {
-            if (!Active) return null;
+            if (!Active)
+            {
+                return null;
+            }
+
             Vector2 d = local - origin;
             if (axis == null)
             {
-                if (Mathf.Abs(d.x) < threshold && Mathf.Abs(d.y) < threshold) return null;
+                if (Mathf.Abs(d.x) < threshold && Mathf.Abs(d.y) < threshold)
+                {
+                    return null;
+                }
+
                 axis = Mathf.Abs(d.x) >= Mathf.Abs(d.y) ? Axis.Row : Axis.Column;
             }
 
             float along = axis == Axis.Row ? d.x : d.y;
             float need = Swiped ? step : threshold;
-            if (Mathf.Abs(along) < need) return null;
+            if (Mathf.Abs(along) < need)
+            {
+                return null;
+            }
 
             float sign = Mathf.Sign(along);
             origin += (axis == Axis.Row ? Vector2.right : Vector2.up) * sign * need;
             Swiped = true;
-            if (axis == Axis.Row) return sign > 0 ? Direction.Right : Direction.Left;
+            if (axis == Axis.Row)
+            {
+                return sign > 0 ? Direction.Right : Direction.Left;
+            }
+
             return sign > 0 ? Direction.Up : Direction.Down;
         }
     }

@@ -10,7 +10,11 @@ namespace ShiftRegister.Game.Settings
         public static GameSettings Load()
         {
             string json = PlayerPrefs.GetString(Key, "");
-            if (string.IsNullOrEmpty(json)) return new GameSettings();
+            if (string.IsNullOrEmpty(json))
+            {
+                return new GameSettings();
+            }
+
             try
             {
                 var s = JsonUtility.FromJson<GameSettings>(json) ?? new GameSettings();

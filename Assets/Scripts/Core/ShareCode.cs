@@ -37,30 +37,89 @@ namespace ShiftRegister.Core
         /// <exception cref="ArgumentException">The level is not valid or has no replaying solution.</exception>
         public static string Encode(LevelData d)
         {
-            if (!CanEncode(d, out string why)) throw new ArgumentException(why, nameof(d));
+            if (!CanEncode(d, out string why))
+            {
+                throw new ArgumentException(why, nameof(d));
+            }
+
             Move.TryParseList(d.solution, out var solution);
 
             var b = new List<byte>();
             int flags = 0;
-            if (Any(d.walls)) flags |= FlagWalls;
-            if (Any(d.pins)) flags |= FlagPins;
-            if (HasRows(d.rotateRows)) flags |= FlagRotate;
-            if (HasRows(d.chainTopRows)) flags |= FlagChain;
-            if (HasRows(d.fillLeftRows)) flags |= FlagFillLeft;
-            if (HasRows(d.fillRightRows)) flags |= FlagFillRight;
-            if (d.gates != null && d.gates.Length > 0) flags |= FlagGates;
-            if (d.gatesOnColumnMoves) flags |= FlagGatesOnColumns;
+            if (Any(d.walls))
+            {
+                flags |= FlagWalls;
+            }
+
+            if (Any(d.pins))
+            {
+                flags |= FlagPins;
+            }
+
+            if (HasRows(d.rotateRows))
+            {
+                flags |= FlagRotate;
+            }
+
+            if (HasRows(d.chainTopRows))
+            {
+                flags |= FlagChain;
+            }
+
+            if (HasRows(d.fillLeftRows))
+            {
+                flags |= FlagFillLeft;
+            }
+
+            if (HasRows(d.fillRightRows))
+            {
+                flags |= FlagFillRight;
+            }
+
+            if (d.gates != null && d.gates.Length > 0)
+            {
+                flags |= FlagGates;
+            }
+
+            if (d.gatesOnColumnMoves)
+            {
+                flags |= FlagGatesOnColumns;
+            }
 
             b.Add((byte)flags);
             b.Add((byte)((int)d.lossRule | (d.lossCount << 2)));
             WriteRows(b, d.start);
             WriteRows(b, d.target);
-            if ((flags & FlagWalls) != 0) WriteRows(b, d.walls);
-            if ((flags & FlagPins) != 0) WriteRows(b, d.pins);
-            if ((flags & FlagRotate) != 0) b.Add(RowSet(d.rotateRows));
-            if ((flags & FlagChain) != 0) b.Add(RowSet(d.chainTopRows));
-            if ((flags & FlagFillLeft) != 0) b.Add(RowSet(d.fillLeftRows));
-            if ((flags & FlagFillRight) != 0) b.Add(RowSet(d.fillRightRows));
+            if ((flags & FlagWalls) != 0)
+            {
+                WriteRows(b, d.walls);
+            }
+
+            if ((flags & FlagPins) != 0)
+            {
+                WriteRows(b, d.pins);
+            }
+
+            if ((flags & FlagRotate) != 0)
+            {
+                b.Add(RowSet(d.rotateRows));
+            }
+
+            if ((flags & FlagChain) != 0)
+            {
+                b.Add(RowSet(d.chainTopRows));
+            }
+
+            if ((flags & FlagFillLeft) != 0)
+            {
+                b.Add(RowSet(d.fillLeftRows));
+            }
+
+            if ((flags & FlagFillRight) != 0)
+            {
+                b.Add(RowSet(d.fillRightRows));
+            }
+
             if ((flags & FlagGates) != 0)
             {
                 b.Add((byte)d.gates.Length);
@@ -72,7 +131,10 @@ namespace ShiftRegister.Core
             }
 
             b.Add((byte)solution.Count);
-            foreach (var m in solution) b.Add(m.ToByte());
+            foreach (var m in solution)
+            {
+                b.Add(m.ToByte());
+            }
 
             string name = LevelEdit.SanitizeName(d.name);
             b.Add((byte)name.Length);
@@ -94,12 +156,14 @@ namespace ShiftRegister.Core
                 why = errors[0];
                 return false;
             }
+
             if (!Move.TryParseList(d.solution, out var solution) || solution.Count > MaxSolutionMoves
                 || !Solver.Replays(LevelRules.Compile(d), solution))
             {
                 why = "The level has no solution that replays.";
                 return false;
             }
+
             return true;
         }
 
@@ -108,13 +172,31 @@ namespace ShiftRegister.Core
         {
             level = null;
             string code = RemoveWhitespace(text);
-            if (code.Length < 4 || code[0] != 'S' || code[1] != 'R' || code[3] != '-') return ShareCodeError.NotACode;
-            if (code[2] != Prefix[2]) return char.IsDigit(code[2]) ? ShareCodeError.UnknownVersion : ShareCodeError.NotACode;
+            if (code.Length < 4 || code[0] != 'S' || code[1] != 'R' || code[3] != '-')
+            {
+                return ShareCodeError.NotACode;
+            }
 
-            if (!TryFromBase64Url(code.Substring(Prefix.Length), out var bytes)) return ShareCodeError.NotACode;
-            if (bytes.Length < 2) return ShareCodeError.Damaged;
+            if (code[2] != Prefix[2])
+            {
+                return char.IsDigit(code[2]) ? ShareCodeError.UnknownVersion : ShareCodeError.NotACode;
+            }
+
+            if (!TryFromBase64Url(code.Substring(Prefix.Length), out var bytes))
+            {
+                return ShareCodeError.NotACode;
+            }
+
+            if (bytes.Length < 2)
+            {
+                return ShareCodeError.Damaged;
+            }
+
             int stored = (bytes[bytes.Length - 2] << 8) | bytes[bytes.Length - 1];
-            if (stored != Crc16(bytes, bytes.Length - 2)) return ShareCodeError.Damaged;
+            if (stored != Crc16(bytes, bytes.Length - 2))
+            {
+                return ShareCodeError.Damaged;
+            }
 
             var d = new LevelData();
             var solution = new List<Move>();
@@ -128,16 +210,44 @@ namespace ShiftRegister.Core
                 d.gatesOnColumnMoves = (flags & FlagGatesOnColumns) != 0;
                 ReadRows(reader, d.start);
                 ReadRows(reader, d.target);
-                if ((flags & FlagWalls) != 0) ReadRows(reader, d.walls);
-                if ((flags & FlagPins) != 0) ReadRows(reader, d.pins);
-                if ((flags & FlagRotate) != 0) d.rotateRows = RowList(reader.Next());
-                if ((flags & FlagChain) != 0) d.chainTopRows = RowList(reader.Next());
-                if ((flags & FlagFillLeft) != 0) d.fillLeftRows = RowList(reader.Next());
-                if ((flags & FlagFillRight) != 0) d.fillRightRows = RowList(reader.Next());
+                if ((flags & FlagWalls) != 0)
+                {
+                    ReadRows(reader, d.walls);
+                }
+
+                if ((flags & FlagPins) != 0)
+                {
+                    ReadRows(reader, d.pins);
+                }
+
+                if ((flags & FlagRotate) != 0)
+                {
+                    d.rotateRows = RowList(reader.Next());
+                }
+
+                if ((flags & FlagChain) != 0)
+                {
+                    d.chainTopRows = RowList(reader.Next());
+                }
+
+                if ((flags & FlagFillLeft) != 0)
+                {
+                    d.fillLeftRows = RowList(reader.Next());
+                }
+
+                if ((flags & FlagFillRight) != 0)
+                {
+                    d.fillRightRows = RowList(reader.Next());
+                }
+
                 if ((flags & FlagGates) != 0)
                 {
                     int count = reader.Next();
-                    if (count > MaxGates) return ShareCodeError.InvalidLevel;
+                    if (count > MaxGates)
+                    {
+                        return ShareCodeError.InvalidLevel;
+                    }
+
                     d.gates = new RowGate[count];
                     for (int i = 0; i < count; i++)
                     {
@@ -147,23 +257,41 @@ namespace ShiftRegister.Core
                 }
 
                 int moves = reader.Next();
-                for (int i = 0; i < moves; i++) solution.Add(Move.FromByte(reader.Next()));
+                for (int i = 0; i < moves; i++)
+                {
+                    solution.Add(Move.FromByte(reader.Next()));
+                }
 
                 int nameLength = reader.Next();
                 var name = new StringBuilder();
-                for (int i = 0; i < nameLength; i++) name.Append((char)reader.Next());
+                for (int i = 0; i < nameLength; i++)
+                {
+                    name.Append((char)reader.Next());
+                }
+
                 d.name = LevelEdit.SanitizeName(name.ToString());
             }
             catch (IndexOutOfRangeException)
             {
                 return ShareCodeError.Damaged;
             }
-            if (!reader.AtEnd) return ShareCodeError.Damaged;
+
+            if (!reader.AtEnd)
+            {
+                return ShareCodeError.Damaged;
+            }
 
             d.par = solution.Count;
             d.solution = string.Join(" ", solution);
-            if (LevelEdit.AuthoredErrors(d).Count > 0) return ShareCodeError.InvalidLevel;
-            if (!Solver.Replays(LevelRules.Compile(d), solution)) return ShareCodeError.BadSolution;
+            if (LevelEdit.AuthoredErrors(d).Count > 0)
+            {
+                return ShareCodeError.InvalidLevel;
+            }
+
+            if (!Solver.Replays(LevelRules.Compile(d), solution))
+            {
+                return ShareCodeError.BadSolution;
+            }
 
             level = d;
             return ShareCodeError.None;
@@ -174,11 +302,20 @@ namespace ShiftRegister.Core
             readonly byte[] bytes;
             readonly int end;
             int at;
-            public Reader(byte[] bytes, int end) { this.bytes = bytes; this.end = end; }
+            public Reader(byte[] bytes, int end)
+            {
+                this.bytes = bytes;
+                this.end = end;
+            }
+
             public bool AtEnd => at == end;
             public byte Next()
             {
-                if (at >= end) throw new IndexOutOfRangeException();
+                if (at >= end)
+                {
+                    throw new IndexOutOfRangeException();
+                }
+
                 return bytes[at++];
             }
         }
@@ -186,34 +323,68 @@ namespace ShiftRegister.Core
         static void WriteRows(List<byte> b, int[] rows)
         {
             int present = 0;
-            for (int r = 0; r < BoardBits.Size; r++) if (rows[r] != 0) present |= 1 << r;
+            for (int r = 0; r < BoardBits.Size; r++)
+            {
+                if (rows[r] != 0)
+                {
+                    present |= 1 << r;
+                }
+            }
+
             b.Add((byte)present);
-            for (int r = 0; r < BoardBits.Size; r++) if (rows[r] != 0) b.Add((byte)rows[r]);
+            for (int r = 0; r < BoardBits.Size; r++)
+            {
+                if (rows[r] != 0)
+                {
+                    b.Add((byte)rows[r]);
+                }
+            }
         }
 
         static void ReadRows(Reader reader, int[] rows)
         {
             int present = reader.Next();
-            for (int r = 0; r < BoardBits.Size; r++) rows[r] = (present & (1 << r)) != 0 ? reader.Next() : 0;
+            for (int r = 0; r < BoardBits.Size; r++)
+            {
+                rows[r] = (present & (1 << r)) != 0 ? reader.Next() : 0;
+            }
         }
 
         static byte RowSet(int[] rows)
         {
             int set = 0;
-            foreach (int r in rows) set |= 1 << r;
+            foreach (int r in rows)
+            {
+                set |= 1 << r;
+            }
+
             return (byte)set;
         }
 
         static int[] RowList(int set)
         {
             var rows = new List<int>();
-            for (int r = 0; r < BoardBits.Size; r++) if ((set & (1 << r)) != 0) rows.Add(r);
+            for (int r = 0; r < BoardBits.Size; r++)
+            {
+                if ((set & (1 << r)) != 0)
+                {
+                    rows.Add(r);
+                }
+            }
+
             return rows.ToArray();
         }
 
         static bool Any(int[] rows)
         {
-            foreach (int v in rows) if (v != 0) return true;
+            foreach (int v in rows)
+            {
+                if (v != 0)
+                {
+                    return true;
+                }
+            }
+
             return false;
         }
 
@@ -227,15 +398,25 @@ namespace ShiftRegister.Core
             {
                 crc ^= data[i] << 8;
                 for (int bit = 0; bit < 8; bit++)
+                {
                     crc = (crc & 0x8000) != 0 ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+                }
             }
+
             return crc;
         }
 
         static string RemoveWhitespace(string text)
         {
             var kept = new StringBuilder();
-            foreach (char ch in text ?? "") if (!char.IsWhiteSpace(ch)) kept.Append(ch);
+            foreach (char ch in text ?? "")
+            {
+                if (!char.IsWhiteSpace(ch))
+                {
+                    kept.Append(ch);
+                }
+            }
+
             return kept.ToString();
         }
 
@@ -245,7 +426,11 @@ namespace ShiftRegister.Core
         static bool TryFromBase64Url(string text, out byte[] bytes)
         {
             bytes = null;
-            if (text.Length % 4 == 1) return false;
+            if (text.Length % 4 == 1)
+            {
+                return false;
+            }
+
             string padded = text.Replace('-', '+').Replace('_', '/').PadRight(text.Length + (4 - text.Length % 4) % 4, '=');
             try
             {

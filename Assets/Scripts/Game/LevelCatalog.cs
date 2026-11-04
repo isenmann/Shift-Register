@@ -25,10 +25,15 @@ namespace ShiftRegister.Game
             nextLevel = level + 1;
             while (nextChapter < chapters.Count)
             {
-                if (nextLevel < chapters[nextChapter].levels.Count) return true;
+                if (nextLevel < chapters[nextChapter].levels.Count)
+                {
+                    return true;
+                }
+
                 nextChapter++;
                 nextLevel = 0;
             }
+
             return false;
         }
 
@@ -39,10 +44,18 @@ namespace ShiftRegister.Game
             previousLevel = level - 1;
             while (previousChapter >= 0)
             {
-                if (previousLevel >= 0 && previousLevel < chapters[previousChapter].levels.Count) return true;
+                if (previousLevel >= 0 && previousLevel < chapters[previousChapter].levels.Count)
+                {
+                    return true;
+                }
+
                 previousChapter--;
-                if (previousChapter >= 0) previousLevel = chapters[previousChapter].levels.Count - 1;
+                if (previousChapter >= 0)
+                {
+                    previousLevel = chapters[previousChapter].levels.Count - 1;
+                }
             }
+
             return false;
         }
 
@@ -61,6 +74,7 @@ namespace ShiftRegister.Game
                     return true;
                 }
             }
+
             chapter = level = -1;
             return false;
         }
@@ -72,7 +86,9 @@ namespace ShiftRegister.Game
             {
                 var levels = chapters[c].levels;
                 for (int l = 0; l < levels.Count; l++)
+                {
                     yield return (c, l, levels[l]);
+                }
             }
         }
     }

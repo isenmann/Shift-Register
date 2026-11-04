@@ -47,7 +47,11 @@ namespace ShiftRegister.Game.Hud
         void StartIntro()
         {
             introPlayed = true;
-            if (game.Settings.reducedMotion || titleBits.Count == 0) return;
+            if (game.Settings.reducedMotion || titleBits.Count == 0)
+            {
+                return;
+            }
+
             introRoutine = StartCoroutine(Intro());
         }
 
@@ -70,22 +74,29 @@ namespace ShiftRegister.Game.Hud
                 while (noted < column)
                 {
                     noted++;
-                    if (titleBits.Exists(b => b.Column == noted)) Sfx.PlayShift(Axis.Column, noted, true);
+                    if (titleBits.Exists(b => b.Column == noted))
+                    {
+                        Sfx.PlayShift(Axis.Column, noted, true);
+                    }
                 }
+
                 foreach (var b in titleBits)
                 {
                     float k = Mathf.Clamp01((t - start - b.Column * step) / pop);
                     b.Body.color = k > 0f ? Lcd.Ink : Lcd.Background;
                     b.Body.rectTransform.localScale = Vector3.one * (k > 0f ? EaseOutBack(k) : 1f);
                 }
+
                 if (t >= eyes && !awake)
                 {
                     awake = true;
                     Sfx.Play(Sound.Solved);
                 }
+
                 SetEyes(t >= eyes && !(t >= blinkAt && t < blinkAt + blink));
                 yield return null;
             }
+
             introRoutine = null;
             FinishIntro();
         }
@@ -93,21 +104,33 @@ namespace ShiftRegister.Game.Hud
         /// <summary>Jumps the intro to its end (also when leaving the title screen).</summary>
         void FinishIntro()
         {
-            if (introRoutine != null) StopCoroutine(introRoutine);
+            if (introRoutine != null)
+            {
+                StopCoroutine(introRoutine);
+            }
+
             introRoutine = null;
             introRunning = false;
-            if (reveal != null) reveal.enabled = false;
+            if (reveal != null)
+            {
+                reveal.enabled = false;
+            }
+
             foreach (var b in titleBits)
             {
                 b.Body.color = Lcd.Ink;
                 b.Body.rectTransform.localScale = Vector3.one;
             }
+
             SetEyes(true);
         }
 
         void SetEyes(bool open)
         {
-            foreach (var b in titleBits) b.EyeL.enabled = b.EyeR.enabled = open;
+            foreach (var b in titleBits)
+            {
+                b.EyeL.enabled = b.EyeR.enabled = open;
+            }
         }
 
         static float EaseOutBack(float t)

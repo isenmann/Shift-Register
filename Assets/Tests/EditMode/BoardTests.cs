@@ -34,7 +34,9 @@ namespace ShiftRegister.Tests
                 Move.Column(3, Direction.Up)
             };
             foreach (var m in solution)
+            {
                 Assert.That(board.TryMove(m, out _), Is.True, $"{m}\n{BoardBits.ToPicture(board.Bits)}");
+            }
 
             Assert.That(board.IsSolved, Is.True, BoardBits.ToPicture(board.Bits));
             Assert.That(board.Lost, Is.Zero);
