@@ -48,8 +48,8 @@ namespace ShiftRegister.Game.Hud
         sealed class Screens
         {
             public RectTransform Title, Chapters, Options;
-            /// <summary>Desktop only until the phone layouts of E6.</summary>
             public RectTransform MyLevels;
+            public MyUi My;
             public TextMeshProUGUI TitleProgress, ChaptersStats, SoundText;
             /// <summary>Keyboard hints (absent where there is no room); hidden or reworded on phones.</summary>
             public TextMeshProUGUI ChaptersKeys, OptionsKeys;
@@ -89,7 +89,7 @@ namespace ShiftRegister.Game.Hud
                 s.Title.gameObject.SetActive(cur && screen == GameScreen.Title);
                 s.Chapters.gameObject.SetActive(cur && screen == GameScreen.Chapters);
                 s.Options.gameObject.SetActive(cur && screen == GameScreen.Options);
-                if (s.MyLevels != null) s.MyLevels.gameObject.SetActive(cur && screen == GameScreen.MyLevels);
+                s.MyLevels.gameObject.SetActive(cur && screen == GameScreen.MyLevels);
             }
             if (screen == GameScreen.MyLevels) EnterMyLevels(arriving);
             if (screen == GameScreen.Options) RefreshOptions(true);
@@ -140,7 +140,10 @@ namespace ShiftRegister.Game.Hud
         void Update()
         {
             var kb = Keyboard.current;
-            if (kb == null || flow == null || !built) return;
+            if (flow == null || !built) return;
+            // Phones have no keyboard, but their list still scrolls by dragging.
+            if (flow.Current == GameScreen.MyLevels) UpdateMyLevels(kb);
+            if (kb == null) return;
 
             if (flow.Current == GameScreen.Title && introRunning)
             {
@@ -152,7 +155,7 @@ namespace ShiftRegister.Game.Hud
             {
                 if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame) flow.Resume();
                 else if (kb.cKey.wasPressedThisFrame) flow.Show(GameScreen.Chapters);
-                else if (kb.lKey.wasPressedThisFrame && ScreenFlow.CanEdit) flow.Show(GameScreen.MyLevels);
+                else if (kb.lKey.wasPressedThisFrame) flow.Show(GameScreen.MyLevels);
                 else if (kb.oKey.wasPressedThisFrame) flow.Show(GameScreen.Options);
                 else if (kb.qKey.wasPressedThisFrame) flow.Quit();
                 return;
@@ -160,11 +163,6 @@ namespace ShiftRegister.Game.Hud
             if (flow.Current == GameScreen.Options)
             {
                 UpdateOptions(kb);
-                return;
-            }
-            if (flow.Current == GameScreen.MyLevels)
-            {
-                UpdateMyLevels(kb);
                 return;
             }
             if (flow.Current != GameScreen.Chapters) return;
@@ -213,7 +211,11 @@ namespace ShiftRegister.Game.Hud
             BuildOptions(phoneWide, OptionsMode.PhoneLandscape);
             BuildOptions(phoneTall, OptionsMode.PhonePortrait);
             wide.MyLevels = Frame(canvas, "My Levels", 1280, 720);
-            BuildMyLevels(wide);
+            phoneWide.MyLevels = Frame(canvas, "My Levels (phone landscape)", 915, 412);
+            phoneTall.MyLevels = Frame(canvas, "My Levels (phone portrait)", 412, 915);
+            BuildMyLevels(wide, MyDesktop);
+            BuildMyLevels(phoneWide, MyPhoneLandscape);
+            BuildMyLevels(phoneTall, MyPhonePortrait);
             game.SettingsChanged += OnSettingsChanged;
             ApplyFrame();
         }
@@ -290,7 +292,8 @@ namespace ShiftRegister.Game.Hud
             HudButton.CreateSolid(bottom, "PLAY", x, 650, w, 64, display, 22, () => flow.Resume());
             HudButton.Create(bottom, "CHAPTERS", x, 726, 184, 54, display, 16, () => flow.Show(GameScreen.Chapters));
             HudButton.Create(bottom, "OPTIONS", x + 196, 726, 184, 54, display, 16, () => flow.Show(GameScreen.Options));
-            s.TitleProgress = Ui.Text(bottom, "Progress", x, 796, w, 18, mono, 14, Lcd.Text2, TextAlignmentOptions.Center);
+            HudButton.Create(bottom, "MY LEVELS", x, 788, w, 50, display, 16, () => flow.Show(GameScreen.MyLevels));
+            s.TitleProgress = Ui.Text(bottom, "Progress", x, 848, w, 18, mono, 14, Lcd.Text2, TextAlignmentOptions.Center);
             Credit(bottom, x, 875, w, 13, TextAlignmentOptions.Center);
         }
 
@@ -308,9 +311,10 @@ namespace ShiftRegister.Game.Hud
             var blurb = Ui.Text(a, "Blurb", x, 204, 430, 44, mono, 15, Lcd.Text2, TextAlignmentOptions.TopLeft,
                 "Slide whole rows of bits to draw the picture. Whatever falls off the edge is gone for good.");
             blurb.textWrappingMode = TextWrappingModes.Normal;
-            HudButton.CreateSolid(a, "PLAY", x, 264, 130, 52, display, 20, () => flow.Resume());
-            HudButton.Create(a, "CHAPTERS", x + 140, 264, 150, 52, display, 15, () => flow.Show(GameScreen.Chapters));
-            HudButton.Create(a, "OPTIONS", x + 300, 264, 140, 52, display, 15, () => flow.Show(GameScreen.Options));
+            HudButton.CreateSolid(a, "PLAY", x, 264, 92, 52, display, 16, () => flow.Resume());
+            HudButton.Create(a, "CHAPTERS", x + 98, 264, 122, 52, display, 13, () => flow.Show(GameScreen.Chapters));
+            HudButton.Create(a, "MY LEVELS", x + 226, 264, 124, 52, display, 13, () => flow.Show(GameScreen.MyLevels));
+            HudButton.Create(a, "OPTIONS", x + 356, 264, 100, 52, display, 13, () => flow.Show(GameScreen.Options));
             s.TitleProgress = Ui.Text(a, "Progress", x, 334, 440, 18, mono, 14, Lcd.Text2);
 
             TitleGrid(b, 915f - 32f - 356f, 28f, 38f, 4f, 12f);

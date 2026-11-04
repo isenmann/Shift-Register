@@ -115,6 +115,9 @@ namespace ShiftRegister.Game.Hud
             }
         }
 
+        /// <summary>"1 move", "6 moves": custom levels can have a par of 1.</summary>
+        public static string Moves(int count) => count == 1 ? "1 move" : $"{count} moves";
+
         public static string Hex(Color32 c) => $"#{c.r:X2}{c.g:X2}{c.b:X2}";
     }
 }

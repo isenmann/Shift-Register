@@ -12,7 +12,7 @@ namespace ShiftRegister.Game.Hud
     /// </summary>
     public sealed class ShareDialog : MonoBehaviour
     {
-        const float W = 600f, H = 320f;
+        const float MaxWidth = 600f, H = 320f;
         /// <summary>Longer than any code: the largest level with the longest solution.</summary>
         const int MaxCodeLength = 600;
 
@@ -36,6 +36,7 @@ namespace ShiftRegister.Game.Hud
 
         void Build(RectTransform root, float frameW, float frameH, TMP_FontAsset display, TMP_FontAsset mono)
         {
+            float W = Mathf.Min(MaxWidth, frameW - 24f);
             // Wider than any window, so nothing behind it can be clicked or read through it.
             var shade = Ui.Rect(root, "Shade", -2000f, -2000f, frameW + 4000f, frameH + 4000f).gameObject.AddComponent<Image>();
             var ground = (Color)Lcd.Background;
@@ -105,7 +106,7 @@ namespace ShiftRegister.Game.Hud
             if (ShareCode.CanEncode(level, out string why))
             {
                 exportCode = ShareCode.Encode(level);
-                hint.text = "Send this code to someone. IMPORT in MY LEVELS opens it.";
+                hint.text = "Anyone can open this code with IMPORT.";
                 SetMessage("");
                 primary.Disabled = false;
             }
@@ -129,14 +130,15 @@ namespace ShiftRegister.Game.Hud
             waitingForPaste = false;
             exportCode = "";
             title.text = "IMPORT LEVEL";
-            hint.text = "Paste or type a share code. It starts with SR1-";
+            hint.text = "Paste or type a code. It starts with SR1-";
             SetMessage("");
             field.readOnly = false;
             field.SetTextWithoutNotify("");
             primary.Text = "IMPORT";
             primary.Disabled = false;
             paste.gameObject.SetActive(true);
-            field.ActivateInputField();
+            // On a phone that would cover the dialog with the keyboard before PASTE can be tapped.
+            if (!Input.DeviceMode.IsMobile) field.ActivateInputField();
         }
 
         /// <summary>False if the dialog was not open.</summary>

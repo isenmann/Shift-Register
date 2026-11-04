@@ -30,6 +30,12 @@ namespace ShiftRegister.Tests
             Assert.That(Ui.IsTyping, Is.True);
         }
 
+        [TestCase(1, "1 move")]
+        [TestCase(0, "0 moves")]
+        [TestCase(6, "6 moves")]
+        public void MoveCount_ReadsRight(int count, string expected) =>
+            Assert.That(Ui.Moves(count), Is.EqualTo(expected));
+
         [Test]
         public void Stroke_FirstCellDecidesPaintOrClear()
         {

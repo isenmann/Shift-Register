@@ -691,7 +691,7 @@ namespace ShiftRegister.Game.Hud
                     Scoring.Stars(board.MoveCount, game.Level.par), false, 0);
                 string best = result.IsNewBest && result.PreviousBest > 0 ? " · new best" : "";
                 if (game.JustProved && game.IsCustom) best = " · proven";
-                solvedText.text = $"{result.Moves} moves · par {par}{best}";
+                solvedText.text = $"{Ui.Moves(result.Moves)} · par {par}{best}";
                 for (int i = 0; i < stars.Length; i++) stars[i].enabled = i < result.Stars;
                 bool hasNext = game.HasNextLevel;
                 nextButton.gameObject.SetActive(hasNext);
@@ -755,7 +755,7 @@ namespace ShiftRegister.Game.Hud
             for (int i = 0; i < l.OutlookStars.Length; i++) l.OutlookStars[i].enabled = show && i < earned;
             if (!show) return;
             l.Outlook.text = game.LastResult != null ? $"solved for {earned}"
-                : moves == 0 ? $"{par} moves for {Scoring.MaxStars}"
+                : moves == 0 ? $"{Ui.Moves(par)} for {Scoring.MaxStars}"
                 : earned == Scoring.MaxStars && !l.Phone ? $"still on track for {earned}"
                 : $"on track for {earned}";
         }
