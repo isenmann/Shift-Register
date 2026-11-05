@@ -12,7 +12,8 @@ namespace ShiftRegister.Game.View
     /// at a time until any input wakes them. Bits on a target cell are at home and relax into a squint. Bits that
     /// a move of the selected lines would push off the edge peek over it, and the one an arrow or swipe is about
     /// to drop goes wide-eyed. A solved level gets happy eyes until the board changes. A body at rest never leaves
-    /// its cell or changes size, so the picture stays easy to read.
+    /// its cell or changes size, so the picture stays easy to read; only a hint the player asked for moves it
+    /// (see BoardView.Hint.cs).
     /// </summary>
     public sealed partial class BoardView
     {
@@ -31,6 +32,12 @@ namespace ShiftRegister.Game.View
             public Vector2 PeekLook;
             /// <summary>The move being aimed would drop this bit.</summary>
             public bool PeekWide;
+            /// <summary>Where this bit looks to show a hinted move; zero when it isn't showing one.</summary>
+            public Vector2 HintLook;
+            /// <summary>The hinted move would drop this bit.</summary>
+            public bool HintWide;
+            /// <summary>How long after the bit behind it this bit starts to wobble.</summary>
+            public float HintDelay;
         }
 
         // Timings in seconds, offsets in mockup pixels.
@@ -391,16 +398,17 @@ namespace ShiftRegister.Game.View
                     var face = cell.Face;
                     bool started = now >= face.LookFrom;
                     bool reacting = started && now < face.LookUntil;
+                    bool hinted = face.HintLook != Vector2.zero;
                     Vector2 peek = face.Asleep ? Vector2.zero : face.PeekLook;
-                    Vector2 look = reacting ? face.LookTarget : peek;
-                    bool alarmed = face.PeekWide && !face.Asleep;
+                    Vector2 look = reacting ? face.LookTarget : hinted ? face.HintLook : peek;
+                    bool alarmed = (face.PeekWide && !face.Asleep) || face.HintWide;
+                    float squint = hinted ? 0f : face.SquintTarget;
                     float wide = alarmed || (started && now < face.WideUntil) ? 1f : 0f;
                     bool closed = face.Asleep || face.BlinkLeft > 0f || face.WakeDelay > 0f;
                     float lid = closed ? 1f : 0f;
                     face.BlinkLeft = Mathf.Max(0f, face.BlinkLeft - deltaTime);
                     face.WakeDelay = Mathf.Max(0f, face.WakeDelay - deltaTime);
-                    if (face.Look == look && face.Wide == wide && face.Lid == lid
-                        && face.Squint == face.SquintTarget)
+                    if (face.Look == look && face.Wide == wide && face.Lid == lid && face.Squint == squint)
                     {
                         continue;
                     }
@@ -409,7 +417,7 @@ namespace ShiftRegister.Game.View
                     face.Wide = Mathf.Lerp(face.Wide, wide, blend);
                     float lidRate = closed ? LidCloseRate : LidOpenRate;
                     face.Lid = Mathf.Lerp(face.Lid, lid, 1f - Mathf.Exp(-deltaTime * lidRate));
-                    face.Squint = Mathf.Lerp(face.Squint, face.SquintTarget, 1f - Mathf.Exp(-deltaTime * SquintRate));
+                    face.Squint = Mathf.Lerp(face.Squint, squint, 1f - Mathf.Exp(-deltaTime * SquintRate));
                     if ((face.Look - look).sqrMagnitude < FaceSnap * FaceSnap)
                     {
                         face.Look = look;
@@ -425,9 +433,9 @@ namespace ShiftRegister.Game.View
                         face.Lid = lid;
                     }
 
-                    if (Mathf.Abs(face.Squint - face.SquintTarget) < FaceSnap)
+                    if (Mathf.Abs(face.Squint - squint) < FaceSnap)
                     {
-                        face.Squint = face.SquintTarget;
+                        face.Squint = squint;
                     }
 
                     ApplyEyes(cell.Eyes, face.Look, face.Wide, face.Lid, face.Squint);
@@ -435,6 +443,7 @@ namespace ShiftRegister.Game.View
             }
 
             UpdateLean(now);
+            TickHintWobble(now - hintStart);
         }
 
         /// <summary>The idle clock: one bit blinks every few seconds, and a long pause sends them to sleep.</summary>
@@ -466,7 +475,7 @@ namespace ShiftRegister.Game.View
             if (napIn <= 0f)
             {
                 napIn = NapStep;
-                if (TryPickAwakeBit(out var sleeper))
+                if (TryPickAwakeBit(out var sleeper, skipHinted: true))
                 {
                     sleeper.Face.Asleep = true;
                 }
@@ -474,13 +483,14 @@ namespace ShiftRegister.Game.View
         }
 
         /// <summary>A random bit on the board that is awake.</summary>
-        bool TryPickAwakeBit(out Cell picked)
+        bool TryPickAwakeBit(out Cell picked, bool skipHinted = false)
         {
             picked = null;
             int seen = 0;
             foreach (var cell in cells)
             {
-                if (cell.Bit.activeSelf && !cell.Face.Asleep && faceRandom.Next(++seen) == 0)
+                bool skipped = skipHinted && cell.Face.HintLook != Vector2.zero;
+                if (cell.Bit.activeSelf && !cell.Face.Asleep && !skipped && faceRandom.Next(++seen) == 0)
                 {
                     picked = cell;
                 }
@@ -522,6 +532,7 @@ namespace ShiftRegister.Game.View
             leanCells = 0;
             idleTime = 0f;
             napHeld = false;
+            ClearMoveHint();
             ClearPeeks();
             SetHappy(false);
             if (cells == null)

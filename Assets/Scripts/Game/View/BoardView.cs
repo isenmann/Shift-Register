@@ -45,6 +45,7 @@ namespace ShiftRegister.Game.View
 
         public void Build(LevelRules levelRules)
         {
+            ClearMoveHint();
             ResetAnimationState();
             rules = levelRules;
             if (cellsRoot != null)

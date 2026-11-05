@@ -183,6 +183,7 @@ namespace ShiftRegister.Game
             {
                 boardView.Animate = !Settings.reducedMotion;
                 boardView.BitLife = Settings.bitLife;
+                ShowHintMove();
             }
         }
 
@@ -559,10 +560,15 @@ namespace ShiftRegister.Game
 
         void ShowHintMove()
         {
-            if (hint != null && hint.Status == HintStatus.Move && controls != null)
+            if (hint == null || !hint.IsDone || hint.Status != HintStatus.Move || controls == null)
             {
-                controls.ShowHint(hint.Move, Board.Bits, !Settings.reducedMotion);
+                return;
             }
+
+            boardView.ClearMoveHint();
+            bool byBits = Settings.bitLife && !Settings.reducedMotion
+                && boardView.ShowMoveHint(hint.Move, Board.Bits);
+            controls.ShowHint(hint.Move, Board.Bits, !Settings.reducedMotion, marking: !byBits);
         }
 
         /// <summary>The board changed, so the answer no longer holds.</summary>
@@ -572,6 +578,11 @@ namespace ShiftRegister.Game
             if (controls != null)
             {
                 controls.ClearHint();
+            }
+
+            if (boardView != null)
+            {
+                boardView.ClearMoveHint();
             }
         }
 

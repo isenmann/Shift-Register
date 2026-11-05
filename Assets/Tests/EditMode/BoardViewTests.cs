@@ -13,6 +13,98 @@ namespace ShiftRegister.Tests
         public void TearDown() => Object.DestroyImmediate(gameObject);
 
         [Test]
+        public void HintWobble_SwingsBothWays_InsideTheGapBetweenCells()
+        {
+            Assert.That(BoardView.HintWobble(0f, 0f), Is.Zero);
+            Assert.That(BoardView.HintWobble(0.05f, 0.1f), Is.Zero, "not its turn yet");
+
+            float least = 0f, most = 0f;
+            for (float time = 0f; time < 3f; time += 0.01f)
+            {
+                float offset = BoardView.HintWobble(time, 0f);
+                least = Mathf.Min(least, offset);
+                most = Mathf.Max(most, offset);
+            }
+
+            Assert.That(most, Is.EqualTo(4f).Within(0.01f));
+            Assert.That(least, Is.EqualTo(-1f).Within(0.01f));
+            Assert.That(BoardView.HintScale(4f, Axis.Row).x * 46f, Is.LessThan(49f), "stretch included");
+        }
+
+        [Test]
+        public void MoveHint_WobblesOnlyTheCarriedBits_AsAWave_AndClearPutsThemBack()
+        {
+            var view = BuildHeart(out var board);
+            Assert.That(view.ShowMoveHint(Move.Row(5, Direction.Left), board.Bits), Is.True);
+            Assert.That(CountCells(view.IsBitHinted), Is.EqualTo(4), "row 6 is 00001111");
+
+            view.TickHintWobble(0.5f);
+            Assert.That(view.BitOffset(5, 7).x, Is.EqualTo(-4f / 46f).Within(0.001f), "the back of the line, first");
+            Assert.That(view.BitOffset(5, 4).x, Is.GreaterThan(view.BitOffset(5, 7).x), "the front is still behind");
+            Assert.That(view.BitOffset(4, 3), Is.EqualTo(Vector2.zero), "another row keeps still");
+
+            view.ClearMoveHint();
+            Assert.That(CountCells(view.IsBitHinted), Is.Zero);
+            Assert.That(view.BitOffset(5, 7), Is.EqualTo(Vector2.zero));
+        }
+
+        [Test]
+        public void MoveHint_KeepsHintedBitsAwake_WithOpenEyes()
+        {
+            var view = BuildHeart(out var board);
+            int bits = CountCells(board.GetCell);
+            view.IdleLife = true;
+            view.ShowMoveHint(Move.Row(5, Direction.Left), board.Bits);
+            Run(view, 10.2f + 0.35f * bits);
+
+            Assert.That(CountCells(view.IsBitAsleep), Is.EqualTo(bits - 4), "everyone else naps");
+            Assert.That(view.EyeSquint(5, 4), Is.Zero, "at home on the target, but showing the hint");
+
+            view.ClearMoveHint();
+            Run(view, 2f);
+            Assert.That(view.EyeSquint(5, 4), Is.GreaterThan(0.9f), "relaxes again");
+        }
+
+        [Test]
+        public void MoveHint_OnAnEmptyRow_ShowsTheBitToCome_OrSaysItCannotShowIt()
+        {
+            var level = TestLevels.Heart();
+            level.fillLeftRows = new[] { 7 };
+            var board = new Board(level);
+            gameObject = new GameObject("Board");
+            var view = gameObject.AddComponent<BoardView>();
+            view.Build(board.Rules);
+            view.Show(board.Bits);
+
+            Assert.That(view.ShowMoveHint(Move.Row(7, Direction.Right), board.Bits), Is.True, "1-IN feeds a bit");
+            Assert.That(CountCells(view.IsBitHinted), Is.Zero);
+            Assert.That(view.BitsToCome, Is.EqualTo(1));
+
+            view.ClearMoveHint();
+            Assert.That(view.BitsToCome, Is.Zero);
+            Assert.That(view.ShowMoveHint(Move.Row(7, Direction.Left), board.Bits), Is.False, "nothing to show");
+        }
+
+        [Test]
+        public void Controls_WithoutMarking_FillTheArrowOnly()
+        {
+            gameObject = new GameObject("Board");
+            var controls = gameObject.AddComponent<BoardControls>();
+            var rules = LevelRules.Compile(TestLevels.Heart());
+            controls.Build(rules);
+            var move = Move.Row(5, Direction.Left);
+            controls.ShowHint(move, rules.Start, pulse: true, marking: false);
+
+            Assert.That(controls.ShownHint, Is.EqualTo(move));
+            Assert.That(controls.HintChevrons, Is.Zero);
+            controls.Highlight(-1, 0, 0);
+            foreach (var button in controls.Buttons)
+            {
+                Assert.That(button.Fill.enabled, Is.EqualTo(button.Move.Equals(move)), button.Move.ToString());
+            }
+        }
+
+        [Test]
         public void Show_MatchesBoardBits_AndMarksTargetGhosts()
         {
             var board = new Board(TestLevels.Heart());

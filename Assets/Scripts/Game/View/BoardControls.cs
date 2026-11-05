@@ -49,7 +49,7 @@ namespace ShiftRegister.Game.View
         public Move? ShownHint => hint;
 
         /// <summary>The chevrons of the shown hint, one per cell that moves.</summary>
-        public int HintChevrons => hint.HasValue ? hintParts.Count - 1 : 0;
+        public int HintChevrons => Mathf.Max(0, hintParts.Count - 1);
 
         /// <param name="withArrows">False for the level editor, where the board is painted and nothing shifts.</param>
         /// <param name="tightBelts">Belts hug the cells, leaving the arrow button slots free for the editor's own
@@ -106,11 +106,12 @@ namespace ShiftRegister.Game.View
         }
 
         /// <summary>
-        /// Marks a hinted move: an outline around the line part, a chevron on each of its cells pointing the
-        /// way it shifts, and its arrow button filled.
+        /// Marks a hinted move: its arrow button filled and, unless the bits show it themselves, an outline around
+        /// the line part and a chevron on each of its cells pointing the way it shifts.
         /// </summary>
         /// <param name="bits">The board now: a chevron is light on a bit and ink on an empty cell.</param>
-        public void ShowHint(Move move, ulong bits, bool pulse)
+        /// <param name="marking">False leaves out the outline and chevrons.</param>
+        public void ShowHint(Move move, ulong bits, bool pulse, bool marking = true)
         {
             ClearHint();
             if (rules == null || !PartRect(move.Axis, move.Line, move.Segment, out var rect))
@@ -120,6 +121,12 @@ namespace ShiftRegister.Game.View
 
             hint = move;
             hintPulses = pulse;
+            shownHover = int.MinValue;
+            if (!marking)
+            {
+                return;
+            }
+
             var outline = Renderer(hintRoot, "Hint outline", ProceduralSprites.RoundedOutline(
                 rect.width * PixelsPerUnit, rect.height * PixelsPerUnit, OutlineRadius, HintOutlineWidth), Lcd.Ink,
                 (int)Layer.Outline);
@@ -147,8 +154,6 @@ namespace ShiftRegister.Game.View
                     hintParts.Add(chevron);
                 }
             }
-
-            shownHover = int.MinValue;
         }
 
         public void ClearHint()
