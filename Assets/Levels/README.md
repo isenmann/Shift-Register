@@ -20,7 +20,7 @@ Only `start` and `target` are required; everything else defaults to off.
 | `gates` | `{ "row": 1, "op": 1, "mask": 128 }`, applied in order after the row moves. `op`: 0 AND, 1 OR, 2 XOR, 3 NOT pad. |
 | `gatesOnColumnMoves` | `true`: gates also apply to rows a column move passes through. |
 | `lossRule`, `lossCount` | `lossRule` 0 any loss, 1 at most `lossCount` bits ("lose 0 bits"), 2 exactly `lossCount` bits. |
-| `par`, `solution` | Written by the tool. |
+| `par`, `solution` | Written by the tool. The in-game hint follows `solution`. |
 
 ## Player levels
 
@@ -29,6 +29,7 @@ files here. They live in PlayerPrefs under `ShiftRegister.CustomLevels.v1` with 
 and never count toward stars or unlocks. A level is proven either by the solver (par is the true
 minimum) or by a recorded solution that replays (par is the best solve so far). That solution comes from
 beating the level in test play, from a share code, or from the scramble of a hard random level.
+Hints need a stored solution, so an unproven level has none.
 
 Share codes are `SR1-` plus base64url bytes (`Assets/Scripts/Core/ShareCode.cs`). A code carries its
 solution, which is replayed on import, so a code that does not solve its own level is refused. Authored
