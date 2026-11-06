@@ -10,8 +10,8 @@ namespace ShiftRegister.Game.Input
     /// <summary>
     /// Keyboard and pointer controls. A cursor cell picks the row and column:
     /// arrows / WASD move it, Shift + arrow shifts the line part under it.
-    /// The pointer moves the cursor (hover or tap) and presses the arrow buttons; in mobile mode
-    /// (<see cref="DeviceMode"/>) dragging a row or column shifts it (<see cref="SwipeTracker"/>).
+    /// The pointer moves the cursor (hover or tap) and presses the arrow buttons;
+    /// dragging a row or column shifts it (<see cref="SwipeTracker"/>).
     /// Z / Backspace undoes, R resets, T asks for a hint, Enter / Space / N goes to the next level once solved.
     /// </summary>
     public sealed class BoardInput : MonoBehaviour
@@ -218,7 +218,7 @@ namespace ShiftRegister.Game.Input
         }
 
         /// <summary>
-        /// One frame of pointer input: hover, taps on cells and arrow buttons, and (mobile) swipes.
+        /// One frame of pointer input: hover, taps on cells and arrow buttons, and drags.
         /// Public so play-mode checks can drive it without input devices.
         /// </summary>
         public void Feed(Vector2 screen, bool down, bool justPressed, bool overUi)
@@ -276,7 +276,7 @@ namespace ShiftRegister.Game.Input
             {
                 row = hitRow;
                 column = hitColumn;
-                if (pressed && DeviceMode.IsMobile)
+                if (pressed)
                 {
                     swipe.Begin(local, hitRow, hitColumn);
                 }

@@ -21,9 +21,9 @@ namespace ShiftRegister.Game.Hud
 
         public static readonly Entry[] Controls =
         {
-            new Entry("Shift + arrows", "shift the row or column under the cursor"),
+            new Entry("Shift + arrows / WASD", "shift the row or column under the cursor"),
             new Entry("Arrows / WASD", "move the cursor"),
-            new Entry("Click an arrow", "shift that row or column"),
+            new Entry("Drag a line or click an arrow", "shift that row or column"),
             new Entry("Z · R", "undo · reset the level"),
             new Entry("T", "hint: shows one move, but the solve earns 1 star"),
             new Entry("Enter", "next level, once solved"),

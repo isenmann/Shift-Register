@@ -4,7 +4,7 @@ namespace ShiftRegister.Game.Input
 {
     /// <summary>
     /// Mobile mode: the native Android (or iOS) app, or the web build in a phone or tablet browser.
-    /// It brings swipe input and the portrait layouts; desktop browsers keep the keyboard and mouse UI.
+    /// It drops the arrow buttons and brings the portrait layouts; desktop browsers keep the keyboard and mouse UI.
     /// </summary>
     public static class DeviceMode
     {
