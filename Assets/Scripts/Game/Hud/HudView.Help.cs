@@ -10,10 +10,10 @@ using UnityEngine.UI;
 namespace ShiftRegister.Game.Hud
 {
     /// <summary>
-    /// The help panel over the level: the controls (keys, or swipes and taps on phones and tablets),
-    /// then the goal and the mechanics on this board. Landscape shows them side by side, portrait one
-    /// under the other. HELP, H or ? toggles it; Esc, Enter or a click outside closes it. It opens by
-    /// itself the first time each chapter's first level is played.
+    /// The help panel over the level: the chapter, the goal and the mechanics on this board, then the
+    /// controls (keys, or swipes and taps on phones and tablets). Landscape shows them side by side,
+    /// portrait one under the other. HELP, H or ? toggles it; Esc, Enter or a click outside closes it. It
+    /// opens by itself the first time each chapter's first level is played.
     /// </summary>
     public sealed partial class HudView
     {
@@ -46,26 +46,26 @@ namespace ShiftRegister.Game.Hud
 
             // Panels are the backdrop's siblings, so clicks on them do not reach the backdrop's handler.
             helpWide = HelpPanelFrame("Landscape", 1280, 720, 190, 96, 900, 528);
-            Header(helpWide.Frame, "Controls Header", 32, 82, "CONTROLS");
-            Header(helpWide.Frame, "Board Header", 456, 82, "ON THIS BOARD");
-            helpWide.Controls = Column(helpWide.Frame, "Controls", 32, 116, 380, 360);
-            helpWide.Board = Column(helpWide.Frame, "Board Entries", 456, 116, 412, 356);
+            Header(helpWide.Frame, "Board Header", 32, 82, "ON THIS BOARD");
+            Header(helpWide.Frame, "Controls Header", 476, 82, "CONTROLS");
+            helpWide.Board = Column(helpWide.Frame, "Board Entries", 32, 116, 412, 356);
+            helpWide.Controls = Column(helpWide.Frame, "Controls", 476, 116, 392, 360);
             helpWide.CloseHint = Ui.Text(helpWide.Frame, "Close Hint", 32, 528 - 44, 836, 20, mono, 13, Lcd.Text3);
 
             // Phones, in phone units (412 short side): side by side when held sideways, stacked when upright.
             helpPhoneWide = HelpPanelFrame("Phone Landscape", 915, 412, 16, 12, 883, 388, phone: true);
-            Header(helpPhoneWide.Frame, "Controls Header", 16, 60, "CONTROLS", 13f);
-            Header(helpPhoneWide.Frame, "Board Header", 440, 60, "ON THIS BOARD", 13f);
-            helpPhoneWide.Controls = Column(helpPhoneWide.Frame, "Controls", 16, 84, 400, 270);
-            helpPhoneWide.Board = Column(helpPhoneWide.Frame, "Board Entries", 440, 84, 427, 270);
+            Header(helpPhoneWide.Frame, "Board Header", 16, 60, "ON THIS BOARD", 13f);
+            Header(helpPhoneWide.Frame, "Controls Header", 467, 60, "CONTROLS", 13f);
+            helpPhoneWide.Board = Column(helpPhoneWide.Frame, "Board Entries", 16, 84, 427, 270);
+            helpPhoneWide.Controls = Column(helpPhoneWide.Frame, "Controls", 467, 84, 400, 270);
             helpPhoneWide.CloseHint = Ui.Text(helpPhoneWide.Frame, "Close Hint", 16, 388 - 28, 851, 18, mono, 13,
                 Lcd.Text3);
 
             helpPhoneTall = HelpPanelFrame("Phone Portrait", 412, 915, 8, 40, 396, 835, phone: true);
-            Header(helpPhoneTall.Frame, "Controls Header", 16, 66, "CONTROLS", 13f);
-            helpPhoneTall.Controls = Column(helpPhoneTall.Frame, "Controls", 16, 90, 364, 250);
-            Header(helpPhoneTall.Frame, "Board Header", 16, 352, "ON THIS BOARD", 13f);
-            helpPhoneTall.Board = Column(helpPhoneTall.Frame, "Board Entries", 16, 376, 364, 420);
+            Header(helpPhoneTall.Frame, "Board Header", 16, 66, "ON THIS BOARD", 13f);
+            helpPhoneTall.Board = Column(helpPhoneTall.Frame, "Board Entries", 16, 90, 364, 420);
+            Header(helpPhoneTall.Frame, "Controls Header", 16, 522, "CONTROLS", 13f);
+            helpPhoneTall.Controls = Column(helpPhoneTall.Frame, "Controls", 16, 546, 364, 250);
             helpPhoneTall.CloseHint = Ui.Text(helpPhoneTall.Frame, "Close Hint", 16, 835 - 30, 364, 18, mono, 13,
                 Lcd.Text3);
 
@@ -108,7 +108,7 @@ namespace ShiftRegister.Game.Hud
         }
 
         /// <summary>
-        /// Fills the visible panel for the current level and device: controls, chapter, goal, mechanics.
+        /// Fills the visible panel for the current level and device: chapter, goal, mechanics, controls.
         /// </summary>
         void FillHelp()
         {
