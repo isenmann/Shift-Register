@@ -15,10 +15,11 @@ namespace ShiftRegister.Game.Hud
         const float MaxWidth = 600f, DialogHeight = 320f;
         /// <summary>Longer than any code: the largest level with the longest solution.</summary>
         const int MaxCodeLength = 600;
+        const float GalleryWidth = 150f;
 
         TMP_InputField field;
         TextMeshProUGUI title, hint, message;
-        HudButton primary, paste;
+        HudButton primary, paste, gallery;
         Func<string, string> import;
         string exportCode;
         bool waitingForPaste;
@@ -50,6 +51,9 @@ namespace ShiftRegister.Game.Hud
             Ui.Frame(root, "Panel Frame", x, y, dialogWidth, DialogHeight, 10f, 3f, Lcd.Ink);
             title = Ui.Text(root, "Title", x + 24, y + 20, dialogWidth - 48, 26, display, 20, Lcd.Ink);
             hint = Ui.Text(root, "Hint", x + 24, y + 50, dialogWidth - 48, 20, mono, 13, Lcd.Text2);
+            // Beside the title, where it fits even the phone's narrow dialog.
+            gallery = HudButton.Create(root, "SHARED LEVELS", x + dialogWidth - 24f - GalleryWidth, y + 16,
+                GalleryWidth, 30, display, 12, () => WebLink.Open(WebLink.SharedLevelsUrl));
 
             field = CodeField(root, x + 24, y + 78, dialogWidth - 48, 118, mono);
             field.onSubmit.AddListener(_ =>
@@ -112,6 +116,7 @@ namespace ShiftRegister.Game.Hud
             field.readOnly = true;
             primary.Text = "COPY";
             paste.gameObject.SetActive(false);
+            gallery.gameObject.SetActive(false);
 
             if (ShareCode.CanEncode(level, out string reason))
             {
@@ -149,6 +154,7 @@ namespace ShiftRegister.Game.Hud
             primary.Text = "IMPORT";
             primary.Disabled = false;
             paste.gameObject.SetActive(true);
+            gallery.gameObject.SetActive(true);
             // On a phone that would cover the dialog with the keyboard before PASTE can be tapped.
             if (!Input.DeviceMode.IsMobile)
             {

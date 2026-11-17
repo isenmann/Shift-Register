@@ -1,6 +1,7 @@
 // Clipboard for the web build. Reading the clipboard needs a permission prompt and Unity keeps Ctrl+V
 // from reaching the page, so pasting goes through a small HTML box, where the browser's own paste works.
 // Copying tries the clipboard API, then execCommand, and last shows the same box with the text selected.
+// SROpenTab (links to the shared levels page) lives here too, because it falls back to the same box.
 var ShiftRegisterClipboard = {
   $SRDefineBox: function () {
     if (window["__srShareBox"]) return;
@@ -91,6 +92,21 @@ var ShiftRegisterClipboard = {
   // 0 = the box is open, 1 = it closed and the result can be taken.
   SRClipboardPasteState: function () {
     return window["__srPasteDone"] ? 1 : 0;
+  },
+
+  // Opens a page in a new tab. If the browser or the host page's iframe blocks the popup,
+  // the box shows the address to copy instead.
+  SROpenTab__deps: ["$SRDefineBox"],
+  SROpenTab: function (urlPtr) {
+    var url = UTF8ToString(urlPtr);
+    var tab = null;
+    try { tab = window.open(url, "_blank"); } catch (e) { tab = null; }
+    if (tab) {
+      try { tab.opener = null; } catch (e) { }
+      return;
+    }
+    SRDefineBox();
+    window["__srShareBox"]("Open this address in your browser", url, true, null);
   },
 
   SRClipboardTakePaste: function () {
