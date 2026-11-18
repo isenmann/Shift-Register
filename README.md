@@ -106,8 +106,11 @@ run **Shift Register > Validate and Solve Levels**, which checks every level and
 ## License
 
 Shift Register is free software: you can redistribute it and/or modify it under the terms of the
-[GNU General Public License](LICENSE), version 3 or (at your option) any later version. See
-[COPYING.md](COPYING.md) for the notice.
+[GNU General Public License](LICENSE), version 3 or (at your option) any later version, with an
+additional permission to combine it with the Unity engine and Unity packages. See [COPYING.md](COPYING.md)
+for the notice.
+
+The dev.play.repeat logo is not covered by the GPL: all rights reserved, so forks must remove or replace it.
 
 The fonts [Silkscreen](https://github.com/googlefonts/silkscreen) and
 [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) are under the SIL Open Font License 1.1, and the
