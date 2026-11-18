@@ -10,7 +10,7 @@
   <a href="COPYING.md"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue?style=flat-square" alt="License: GPL-3.0-or-later"></a>
 </p>
 
-**Shift Register** is a calm puzzle game on an 8×8 board of tiny bit creatures. You have exactly one move:
+<a href="https://devplayrepeat.itch.io/shift-register">**Shift Register**</a> is a calm puzzle game on an 8×8 board of tiny bit creatures. You have exactly one move:
 **shift**. Push a row left or right, or a column up or down, one cell at a time, until the board matches the
 target picture. Bits that slide past the edge drop into the bit bucket and never come back.
 
